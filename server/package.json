@@ -1,0 +1,20 @@
+{
+  "name": "secureflow-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "SecureFlow AI backend API",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "seed": "node src/seed.js --force",
+    "test": "node --test --test-concurrency=1"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "zod": "^3.23.8"
+  }
+}

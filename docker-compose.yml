@@ -1,0 +1,28 @@
+services:
+  secureflow:
+    build: .
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      SF_DATA_DIR: /data
+      # Demo mode is off in production. Set SF_DEMO_MODE=true only for a
+      # throwaway demo deployment with synthetic data.
+      SF_DEMO_MODE: ${SF_DEMO_MODE:-}
+      # Required on an empty database when demo mode is off.
+      SF_BOOTSTRAP_EMAIL: ${SF_BOOTSTRAP_EMAIL:-}
+      SF_BOOTSTRAP_PASSWORD: ${SF_BOOTSTRAP_PASSWORD:-}
+      SF_BOOTSTRAP_ORG: ${SF_BOOTSTRAP_ORG:-SecureFlow Workspace}
+      SF_BOOTSTRAP_NAME: ${SF_BOOTSTRAP_NAME:-Workspace owner}
+      # Optional providers. Leave empty to keep lookups local.
+      VIRUSTOTAL_API_KEY: ${VIRUSTOTAL_API_KEY:-}
+      ABUSEIPDB_API_KEY: ${ABUSEIPDB_API_KEY:-}
+      # Optional separate MiroFish service (AGPL-3.0), not started by this compose file.
+      MIROFISH_BASE_URL: ${MIROFISH_BASE_URL:-}
+    volumes:
+      - secureflow-data:/data
+    restart: unless-stopped
+
+volumes:
+  secureflow-data:

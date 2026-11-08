@@ -1,0 +1,16 @@
+node_modules/
+web/dist/
+server/data/
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.local
+*.log
+run.log
+err.log
+third_party/**/node_modules/
+third_party/**/.venv/
+third_party/**/__pycache__/
+.DS_Store
+Thumbs.db

@@ -3,13 +3,14 @@ import { existsSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { migrate, db, get, nowIso } from './db.js';
-import { attachUser, checkOrigin, requireAuth, SESSION_COOKIE } from './lib/auth.js';
+import { attachUser, checkOrigin, requireAuth, requireCsrf, SESSION_COOKIE } from './lib/auth.js';
 import { errorHandler, notFoundHandler } from './lib/http.js';
 import { rateLimit } from './lib/ratelimit.js';
 import { bus } from './lib/events.js';
 import { seed } from './seed.js';
 import { isDemoMode } from './lib/demo.js';
 import { createBootstrapAdmin } from './lib/bootstrap.js';
+import { checkProductionConfig } from './lib/config.js';
 import { recoverInterruptedSimulations, SCENARIOS, DISCLAIMER } from './services/simulation.js';
 
 import authRoutes from './routes/auth.js';
@@ -34,6 +35,13 @@ const app = express();
 const PORT = Number(process.env.PORT ?? 4000);
 
 migrate();
+const configCheck = checkProductionConfig();
+for (const warning of configCheck.warnings) console.warn(`[config] ${warning}`);
+if (configCheck.errors.length) {
+  for (const error of configCheck.errors) console.error(`[config] ${error}`);
+  console.error('[startup] Refusing to start with an insecure production configuration.');
+  process.exit(1);
+}
 const demoMode = isDemoMode();
 const firstRun = !get('SELECT id FROM organizations LIMIT 1');
 if (firstRun) {
@@ -50,7 +58,7 @@ if (firstRun) {
       process.exit(1);
     }
     try {
-      createBootstrapAdmin({
+      await createBootstrapAdmin({
         email,
         password,
         name: process.env.SF_BOOTSTRAP_NAME || 'Workspace owner',
@@ -69,12 +77,13 @@ if (process.env.SF_TRUST_PROXY === 'true') app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
 app.use((req, res, next) => {
+  req.requestId = crypto.randomUUID();
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-  res.setHeader('X-Request-Id', crypto.randomUUID());
+  res.setHeader('X-Request-Id', req.requestId);
   next();
 });
 
@@ -82,6 +91,7 @@ app.use(express.json({ limit: '8mb' }));
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 app.use(attachUser);
 app.use(checkOrigin);
+app.use(requireCsrf);
 app.use('/api', rateLimit({ windowMs: 60_000, max: 1200, keyPrefix: 'api' }));
 
 /** Lightweight liveness probe. Contains no tenant data. */

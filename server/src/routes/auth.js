@@ -2,8 +2,8 @@ import { Router } from 'express';
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { all, get, run, newId, nowIso, parseJson, transaction } from '../db.js';
-import { asyncHandler, badRequest, conflict, created, ok, unauthorized, validate } from '../lib/http.js';
-import { hashPassword, verifyPassword, createSession, destroySession, requireAuth, parseCookies, hashToken, SESSION_COOKIE } from '../lib/auth.js';
+import { asyncHandler, badRequest, conflict, created, ok, unauthorized, validate, tooMany } from '../lib/http.js';
+import { hashPasswordAsync, verifyPasswordAsync, createSession, destroySession, requireAuth, parseCookies, hashToken, SESSION_COOKIE, setMfaCookie, clearMfaCookie } from '../lib/auth.js';
 import { audit } from '../lib/audit.js';
 import { rateLimit } from '../lib/ratelimit.js';
 import { DEMO_ACCOUNTS, isDemoMode } from '../lib/demo.js';
@@ -54,6 +54,7 @@ router.post('/register', rateLimit({ windowMs: 60 * 60 * 1000, max: 6, keyPrefix
   const orgId = newId('org');
   const userId = newId('usr');
   const ts = nowIso();
+  const passwordHash = await hashPasswordAsync(body.password);
   transaction(() => {
     let slug = slugBase;
     let n = 1;
@@ -65,7 +66,7 @@ router.post('/register', rateLimit({ windowMs: 60 * 60 * 1000, max: 6, keyPrefix
     run(
       `INSERT INTO users (id, org_id, email, name, password_hash, role, status, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, 'admin', 'active', ?, ?)`,
-      userId, orgId, body.email, body.name, hashPassword(body.password), ts, ts,
+      userId, orgId, body.email, body.name, passwordHash, ts, ts,
     );
   });
   const user = get('SELECT * FROM users WHERE id = ?', userId);
@@ -83,7 +84,19 @@ router.post('/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 12, keyPrefix: 
     newId('att'), body.email, ip, success ? 1 : 0, nowIso(),
   );
 
-  if (!user || !verifyPassword(body.password, user.password_hash)) {
+  // Account based throttling: distributed attempts against one mailbox cannot
+  // hide behind a rotating IP pool.
+  const windowStart = new Date(Date.now() - 15 * 60_000).toISOString();
+  const recentFailures = get(
+    'SELECT COUNT(*) AS c FROM login_attempts WHERE email = ? AND success = 0 AND created_at >= ?',
+    body.email, windowStart,
+  ).c;
+  if (recentFailures >= 10) {
+    record(0);
+    throw tooMany('Too many failed sign-in attempts for this account. Try again in 15 minutes.');
+  }
+
+  if (!user || !await verifyPasswordAsync(body.password, user.password_hash)) {
     record(0);
     // Same message and status for unknown email and wrong password.
     throw unauthorized('Email or password is incorrect');
@@ -105,7 +118,7 @@ router.post('/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 12, keyPrefix: 
       `INSERT INTO mfa_challenges (id, user_id, expires_at, attempts, created_at) VALUES (?, ?, ?, 0, ?)`,
       hashToken(challenge), user.id, new Date(Date.now() + 5 * 60_000).toISOString(), nowIso(),
     );
-    res.setHeader('Set-Cookie', `sf_mfa=${challenge}; Path=/; HttpOnly; SameSite=Lax; Max-Age=300`);
+    res.append('Set-Cookie', `sf_mfa=${challenge}; Path=/; HttpOnly; SameSite=Strict; Max-Age=300${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`);
     audit(req, 'auth.mfa_challenge', 'user', user.id, {});
     return ok(res, { mfaRequired: true });
   }
@@ -143,10 +156,10 @@ router.patch('/me', requireAuth, asyncHandler(async (req, res) => {
   }), req.body);
   const user = get('SELECT * FROM users WHERE id = ?', req.user.id);
   if (body.newPassword) {
-    if (!body.currentPassword || !verifyPassword(body.currentPassword, user.password_hash)) {
+    if (!body.currentPassword || !await verifyPasswordAsync(body.currentPassword, user.password_hash)) {
       throw badRequest('Current password is incorrect');
     }
-    run('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?', hashPassword(body.newPassword), nowIso(), user.id);
+    run('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?', await hashPasswordAsync(body.newPassword), nowIso(), user.id);
     // Rotate every session: a password change must invalidate any stolen cookie.
     run('DELETE FROM sessions WHERE user_id = ?', user.id);
     createSession({ ...user, password_hash: undefined }, req, res);
@@ -203,7 +216,7 @@ router.post('/mfa/verify', rateLimit({ windowMs: 10 * 60 * 1000, max: 20, keyPre
   }
 
   run('DELETE FROM mfa_challenges WHERE id = ?', challenge.id);
-  res.setHeader('Set-Cookie', 'sf_mfa=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+  clearMfaCookie(res);
   createSession(user, req, res);
   run('UPDATE users SET last_login_at = ?, updated_at = ? WHERE id = ?', nowIso(), nowIso(), user.id);
   audit(req, 'auth.login_mfa', 'user', user.id, { usedRecoveryCode: usedRecovery });
@@ -216,7 +229,7 @@ router.post('/mfa/setup', requireAuth, asyncHandler(async (req, res) => {
   const user = get('SELECT * FROM users WHERE id = ? AND org_id = ?', req.user.id, req.user.orgId);
   if (!user) throw unauthorized();
   if (user.mfa_enabled === 1) throw badRequest('Multi-factor authentication is already enabled');
-  if (!verifyPassword(body.password, user.password_hash)) throw badRequest('Password is incorrect');
+  if (!await verifyPasswordAsync(body.password, user.password_hash)) throw badRequest('Password is incorrect');
 
   const secret = generateSecret();
   const recoveryCodes = generateRecoveryCodes();
@@ -247,7 +260,7 @@ router.post('/mfa/disable', requireAuth, rateLimit({ windowMs: 10 * 60 * 1000, m
   const body = validate(z.object({ password: z.string().min(1).max(200), code: z.string().trim().min(6).max(10) }), req.body);
   const user = get('SELECT * FROM users WHERE id = ? AND org_id = ?', req.user.id, req.user.orgId);
   if (!user || user.mfa_enabled !== 1) throw badRequest('Multi-factor authentication is not enabled');
-  if (!verifyPassword(body.password, user.password_hash)) throw badRequest('Password is incorrect');
+  if (!await verifyPasswordAsync(body.password, user.password_hash)) throw badRequest('Password is incorrect');
   if (!verifyTotp(user.mfa_secret, body.code)) throw badRequest('That code is not valid');
   run('UPDATE users SET mfa_enabled = 0, mfa_secret = NULL, mfa_recovery = \'[]\', updated_at = ? WHERE id = ?', nowIso(), user.id);
   audit(req, 'auth.mfa_disabled', 'user', user.id, {});
@@ -258,7 +271,7 @@ router.post('/mfa/recovery-codes', requireAuth, asyncHandler(async (req, res) =>
   const body = validate(z.object({ password: z.string().min(1).max(200) }), req.body);
   const user = get('SELECT * FROM users WHERE id = ? AND org_id = ?', req.user.id, req.user.orgId);
   if (!user || user.mfa_enabled !== 1) throw badRequest('Enable multi-factor authentication first');
-  if (!verifyPassword(body.password, user.password_hash)) throw badRequest('Password is incorrect');
+  if (!await verifyPasswordAsync(body.password, user.password_hash)) throw badRequest('Password is incorrect');
   const codes = generateRecoveryCodes();
   run('UPDATE users SET mfa_recovery = ?, updated_at = ? WHERE id = ?', JSON.stringify(codes.map(hashRecoveryCode)), nowIso(), user.id);
   audit(req, 'auth.mfa_recovery_regenerated', 'user', user.id, {});

@@ -32,7 +32,14 @@ export function migrate() {
     const sql = readFileSync(join(here, 'migrations', '002_mfa.sql'), 'utf8');
     db.exec(sql);
     db.exec('PRAGMA user_version = 2');
+    current = 2;
     console.log('[db] schema v2 applied (TOTP MFA)');
+  }
+  if (current < 3) {
+    const sql = readFileSync(join(here, 'migrations', '003_security.sql'), 'utf8');
+    db.exec(sql);
+    db.exec('PRAGMA user_version = 3');
+    console.log('[db] schema v3 applied (CSRF, audit chain, evidence scanning, approvals)');
   }
 }
 

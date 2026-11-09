@@ -47,6 +47,7 @@ export function client(base) {
   async function request(method, path, body, extraHeaders = {}) {
     const headers = { accept: 'application/json', ...extraHeaders };
     if (body !== undefined) headers['content-type'] = 'application/json';
+    if (method !== 'GET' && method !== 'HEAD' && cookies.sf_csrf) headers['x-csrf-token'] = cookies.sf_csrf;
     const cookieHeader = Object.entries(cookies).map(([name, value]) => `${name}=${value}`).join('; ');
     if (cookieHeader) headers.cookie = cookieHeader;
     const response = await fetch(`${base}${path}`, {

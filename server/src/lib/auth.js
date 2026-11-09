@@ -1,8 +1,11 @@
-import { scryptSync, randomBytes, timingSafeEqual, createHash } from 'node:crypto';
+import { scryptSync, scrypt, randomBytes, timingSafeEqual, createHash } from 'node:crypto';
+import { promisify } from 'node:util';
 import { get, run, all, newId, nowIso } from '../db.js';
 import { ApiError, forbidden, unauthorized } from './http.js';
 
 export const SESSION_COOKIE = 'sf_session';
+export const CSRF_COOKIE = 'sf_csrf';
+export const MFA_COOKIE = 'sf_mfa';
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 const SCRYPT_KEYLEN = 64;
@@ -18,6 +21,28 @@ export function verifyPassword(password, stored) {
   const [scheme, salt, digest] = stored.split('$');
   if (scheme !== 'scrypt' || !salt || !digest) return false;
   const derived = scryptSync(password, salt, SCRYPT_KEYLEN);
+  const expected = Buffer.from(digest, 'hex');
+  if (expected.length !== derived.length) return false;
+  return timingSafeEqual(derived, expected);
+}
+
+const scryptAsync = promisify(scrypt);
+
+/**
+ * Asynchronous variants for request paths. scrypt is deliberately expensive;
+ * running it off the event loop keeps one login from stalling every request.
+ */
+export async function hashPasswordAsync(password) {
+  const salt = randomBytes(16).toString('hex');
+  const derived = await scryptAsync(password, salt, SCRYPT_KEYLEN);
+  return `scrypt$${salt}$${derived.toString('hex')}`;
+}
+
+export async function verifyPasswordAsync(password, stored) {
+  if (typeof stored !== 'string') return false;
+  const [scheme, salt, digest] = stored.split('$');
+  if (scheme !== 'scrypt' || !salt || !digest) return false;
+  const derived = await scryptAsync(password, salt, SCRYPT_KEYLEN);
   const expected = Buffer.from(digest, 'hex');
   if (expected.length !== derived.length) return false;
   return timingSafeEqual(derived, expected);
@@ -39,6 +64,8 @@ export function parseCookies(header = '') {
   return out;
 }
 
+const secureCookies = () => process.env.NODE_ENV === 'production';
+
 export function setSessionCookie(res, token, { secure = false } = {}) {
   const parts = [
     `${SESSION_COOKIE}=${token}`,
@@ -48,21 +75,46 @@ export function setSessionCookie(res, token, { secure = false } = {}) {
     `Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}`,
   ];
   if (secure) parts.push('Secure');
-  res.setHeader('Set-Cookie', parts.join('; '));
+  res.append('Set-Cookie', parts.join('; '));
+}
+
+export function setCsrfCookie(res, token) {
+  // Readable by the client on purpose: the double submit token must be sent
+  // back in a header. It is bound to the session hash server side.
+  const parts = [
+    `${CSRF_COOKIE}=${token}`,
+    'Path=/',
+    'SameSite=Lax',
+    `Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}`,
+  ];
+  if (secureCookies()) parts.push('Secure');
+  res.append('Set-Cookie', parts.join('; '));
 }
 
 export function clearSessionCookie(res) {
-  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+  res.append('Set-Cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+  res.append('Set-Cookie', `${CSRF_COOKIE}=; Path=/; SameSite=Lax; Max-Age=0`);
+}
+
+export function setMfaCookie(res, token) {
+  const parts = [`${MFA_COOKIE}=${token}`, 'Path=/', 'HttpOnly', 'SameSite=Strict', 'Max-Age=300'];
+  if (secureCookies()) parts.push('Secure');
+  res.append('Set-Cookie', parts.join('; '));
+}
+
+export function clearMfaCookie(res) {
+  res.append('Set-Cookie', `${MFA_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`);
 }
 
 export function createSession(user, req, res) {
   const token = randomBytes(32).toString('base64url');
+  const csrfToken = randomBytes(32).toString('base64url');
   const expires = new Date(Date.now() + SESSION_TTL_MS);
   run(
-    `INSERT INTO sessions (id, user_id, org_id, expires_at, ip, user_agent, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO sessions (id, user_id, org_id, expires_at, ip, user_agent, csrf_hash, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     hashToken(token), user.id, user.org_id, expires.toISOString(),
-    req.ip ?? null, (req.headers['user-agent'] ?? '').slice(0, 255), nowIso(),
+    req.ip ?? null, (req.headers['user-agent'] ?? '').slice(0, 255), hashToken(csrfToken), nowIso(),
   );
   // Keep the session list bounded per user; drop the oldest beyond ten.
   const extra = all(
@@ -70,7 +122,8 @@ export function createSession(user, req, res) {
     user.id,
   );
   for (const row of extra) run('DELETE FROM sessions WHERE id = ?', row.id);
-  setSessionCookie(res, token, { secure: process.env.NODE_ENV === 'production' });
+  setSessionCookie(res, token, { secure: secureCookies() });
+  setCsrfCookie(res, csrfToken);
   return token;
 }
 
@@ -88,7 +141,7 @@ export function attachUser(req, _res, next) {
   req.user = null;
   if (!token) return next();
   const row = get(
-    `SELECT s.id AS session_id, s.expires_at, u.id, u.org_id, u.email, u.name, u.role, u.status
+    `SELECT s.id AS session_id, s.expires_at, s.csrf_hash, u.id, u.org_id, u.email, u.name, u.role, u.status
        FROM sessions s JOIN users u ON u.id = s.user_id
       WHERE s.id = ?`,
     hashToken(token),
@@ -106,6 +159,7 @@ export function attachUser(req, _res, next) {
     name: row.name,
     role: row.role,
   };
+  req.csrfHash = row.csrf_hash;
   return next();
 }
 
@@ -134,7 +188,7 @@ export const canWrite = (user) => RANK[user?.role] >= RANK.analyst;
 export function checkOrigin(req, _res, next) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
   const origin = req.headers.origin;
-  if (!origin) return next();
+  if (!origin) return next(); // A missing Origin is not sufficient on its own; requireCsrf still applies.
   try {
     const parsed = new URL(origin);
     const host = req.headers.host;
@@ -144,6 +198,25 @@ export function checkOrigin(req, _res, next) {
   } catch {
     return next(new ApiError(403, 'origin_rejected', 'Invalid origin header'));
   }
+}
+
+/**
+ * Session-bound CSRF check for cookie authenticated mutations.
+ * Public auth endpoints (login, register, MFA verify) have no session yet and
+ * are protected by origin checks plus rate limits instead.
+ */
+export function requireCsrf(req, _res, next) {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  if (!req.user) return next();
+  const header = req.headers['x-csrf-token'];
+  const cookie = parseCookies(req.headers.cookie)[CSRF_COOKIE];
+  if (!header || !cookie || header !== cookie) {
+    return next(new ApiError(403, 'csrf_rejected', 'CSRF token missing or invalid'));
+  }
+  if (!req.csrfHash || hashToken(header) !== req.csrfHash) {
+    return next(new ApiError(403, 'csrf_rejected', 'CSRF token does not match this session'));
+  }
+  return next();
 }
 
 export function sessionCountForUser(userId) {

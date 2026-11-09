@@ -18,10 +18,17 @@ type Options = {
 };
 
 async function request<T>(path: string, { method = 'GET', body, signal }: Options = {}): Promise<T> {
+  const headers: Record<string, string> = body === undefined
+    ? { accept: 'application/json' }
+    : { accept: 'application/json', 'content-type': 'application/json' };
+  if (method !== 'GET') {
+    const token = document.cookie.match(/(?:^|; )sf_csrf=([^;]+)/)?.[1];
+    if (token) headers['x-csrf-token'] = decodeURIComponent(token);
+  }
   const response = await fetch(`/api${path}`, {
     method,
     credentials: 'same-origin',
-    headers: body === undefined ? { accept: 'application/json' } : { accept: 'application/json', 'content-type': 'application/json' },
+    headers,
     body: body === undefined ? undefined : JSON.stringify(body),
     signal,
   });

@@ -1,5 +1,5 @@
 import { get, run, newId, nowIso } from '../db.js';
-import { hashPassword } from './auth.js';
+import { hashPasswordAsync } from './auth.js';
 
 const slugify = (value) =>
   value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'workspace';
@@ -9,7 +9,7 @@ const slugify = (value) =>
  * mode is off. Without this, a production deployment either has no account or,
  * worse, would be seeded with the public demo credentials.
  */
-export function createBootstrapAdmin({ email, password, name = 'Workspace owner', organizationName = 'SecureFlow Workspace' }) {
+export async function createBootstrapAdmin({ email, password, name = 'Workspace owner', organizationName = 'SecureFlow Workspace' }) {
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     throw new Error('SF_BOOTSTRAP_EMAIL must be a valid email address');
   }
@@ -36,7 +36,7 @@ export function createBootstrapAdmin({ email, password, name = 'Workspace owner'
   run(
     `INSERT INTO users (id, org_id, email, name, password_hash, role, status, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, 'admin', 'active', ?, ?)`,
-    userId, orgId, email.toLowerCase(), name, hashPassword(password), ts, ts,
+    userId, orgId, email.toLowerCase(), name, await hashPasswordAsync(password), ts, ts,
   );
   console.log(`[startup] bootstrap admin created for ${email} in organization "${organizationName}"`);
   return { orgId, userId, email: email.toLowerCase() };

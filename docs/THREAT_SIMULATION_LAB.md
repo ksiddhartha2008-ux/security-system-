@@ -93,7 +93,7 @@ Every report states the score, the findings that produced it and the recommendat
 
 ## Testing
 
-`server/tests/simulation.test.mjs` verifies:
+`backend/tests/simulation.test.mjs` verifies:
 
 - all five scenarios exist with at least three agents and three config fields;
 - an unknown scenario returns 400;

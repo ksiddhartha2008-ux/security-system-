@@ -68,8 +68,8 @@ Verdict: **evaluated, documented, not installed, not required.** The application
 
 ## Verification
 
-- `server/src/routes/settings.js` exposes the row and test endpoint; the UI shows `disabled`.
-- `server/package.json` and `web/package.json` contain no `api-anything` dependency.
+- `backend/src/routes/settings.js` exposes the row and test endpoint; the UI shows `disabled`.
+- `backend/package.json` and `frontend/package.json` contain no `api-anything` dependency.
 - `npm ls api-anything` in both packages reports an empty tree.
 
 ## Licensing

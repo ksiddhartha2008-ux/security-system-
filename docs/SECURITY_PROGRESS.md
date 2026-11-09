@@ -31,7 +31,7 @@ Date: 9 November 2026. This file records only what was actually changed and run.
 | SEC-008 | MFA cookie flags | IMPLEMENTED | Code review; not asserted by test |
 | SEC-009 | CSV formula injection | SECURITY VERIFIED | `tests/hardening.test.mjs` |
 | SEC-010 | No production config validation | SECURITY VERIFIED (unit) | `checkProductionConfig` test |
-| SEC-020 | zod advisory | SECURITY VERIFIED | `npm audit --prefix server` reports 0; full suite passes on 4.6.7 |
+| SEC-020 | zod advisory | SECURITY VERIFIED | `npm audit --prefix backend` reports 0; full suite passes on 4.6.7 |
 | SEC-011 | MFA not enforced by organization policy | OPEN | Setting stored; login does not enforce |
 | SEC-012 | No password reset / email verification | BLOCKED | Requires SMTP provider and domain |
 | SEC-013 | In-process rate limits | OPEN | Single-node limitation |
@@ -46,23 +46,23 @@ Date: 9 November 2026. This file records only what was actually changed and run.
 
 | File | Change |
 | --- | --- |
-| `server/src/migrations/003_security.sql` | New columns for CSRF binding, audit chain, evidence scan status, approval expiry, idempotency |
-| `server/src/db.js` | Migration v3 runner |
-| `server/src/lib/auth.js` | CSRF cookie and session hash, `requireCsrf`, MFA cookie helpers, async password helpers |
-| `server/src/routes/auth.js` | Account throttle, MFA cookie flags, async hashing, CSRF-compatible login |
-| `server/src/index.js` | CSRF middleware, request id, production config validation, async bootstrap |
-| `server/src/lib/audit.js` | Hash chained audit entries, verification, failures throw |
-| `server/src/routes/settings.js` | Audit verify endpoint, automation pause and MFA policy settings, async user creation |
-| `server/src/routes/automation.js` | Mandatory approval for destructive actions, expiry, idempotency, paused workspace |
-| `server/src/routes/forensics.js` | Magic-byte validation, ClamAV adapter wiring, scan metadata |
-| `server/src/lib/clamav.js` | New INSTREAM adapter |
-| `server/src/routes/reports.js` | CSV formula neutralisation |
-| `server/src/lib/config.js` | New production configuration checks |
-| `server/src/lib/bootstrap.js` | Async password hashing |
-| `server/package.json` | zod 3.23.8 → 4.6.7 |
-| `web/src/lib/api.ts` | Send `x-csrf-token` on mutations |
-| `server/tests/hardening.test.mjs` | New suite, 9 tests |
-| `server/tests/helpers.mjs` | CSRF aware test client |
+| `backend/src/migrations/003_security.sql` | New columns for CSRF binding, audit chain, evidence scan status, approval expiry, idempotency |
+| `backend/src/db.js` | Migration v3 runner |
+| `backend/src/lib/auth.js` | CSRF cookie and session hash, `requireCsrf`, MFA cookie helpers, async password helpers |
+| `backend/src/routes/auth.js` | Account throttle, MFA cookie flags, async hashing, CSRF-compatible login |
+| `backend/src/index.js` | CSRF middleware, request id, production config validation, async bootstrap |
+| `backend/src/lib/audit.js` | Hash chained audit entries, verification, failures throw |
+| `backend/src/routes/settings.js` | Audit verify endpoint, automation pause and MFA policy settings, async user creation |
+| `backend/src/routes/automation.js` | Mandatory approval for destructive actions, expiry, idempotency, paused workspace |
+| `backend/src/routes/forensics.js` | Magic-byte validation, ClamAV adapter wiring, scan metadata |
+| `backend/src/lib/clamav.js` | New INSTREAM adapter |
+| `backend/src/routes/reports.js` | CSV formula neutralisation |
+| `backend/src/lib/config.js` | New production configuration checks |
+| `backend/src/lib/bootstrap.js` | Async password hashing |
+| `backend/package.json` | zod 3.23.8 → 4.6.7 |
+| `frontend/src/lib/api.ts` | Send `x-csrf-token` on mutations |
+| `backend/tests/hardening.test.mjs` | New suite, 9 tests |
+| `backend/tests/helpers.mjs` | CSRF aware test client |
 
 ## Commands and results
 
@@ -70,22 +70,22 @@ Date: 9 November 2026. This file records only what was actually changed and run.
 npm test
 tests 42 | pass 42 | fail 0 | duration_ms 45345
 
-npm run typecheck --prefix web
+npm run typecheck --prefix frontend
 (no output; exit 0)
 
-npm run build --prefix web
+npm run build --prefix frontend
 dist/assets/index-*.js  ~504 kB (140 kB gzip)
 
-npm audit --prefix server
+npm audit --prefix backend
 0 vulnerabilities
 
-npm audit --prefix web
+npm audit --prefix frontend
 0 vulnerabilities
 ```
 
 ## Live verification of the hardened build
 
-An isolated instance was booted on port 4011 with a temporary database (`tools/verify-hardening.mjs`):
+An isolated instance was booted on port 4011 with a temporary database (`scripts/verify-hardening.mjs`):
 
 ```
 registerStatus 201

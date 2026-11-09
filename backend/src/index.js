@@ -252,7 +252,7 @@ app.get('/api/docs', requireAuth, (req, res) => {
 
 app.use('/api', notFoundHandler);
 
-const dist = resolve(join(here, '..', '..', 'web', 'dist'));
+const dist = resolve(join(here, '..', '..', 'frontend', 'dist'));
 if (existsSync(dist)) {
   app.use(express.static(dist, {
     index: false,
@@ -283,7 +283,7 @@ const server = app.listen(PORT, () => {
   console.log(`[secureflow] API listening on http://localhost:${PORT}`);
   console.log(`[secureflow] environment: ${process.env.NODE_ENV ?? 'development'}`);
   console.log(`[secureflow] demo mode: ${demoMode ? 'on (synthetic data, known demo accounts)' : 'off'}`);
-  console.log(`[secureflow] demo database: ${process.env.SF_DB_PATH ?? 'server/data/secureflow.db'}`);
+  console.log(`[secureflow] demo database: ${process.env.SF_DB_PATH ?? 'backend/data/secureflow.db'}`);
 });
 
 function shutdown(signal) {

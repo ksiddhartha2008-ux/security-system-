@@ -1,6 +1,6 @@
 node_modules/
-web/dist/
-server/data/
+frontend/dist/
+backend/data/
 *.db
 *.db-wal
 *.db-shm

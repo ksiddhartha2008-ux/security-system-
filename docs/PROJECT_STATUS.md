@@ -7,7 +7,7 @@ Last updated: 8 November 2026. This file reflects what was actually built, run a
 | | |
 | --- | --- |
 | Application | SecureFlow AI, single page client plus REST API |
-| Backend tests | 42 passing, 0 failing (`npm test`) |
+| Backend tests | 47 passing, 0 failing (`npm test`) |
 | Type check | clean (`npm run typecheck`) |
 | Production build | success (`npm run build`) |
 | Dependency audit | 0 vulnerabilities (server and web) |
@@ -36,23 +36,24 @@ Statuses: **Complete and verified** means the UI, API, persistence and a test or
 | 14 | Reports and analytics | Complete and verified | `tests/workflow.test.mjs`, manual run | Six report types from live data, Markdown/CSV/JSON export |
 | 15 | Settings and administration | Complete and verified | Manual run, `tests/auth.test.mjs` | Organization, members, roles, integrations, audit log, health, account |
 | + | Threat Simulation Lab | Complete and verified | `tests/simulation.test.mjs`, manual run | Five scenarios, seeded engine, live progress, agents, events, findings, recommendations, report download |
-| + | Deployment hardening | Complete and verified | `tests/mfa.test.mjs`, manual browser run | Demo mode gated by environment, production bootstrap admin, no demo passwords in the bundle, SSRF address pinning, evidence download restricted to analyst and admin, password change revokes all sessions |
+| + | Demo data management | Complete and verified | `tests/demo.test.mjs` | Per-workspace deterministic 45 asset / ~258 event batch, detection and incident correlation, safe reset, origin labels, admin only |
+| + | Simulation to event pipeline | Complete and verified | `tests/demo.test.mjs`, `tests/simulation.test.mjs` | Simulation events mirrored to `security_events` with dedupe keys, then detection, correlation and asset risk refresh |
 | + | MiroFish adapter | Complete with limitation | `tests/simulation.test.mjs` | Honest unconfigured state, real route definitions, import path; the service cannot run here (Python 3.11-3.12 plus LLM and Zep keys) |
 | + | API Anything evaluation | Documented | `docs/API_ANYTHING_INTEGRATION.md` | MIT tool, Node 22.13+, local MCP; deliberately not a runtime dependency |
 
 ## Verification log
 
 ```
-$ npm test --prefix server
-tests 42 | pass 42 | fail 0 | duration_ms 45345
+$ npm test --prefix backend
+tests 47 | pass 47 | fail 0 | duration_ms 51799
 
-$ npm run typecheck --prefix web
+$ npm run typecheck --prefix frontend
 (no output; exit 0)
 
-$ npm run build --prefix web
+$ npm run build --prefix frontend
 dist/index.html                 0.75 kB
 dist/assets/index-*.css        25 kB
-dist/assets/index-*.js        503 kB (140 kB gzip)
+dist/assets/index-*.js        513 kB (142 kB gzip)
 ```
 
 Manual browser checks performed in a real browser against the production build served by the API on port 4000:
@@ -89,6 +90,9 @@ Manual browser checks performed in a real browser against the production build s
 | **scrypt blocked the event loop** | Synchronous scrypt on login and registration | Async scrypt on all request paths; full suite passes |
 | **CSV export allowed formula injection** | Cells were quoted but not neutralised | Leading `= + - @` are prefixed before quoting |
 | **zod advisory** | zod 3.23.8 affected by GHSA-mrhx-c7xc-m3w5 | Upgraded to 4.6.7, schemas adjusted, 42 tests pass, audit clean |
+| **Dashboard showed zero in a new workspace** | New organizations were never seeded and simulation output went only to `simulation_events` | Per-workspace demo generator, simulation events mirrored into `security_events`, detection and correlation run on completion, `data_origin` labels and safe reset |
+| **Aggregate detections lost their origin** | Rules without an event or asset defaulted to REAL | `evaluateRules` accepts an origin hint; demo and simulation paths pass DEMO or SIMULATED |
+| **Asset risk stayed flat after correlation** | Risk refresh only counted `open` detections | Refresh now includes `open` and `confirmed` |
 
 ## Known limitations
 

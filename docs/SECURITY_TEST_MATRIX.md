@@ -68,8 +68,8 @@ All tests use `node:test` with an isolated server and temporary database per fil
 
 ```powershell
 npm test
-npm run typecheck --prefix web
-npm run build --prefix web
-npm audit --prefix server
-npm audit --prefix web
+npm run typecheck --prefix frontend
+npm run build --prefix frontend
+npm audit --prefix backend
+npm audit --prefix frontend
 ```

@@ -6,7 +6,7 @@ Method: source review of every server route, middleware, service and migration; 
 
 ## Architecture as built
 
-- Node 24 + Express 4 API, SQLite (WAL, built-in `node:sqlite`), 29 tables across 7 migrations.
+- Node 24 + Express 4 API, SQLite (WAL, built-in `node:sqlite`), 30 tables across 4 migrations.
 - React 19 + TypeScript client, session cookie authentication, role based access, per-organization scoping.
 - Deterministic detection engine, native multi-agent simulation engine, optional MiroFish HTTP adapter.
 - **No LLM, no prompt templates, no agent framework, no model provider.** It is documented as a detection platform whose scoring is deterministic.

@@ -7,18 +7,18 @@ Conclusion: **there is no Prompt Engine, LLM client, agent framework or prompt t
 
 | Check | Command | Result |
 | --- | --- | --- |
-| Dependencies | `rg -n "openai|langchain|langgraph|crewai|autogen|anthropic|prompt|llm|agent" server/package.json web/package.json package.json` | No matches |
-| Prompt code | `rg -l -i "prompt" server/src web/src` | No files |
-| Model calls | `rg -n "api.openai|anthropic|completion|chat" server/src` | No matches |
-| Server dependencies | `server/package.json` | `express`, `zod` only |
-| Web dependencies | `web/package.json` | `react`, `react-dom`, `react-router-dom`, `lucide-react` |
+| Dependencies | `rg -n "openai|langchain|langgraph|crewai|autogen|anthropic|prompt|llm|agent" backend/package.json frontend/package.json package.json` | No matches |
+| Prompt code | `rg -l -i "prompt" backend/src frontend/src` | No files |
+| Model calls | `rg -n "api.openai|anthropic|completion|chat" backend/src` | No matches |
+| Server dependencies | `backend/package.json` | `express`, `zod` only |
+| Web dependencies | `frontend/package.json` | `react`, `react-dom`, `react-router-dom`, `lucide-react` |
 | Network egress | Source review of every `fetch` call | MiroFish adapter, VirusTotal, AbuseIPDB only; no model provider |
 
 ## What "AI Detection Center" actually means here
 
 The module is deterministic:
 
-1. Rules aggregate events over explicit windows (`server/src/services/detection.js`).
+1. Rules aggregate events over explicit windows (`backend/src/services/detection.js`).
 2. A score is computed from base severity, capped factor weights, asset criticality and a confidence lift.
 3. The factors, observed values and score model are stored with each detection and shown to the analyst.
 4. The UI states: "Deterministic rules with stored scoring factors. AI does not decide here; every score can be traced."

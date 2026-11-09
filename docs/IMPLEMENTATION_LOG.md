@@ -27,7 +27,7 @@ Chronological record of the build session. Times are local (UTC+5:30).
 
 ## 3. Backend
 
-- Schema v1 (`server/src/migrations/001_init.sql`): 28 tables, foreign keys, organization led traffic indexes, JSON text columns, `PRAGMA user_version` migration tracking.
+- Schema v1 (`backend/src/migrations/001_init.sql`): 28 tables, foreign keys, organization led traffic indexes, JSON text columns, `PRAGMA user_version` migration tracking.
 - Chose `node:sqlite` (built into Node 24) to avoid a native build dependency. Verified the module loads before writing the data layer.
 - `db.js`: connection, WAL, foreign keys, transaction helper, id generation, JSON helpers.
 - `lib/auth.js`: scrypt hashing, hashed session tokens, cookie helpers, `attachUser`, `requireRole`, origin check.

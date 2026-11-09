@@ -4,13 +4,13 @@
   "private": true,
   "description": "SecureFlow AI - intelligent cybersecurity operations platform",
   "scripts": {
-    "install:all": "npm install && npm --prefix server install && npm --prefix web install",
-    "dev:api": "npm --prefix server run dev",
-    "dev:web": "npm --prefix web run dev",
-    "build": "npm --prefix web run build",
-    "start": "node server/src/index.js",
-    "seed": "npm --prefix server run seed",
-    "test": "npm --prefix server test",
-    "typecheck": "npm --prefix web run typecheck"
+    "install:all": "npm install && npm --prefix backend install && npm --prefix frontend install",
+    "dev:api": "npm --prefix backend run dev",
+    "dev:web": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "start": "node backend/src/index.js",
+    "seed": "npm --prefix backend run seed",
+    "test": "npm --prefix backend test",
+    "typecheck": "npm --prefix frontend run typecheck"
   }
 }

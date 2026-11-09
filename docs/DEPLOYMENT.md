@@ -16,13 +16,13 @@ The Vite proxy keeps the browser same-origin for API calls, so the session cooki
 
 ```powershell
 npm run install:all
-npm run build          # writes web/dist
+npm run build          # writes frontend/dist
 $env:NODE_ENV = "production"
 $env:PORT = "4000"
 npm start
 ```
 
-`server/src/index.js` serves `web/dist` when it exists, with the SPA fallback and CSP for HTML responses. If the directory is missing, `/` returns a JSON note instead of a broken page.
+`backend/src/index.js` serves `frontend/dist` when it exists, with the SPA fallback and CSP for HTML responses. If the directory is missing, `/` returns a JSON note instead of a broken page.
 
 ### Environment
 
@@ -30,7 +30,7 @@ npm start
 | --- | --- | --- |
 | `PORT` | `4000` | |
 | `NODE_ENV` | `development` | `production` adds the `Secure` cookie flag |
-| `SF_DATA_DIR` | `server/data` | Database and evidence live here |
+| `SF_DATA_DIR` | `backend/data` | Database and evidence live here |
 | `SF_DB_PATH` | `<data>/secureflow.db` | Override the database file only |
 | `SF_TRUST_PROXY` | `false` | Set `true` only behind a trusted proxy that sets `X-Forwarded-For` |
 | `SF_DEMO_MODE` | on outside production | `true` seeds the synthetic workspace with demo accounts. Never enable it on a real deployment |

@@ -91,10 +91,10 @@ Status values follow the task contract: NOT STARTED, INVESTIGATING, IMPLEMENTED,
 | Command | Result |
 | --- | --- |
 | `npm test` | 42 passing, 0 failing |
-| `npm run typecheck --prefix web` | clean |
-| `npm run build --prefix web` | success |
-| `npm audit --prefix server` | 0 vulnerabilities (after zod upgrade) |
-| `npm audit --prefix web` | 0 vulnerabilities |
+| `npm run typecheck --prefix frontend` | clean |
+| `npm run build --prefix frontend` | success |
+| `npm audit --prefix backend` | 0 vulnerabilities (after zod upgrade) |
+| `npm audit --prefix frontend` | 0 vulnerabilities |
 
 ## Dependency order and blockers
 

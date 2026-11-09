@@ -12,7 +12,7 @@ No production deployment was performed. This is the gate to pass before one.
 - [ ] `SF_TRUST_PROXY=true` only behind a trusted proxy that overwrites `X-Forwarded-For`
 - [ ] `SF_ALLOW_ORIGIN` unset, or an exact `https://` origin
 - [ ] Data directory on a persistent volume with restrictive filesystem permissions
-- [ ] `server/data` and `.env` excluded from version control (they are in `.gitignore`)
+- [ ] `backend/data` and `.env` excluded from version control (they are in `.gitignore`)
 
 ## 2. TLS and transport
 
@@ -82,13 +82,13 @@ No production deployment was performed. This is the gate to pass before one.
 
 ```powershell
 npm test
-npm run typecheck --prefix web
-npm run build --prefix web
-npm audit --prefix server
-npm audit --prefix web
+npm run typecheck --prefix frontend
+npm run build --prefix frontend
+npm audit --prefix backend
+npm audit --prefix frontend
 
 # production start (expected to refuse without bootstrap)
-$env:NODE_ENV='production'; node server/src/index.js
+$env:NODE_ENV='production'; node backend/src/index.js
 
 # health and audit chain (replace host/cookie)
 curl.exe -s https://your-host/api/health

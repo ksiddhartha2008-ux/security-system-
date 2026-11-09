@@ -107,14 +107,14 @@ Deployment guidance: run MiroFish on its own host or container, bind it to loopb
 | Real service reachability | Not verified; the service cannot start here |
 | Real create/prepare/start/report cycle | Not verified; blocked by credentials and Python version |
 
-Automated evidence: `server/tests/simulation.test.mjs`, test "MiroFish reports an honest unconfigured state".
+Automated evidence: `backend/tests/simulation.test.mjs`, test "MiroFish reports an honest unconfigured state".
 
 ## Licensing findings
 
 - MiroFish is AGPL-3.0. SecureFlow does not copy its source into the application and does not link against it, so the application's own code is not derived from it.
 - Running a modified MiroFish as a network service triggers AGPL section 13: users interacting with it over a network must be offered the corresponding source. If you modify and host MiroFish, publish your modifications.
 - Distributing MiroFish binaries or source alongside SecureFlow requires preserving the AGPL license and notices, and offering source for the whole combined work as AGPL defines it.
-- The adapter is an independent HTTP client; keep it that way. Do not paste MiroFish modules into `server/src`.
+- The adapter is an independent HTTP client; keep it that way. Do not paste MiroFish modules into `backend/src`.
 - No MiroFish assets, prompts or model files are redistributed here.
 
 This is a summary for engineers, not legal advice. Have counsel review distribution plans.

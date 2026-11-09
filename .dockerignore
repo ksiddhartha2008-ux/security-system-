@@ -1,0 +1,13 @@
+.git
+.github
+.zwork
+node_modules
+**/node_modules
+backend/data
+frontend/dist
+third_party
+docs
+scripts
+*.log
+.env
+.env.*

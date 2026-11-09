@@ -12,7 +12,7 @@ process.env.SF_DATA_DIR = dir;
 process.env.SF_DB_PATH = join(dir, 'verify.db');
 process.env.SF_DEMO_MODE = 'true';
 
-await import('../server/src/index.js');
+await import('../backend/src/index.js');
 
 const base = 'http://127.0.0.1:4011/api';
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

@@ -23,19 +23,19 @@ The browser never receives database credentials and never chooses its organizati
 
 | Component | Responsibility |
 | --- | --- |
-| `server/src/index.js` | HTTP wiring, security headers, request id, static SPA hosting, SSE endpoint, graceful shutdown |
-| `server/src/db.js` | `node:sqlite` connection, migration runner, query helpers, id generation, transactions |
-| `server/src/lib/auth.js` | scrypt hashes, session cookies, `requireAuth` / `requireRole`, origin check |
-| `server/src/lib/http.js` | error envelope, async wrapper, pagination, validation formatting |
-| `server/src/services/detection.js` | nine deterministic rules, scoring model, explanation payload |
-| `server/src/services/simulation.js` | five scenario definitions, seeded RNG, round driver, outcome scoring, report |
-| `server/src/services/phishing.js` | SSRF-safe URL fetching, heuristics, reputation adapters |
-| `server/src/services/mirofish.js` | HTTP adapter for the separate MiroFish service |
-| `server/src/services/reports.js` | report assembly from live SQL aggregates |
-| `web/src/lib/api.ts` | typed fetch client, error normalisation, pagination envelope handling |
-| `web/src/lib/auth.tsx` | session bootstrap, login/logout, permission flags |
-| `web/src/components/layout.tsx` | navigation, mobile drawer, account menu, skip link |
-| `web/src/components/ui.tsx` | badges, cards, tables, modals, drawers, toasts, focus trap |
+| `backend/src/index.js` | HTTP wiring, security headers, request id, static SPA hosting, SSE endpoint, graceful shutdown |
+| `backend/src/db.js` | `node:sqlite` connection, migration runner, query helpers, id generation, transactions |
+| `backend/src/lib/auth.js` | scrypt hashes, session cookies, `requireAuth` / `requireRole`, origin check |
+| `backend/src/lib/http.js` | error envelope, async wrapper, pagination, validation formatting |
+| `backend/src/services/detection.js` | nine deterministic rules, scoring model, explanation payload |
+| `backend/src/services/simulation.js` | five scenario definitions, seeded RNG, round driver, outcome scoring, report |
+| `backend/src/services/phishing.js` | SSRF-safe URL fetching, heuristics, reputation adapters |
+| `backend/src/services/mirofish.js` | HTTP adapter for the separate MiroFish service |
+| `backend/src/services/reports.js` | report assembly from live SQL aggregates |
+| `frontend/src/lib/api.ts` | typed fetch client, error normalisation, pagination envelope handling |
+| `frontend/src/lib/auth.tsx` | session bootstrap, login/logout, permission flags |
+| `frontend/src/components/layout.tsx` | navigation, mobile drawer, account menu, skip link |
+| `frontend/src/components/ui.tsx` | badges, cards, tables, modals, drawers, toasts, focus trap |
 
 ## Request flow
 
@@ -48,7 +48,7 @@ The browser never receives database credentials and never chooses its organizati
 
 ## Data model
 
-29 tables in four groups.
+30 tables in four groups.
 
 **Identity** `organizations`, `users`, `sessions`, `login_attempts`, `audit_logs`.
 

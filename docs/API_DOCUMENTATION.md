@@ -229,7 +229,7 @@ Upload body: `{ caseRef, filename, description, mimeType, contentBase64, collect
 
 | Method | Path | Role | Purpose |
 | --- | --- | --- | --- |
-| GET | `/simulations/scenarios` | any | Five scenarios with agents and default config |
+| GET | `/simulations/scenarios` | any | Nine scenarios with agents and default config |
 | GET | `/simulations` | any | Run history |
 | POST | `/simulations` | analyst | Create a draft run |
 | GET | `/simulations/:id` | any | Agents, events, summary and report |
@@ -247,6 +247,21 @@ Create body:
 { "scenario": "ransomware", "name": "Finance rehearsal", "totalRounds": 8, "seed": 424242,
   "config": { "edrEnabled": true, "backupsImmutable": true } }
 ```
+
+A finished run mirrors its events into `security_events` with `data_origin = SIMULATED`, runs the deterministic rules, correlates incidents and refreshes asset risk. See [SIMULATION_ENGINE.md](SIMULATION_ENGINE.md).
+
+## Demo data
+
+| Method | Path | Role | Purpose |
+| --- | --- | --- | --- |
+| GET | `/demo/status` | any | Counts by origin, current batch and recent runs |
+| GET | `/demo/runs` | admin | Seed history |
+| POST | `/demo/generate` | admin | Create a deterministic demo batch (45 assets, ~258 events) |
+| POST | `/demo/reset` | admin | Delete only DEMO rows; body `{ "confirm": "RESET" }` |
+| POST | `/demo/scenarios/:key/run` | admin | Create and start one scenario |
+| POST | `/demo/scenarios/run-all` | admin | Start the five demo scenarios |
+
+Records return `dataOrigin` in events, assets, detections, incidents, vulnerabilities and network flows. See [DEMO_DATA_GUIDE.md](DEMO_DATA_GUIDE.md).
 
 ## Settings
 

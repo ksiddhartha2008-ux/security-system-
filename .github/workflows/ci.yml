@@ -15,13 +15,13 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: |
-            server/package-lock.json
-            web/package-lock.json
-      - name: Install server dependencies
-        run: npm ci --prefix server
-      - name: Install web dependencies
-        run: npm ci --prefix web
+            backend/package-lock.json
+            frontend/package-lock.json
+      - name: Install backend dependencies
+        run: npm ci --prefix backend
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
       - name: Backend tests
-        run: npm test --prefix server
-      - name: Type check and build web
-        run: npm run build --prefix web
+        run: npm test --prefix backend
+      - name: Type check and build frontend
+        run: npm run build --prefix frontend

@@ -5,7 +5,7 @@ Runtime: Node 24.20.0, npm 11.19.0, Windows 11.
 
 ## Runtime dependencies
 
-### Server (`server/package.json`)
+### Server (`backend/package.json`)
 
 | Package | Version | License | Notes |
 | --- | --- | --- | --- |
@@ -14,7 +14,7 @@ Runtime: Node 24.20.0, npm 11.19.0, Windows 11.
 
 `node:sqlite`, `node:crypto`, `node:http`, `node:https`, `node:dns` and `node:net` are built into Node; no database driver, ORM, JWT library or HTTP client dependency is used.
 
-### Web (`web/package.json`)
+### Web (`frontend/package.json`)
 
 | Package | Version | License |
 | --- | --- | --- |
@@ -28,10 +28,10 @@ Build tooling (dev only): vite 6, @vitejs/plugin-react, typescript 5.7, tailwind
 ## Audit results
 
 ```
-npm audit --prefix server
+npm audit --prefix backend
 0 vulnerabilities (70 production dependencies)
 
-npm audit --prefix web
+npm audit --prefix frontend
 0 vulnerabilities (9 production, 156 development, 82 optional)
 ```
 

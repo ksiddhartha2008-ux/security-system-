@@ -14,7 +14,7 @@ The repository is a working full stack application, not a mockup. The React clie
 | Response | Incidents with a lifecycle and timeline, investigations with notes and findings, deterministic detections, phishing URL scanner |
 | Exposure | Vulnerability register, network flows, digital forensics with SHA-256 and chain of custody |
 | Programme | Response automation with an approval gate, reports with Markdown/CSV/JSON export, Threat Simulation Lab |
-| Workspace | Role based access (admin, analyst, viewer), TOTP multi-factor authentication, organization settings, integration status, audit log, system health |
+| Workspace | Role based access (admin, analyst, viewer), TOTP multi-factor authentication, demo data management, organization settings, integration status, audit log, system health |
 
 Five simulation scenarios: credential stuffing, API abuse, phishing, insider threat and ransomware.
 
@@ -33,11 +33,11 @@ npm run dev:api          # terminal 1
 npm run dev:web          # terminal 2, open http://localhost:5173
 
 # or a production style run
-npm run build            # builds web/dist
+npm run build            # builds frontend/dist
 npm start                # serves the API and the built client on http://localhost:4000
 ```
 
-The first start creates `server/data/secureflow.db` and seeds a demo workspace with synthetic records. Demo mode is on by default outside production. Deleting the database and restarting re-seeds it. `npm run seed` reseeds explicitly (`--force`).
+The first start creates `backend/data/secureflow.db` and seeds a demo workspace with synthetic records. Demo mode is on by default outside production. Deleting the database and restarting re-seeds it. `npm run seed` reseeds explicitly (`--force`).
 
 In production, demo mode is off. The first start requires `SF_BOOTSTRAP_EMAIL` and `SF_BOOTSTRAP_PASSWORD` (12 or more characters) to create the first admin, or it exits with instructions. It will never seed a public admin password into a production database.
 
@@ -57,32 +57,35 @@ All seeded records are synthetic and labelled **Demo data** in the interface.
 
 ```
 .
-├── server/                    Node 24 + Express API
+├── backend/                   Node 24 + Express API
 │   ├── src/
 │   │   ├── index.js           app wiring, security headers, SPA hosting, SSE
 │   │   ├── db.js              node:sqlite connection, migrations, helpers
-│   │   ├── migrations/        schema v1, v2 and v3 (29 tables, foreign keys, indexes)
+│   │   ├── migrations/        schema v1 to v4 (30 tables, foreign keys, indexes)
 │   │   ├── seed.js            deterministic synthetic demo workspace
 │   │   ├── lib/               http envelope, auth, audit, rate limit, events
-│   │   ├── routes/            module routers, settings, streaming
-│   │   └── services/          detection, simulation engine, phishing, MiroFish, reports
-│   └── tests/                 30 node:test integration tests
-├── web/                       React 19 + TypeScript + Vite + Tailwind CSS v4
+│   │   ├── routes/            module routers, settings, demo data, streaming
+│   │   └── services/          detection, correlation, demo, simulation, phishing, MiroFish, reports
+│   └── tests/                 47 node:test integration tests
+├── frontend/                  React 19 + TypeScript + Vite + Tailwind CSS v4
 │   └── src/
 │       ├── pages/             one page per module, public pages, detail views
 │       ├── components/        design system, charts, app shell, error boundary
 │       └── lib/               API client, auth context, hooks, formatting
-├── docs/                      integration and simulation documentation
+├── docs/                      audits, guides, API reference, security and simulation documentation
+├── scripts/                   development verification and smoke scripts
 ├── third_party/               MiroFish and API Anything sources (inspected, not vendored into the app)
-├── Dockerfile                 two stage build, non-root runtime
-└── docker-compose.yml
+├── Dockerfile                 multi stage build, non-root runtime
+├── docker-compose.yml
+├── .env.example
+└── package.json               root scripts for both applications
 ```
 
 ---
 
 ## How the stack fits together
 
-- **Database**: SQLite in WAL mode through the built-in Node driver. 29 tables with foreign keys and indexes. Every tenant owned table carries `org_id`; the server resolves the organization from the session, never from the request body.
+- **Database**: SQLite in WAL mode through the built-in Node driver. 30 tables with foreign keys and indexes. Every tenant owned table carries `org_id`; the server resolves the organization from the session, never from the request body.
 - **Auth**: scrypt password hashes (async on request paths), optional TOTP multi-factor authentication with single use recovery codes, session-bound CSRF tokens, random 256 bit session tokens stored as SHA-256 digests, HttpOnly SameSite=Lax cookie with a seven day expiry, session cap and rotation on password change, origin check on state changing requests, per-route and per-account rate limits.
 - **Audit**: append-only hash chain per organization with a verification endpoint, request correlation ids and fail-closed writes.
 - **Detection**: nine deterministic rules (brute force, credential stuffing, API abuse, port scan, bulk transfer, ransomware behaviour, phishing interaction, authorization probing, hourly volume anomaly). Each detection stores the factors, weights and observed values that produced its score.
@@ -93,7 +96,7 @@ All seeded records are synthetic and labelled **Demo data** in the interface.
 
 ## Security remediation status
 
-Applied in the November 2026 hardening pass. Full evidence is in [SECURITY_AUDIT.md](SECURITY_AUDIT.md) and [SECURITY_PROGRESS.md](SECURITY_PROGRESS.md).
+Applied in the November 2026 hardening pass. Full evidence is in [SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) and [SECURITY_PROGRESS.md](docs/SECURITY_PROGRESS.md).
 
 | Control | Status |
 | --- | --- |
@@ -116,7 +119,13 @@ Applied in the November 2026 hardening pass. Full evidence is in [SECURITY_AUDIT
 
 ## AI and Prompt Engine status
 
-There is **no LLM, prompt template engine or agent framework** in this repository. Detection is deterministic and explainable; the UI says so. [PROMPT_ENGINE_SECURITY_AUDIT.md](PROMPT_ENGINE_SECURITY_AUDIT.md) records the verification and [PROMPT_ENGINE_ARCHITECTURE.md](PROMPT_ENGINE_ARCHITECTURE.md) defines the requirements for any future model feature. No AI capability is claimed.
+There is **no LLM, prompt template engine or agent framework** in this repository. Detection is deterministic and explainable; the UI says so. [PROMPT_ENGINE_SECURITY_AUDIT.md](docs/PROMPT_ENGINE_SECURITY_AUDIT.md) records the verification and [PROMPT_ENGINE_ARCHITECTURE.md](docs/PROMPT_ENGINE_ARCHITECTURE.md) defines the requirements for any future model feature. No AI capability is claimed.
+
+## Demo data and the simulation pipeline
+
+A new workspace starts empty, so its dashboard correctly shows zero. An administrator can open **Demo data** and generate a deterministic synthetic workspace: 45 assets, about 258 events, network telemetry, 14 vulnerabilities, then detections and correlated incidents through the real engine. Every record is tagged `DEMO` and a reset removes only that batch.
+
+Simulation runs are no longer isolated. Each generated event is mirrored into `security_events` as `SIMULATED`, with a dedupe key, and a finished run evaluates the deterministic rules, correlates incidents and refreshes asset risk. See [DATA_FLOW_AUDIT.md](docs/DATA_FLOW_AUDIT.md), [DEMO_DATA_GUIDE.md](docs/DEMO_DATA_GUIDE.md), [SIMULATION_ENGINE.md](docs/SIMULATION_ENGINE.md) and [DASHBOARD_DATA_DICTIONARY.md](docs/DASHBOARD_DATA_DICTIONARY.md).
 
 ## Testing
 
@@ -126,9 +135,9 @@ npm run typecheck        # TypeScript project check
 npm run build            # production bundle
 ```
 
-Verified on 9 November 2026: 42 passing, 0 failing. Production bundle: 503 kB JavaScript (140 kB gzip) and 25 kB CSS.
+Verified on 9 November 2026: 47 passing, 0 failing. Production bundle: 513 kB JavaScript (142 kB gzip) and 25 kB CSS.
 
-Coverage includes registration and login, TOTP enrolment and login step-up, recovery code single use, session rotation, CSRF token enforcement, account-based login throttling, RBAC (viewer/analyst/admin), cross-tenant isolation, detection rules and de-duplication, incident lifecycle guards, simulation execution and cancellation, SSRF protection (including private ranges), evidence signature and tamper detection, audit hash chain, SOAR approval enforcement, CSV formula neutralisation, production config validation, report export and the workflow approval gate.
+Coverage includes registration and login, TOTP enrolment and login step-up, recovery code single use, session rotation, CSRF token enforcement, account-based login throttling, RBAC (viewer/analyst/admin), cross-tenant isolation, detection rules and de-duplication, incident lifecycle guards, simulation execution and cancellation, simulation-to-event pipeline, demo generation and safe reset, SSRF protection (including private ranges), evidence signature and tamper detection, audit hash chain, SOAR approval enforcement, CSV formula neutralisation, production config validation, report export and the workflow approval gate.
 
 ---
 
@@ -177,17 +186,18 @@ Neither repository is copied into the frontend or backend. The Threat Simulation
 
 ## Documentation
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) - components, data model, request flow
-- [API_DOCUMENTATION.md](API_DOCUMENTATION.md) - endpoint reference
-- [SECURITY.md](SECURITY.md) - controls, threat model, reporting
-- [SECURITY_AUDIT.md](SECURITY_AUDIT.md) - findings with severity and evidence
-- [SECURITY_REMEDIATION_PLAN.md](SECURITY_REMEDIATION_PLAN.md) and [SECURITY_PROGRESS.md](SECURITY_PROGRESS.md)
-- [SECURITY_TEST_MATRIX.md](SECURITY_TEST_MATRIX.md) - control to test mapping
-- [PROMPT_ENGINE_SECURITY_AUDIT.md](PROMPT_ENGINE_SECURITY_AUDIT.md) - confirms no LLM exists
-- [SECURITY_DEPENDENCY_REPORT.md](SECURITY_DEPENDENCY_REPORT.md) and [PRODUCTION_SECURITY_CHECKLIST.md](PRODUCTION_SECURITY_CHECKLIST.md)
-- [DEPLOYMENT.md](DEPLOYMENT.md) - local, Docker and reverse proxy notes
-- [PROJECT_STATUS.md](PROJECT_STATUS.md) - module by module status and evidence
-- [IMPLEMENTATION_LOG.md](IMPLEMENTATION_LOG.md) - what was built and verified
-- [REMAINING_WORK.md](REMAINING_WORK.md) - honest backlog
+- [docs/README.md](docs/README.md) - documentation index by category
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) - components, data model, request flow
+- [API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md) - endpoint reference
+- [SECURITY.md](docs/SECURITY.md) - controls, threat model, reporting
+- [SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) - findings with severity and evidence
+- [SECURITY_REMEDIATION_PLAN.md](docs/SECURITY_REMEDIATION_PLAN.md) and [SECURITY_PROGRESS.md](docs/SECURITY_PROGRESS.md)
+- [SECURITY_TEST_MATRIX.md](docs/SECURITY_TEST_MATRIX.md) - control to test mapping
+- [PROMPT_ENGINE_SECURITY_AUDIT.md](docs/PROMPT_ENGINE_SECURITY_AUDIT.md) - confirms no LLM exists
+- [SECURITY_DEPENDENCY_REPORT.md](docs/SECURITY_DEPENDENCY_REPORT.md) and [PRODUCTION_SECURITY_CHECKLIST.md](docs/PRODUCTION_SECURITY_CHECKLIST.md)
+- [DEPLOYMENT.md](docs/DEPLOYMENT.md) - local, Docker and reverse proxy notes
+- [PROJECT_STATUS.md](docs/PROJECT_STATUS.md) - module by module status and evidence
+- [IMPLEMENTATION_LOG.md](docs/IMPLEMENTATION_LOG.md) - what was built and verified
+- [REMAINING_WORK.md](docs/REMAINING_WORK.md) - honest backlog
 - [docs/THREAT_SIMULATION_LAB.md](docs/THREAT_SIMULATION_LAB.md) - engine, scenarios, scoring
 - [docs/MIROFISH_INTEGRATION.md](docs/MIROFISH_INTEGRATION.md) and [docs/API_ANYTHING_INTEGRATION.md](docs/API_ANYTHING_INTEGRATION.md)

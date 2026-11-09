@@ -241,6 +241,110 @@ export const RULES = [
     },
   },
   {
+    key: 'web-attack',
+    name: 'Web attack signature on an internet facing service',
+    category: 'application',
+    severity: 'critical',
+    description: 'A request matched a SQL injection or cross site scripting signature against a web service.',
+    threshold: 1,
+    windowMinutes: 30,
+    evaluate(orgId) {
+      const rows = all(
+        `SELECT id, asset_id, src_ip, title, event_type, occurred_at
+           FROM security_events
+          WHERE org_id = ? AND event_type IN ('web.sql_injection','web.xss')
+            AND occurred_at >= '${WINDOW(30)}'
+          ORDER BY occurred_at DESC LIMIT 20`,
+        orgId,
+      );
+      return rows.map((r) => ({
+        signature: `web:${r.id}`,
+        eventId: r.id,
+        assetId: r.asset_id,
+        title: `Web attack attempt: ${r.title}`,
+        description: `A ${r.event_type === 'web.xss' ? 'cross site scripting' : 'SQL injection'} payload was sent from ${r.src_ip ?? 'an unknown source'}.`,
+        severity: 'critical',
+        confidence: 92,
+        observed: { eventType: r.event_type, srcIp: r.src_ip, occurredAt: r.occurred_at },
+        factors: [
+          { label: 'Signature match', weight: 50, detail: r.event_type },
+          { label: 'Internet facing target', weight: 18, detail: 'request reached the application tier' },
+          { label: 'Deterministic rule', weight: 12, detail: 'no model inference' },
+        ],
+        srcIp: r.src_ip,
+      }));
+    },
+  },
+  {
+    key: 'malware-detection',
+    name: 'Malware detected on a monitored endpoint',
+    category: 'endpoint',
+    severity: 'critical',
+    description: 'Endpoint protection reported a malicious file or quarantined payload.',
+    threshold: 1,
+    windowMinutes: 30,
+    evaluate(orgId) {
+      const rows = all(
+        `SELECT id, asset_id, src_ip, title, event_type, occurred_at
+           FROM security_events
+          WHERE org_id = ? AND event_type IN ('malware.detected','malware.quarantined')
+            AND occurred_at >= '${WINDOW(30)}'
+          ORDER BY occurred_at DESC LIMIT 20`,
+        orgId,
+      );
+      return rows.map((r) => ({
+        signature: `malware:${r.id}`,
+        eventId: r.id,
+        assetId: r.asset_id,
+        title: `Malware detection: ${r.title}`,
+        description: 'A malicious payload was identified by the endpoint sensor.',
+        severity: 'critical',
+        confidence: 95,
+        observed: { eventType: r.event_type, assetId: r.asset_id, occurredAt: r.occurred_at },
+        factors: [
+          { label: 'Malware verdict', weight: 55, detail: r.event_type },
+          { label: 'Endpoint evidence', weight: 20, detail: 'sensor verdict on the host' },
+        ],
+        srcIp: r.src_ip,
+      }));
+    },
+  },
+  {
+    key: 'privileged-login-anomaly',
+    name: 'Privileged account sign-in from an unusual source',
+    category: 'identity',
+    severity: 'high',
+    description: 'An administrative account signed in from a source outside the usual range.',
+    threshold: 1,
+    windowMinutes: 30,
+    evaluate(orgId) {
+      const rows = all(
+        `SELECT id, asset_id, src_ip, title, user_email, occurred_at
+           FROM security_events
+          WHERE org_id = ? AND event_type = 'auth.privileged_login'
+            AND occurred_at >= '${WINDOW(30)}'
+          ORDER BY occurred_at DESC LIMIT 10`,
+        orgId,
+      );
+      return rows.map((r) => ({
+        signature: `admin-login:${r.id}`,
+        eventId: r.id,
+        assetId: r.asset_id,
+        title: `Privileged sign-in from an unusual source`,
+        description: `${r.user_email ?? 'An administrative account'} signed in from ${r.src_ip ?? 'an external address'} outside the usual range.`,
+        severity: 'high',
+        confidence: 82,
+        observed: { userEmail: r.user_email, srcIp: r.src_ip, occurredAt: r.occurred_at },
+        factors: [
+          { label: 'Privileged account', weight: 35, detail: r.user_email ?? 'admin role' },
+          { label: 'Unusual source', weight: 25, detail: r.src_ip ?? 'external address' },
+          { label: 'Time correlation', weight: 10, detail: 'outside the normal pattern' },
+        ],
+        srcIp: r.src_ip,
+      }));
+    },
+  },
+  {
     key: 'volume-anomaly',
     name: 'Event volume far above the hourly baseline',
     category: 'application',
@@ -350,7 +454,7 @@ export function ensureRules(orgId) {
 }
 
 /** Evaluate every enabled deterministic rule. `write=false` gives a dry run. */
-export function evaluateRules(orgId, { write = true } = {}) {
+export function evaluateRules(orgId, { write = true, dataOrigin: originHint = null, demoBatchId: batchHint = null } = {}) {
   ensureRules(orgId);
   const dbRules = all('SELECT * FROM detection_rules WHERE org_id = ? AND enabled = 1', orgId);
   const recent = all(
@@ -372,8 +476,13 @@ export function evaluateRules(orgId, { write = true } = {}) {
     for (const finding of findings) {
       if (recent.includes(finding.signature)) continue;
       const asset = finding.assetId
-        ? get('SELECT criticality FROM assets WHERE id = ? AND org_id = ?', finding.assetId, orgId)
+        ? get('SELECT criticality, data_origin, demo_batch_id FROM assets WHERE id = ? AND org_id = ?', finding.assetId, orgId)
         : null;
+      const sourceEvent = finding.eventId
+        ? get('SELECT data_origin, demo_batch_id FROM security_events WHERE id = ? AND org_id = ?', finding.eventId, orgId)
+        : null;
+      const dataOrigin = sourceEvent?.data_origin ?? asset?.data_origin ?? originHint ?? 'REAL';
+      const demoBatchId = sourceEvent?.demo_batch_id ?? asset?.demo_batch_id ?? batchHint ?? null;
       const risk = scoreDetection({
         severity: finding.severity,
         confidence: finding.confidence,
@@ -395,11 +504,11 @@ export function evaluateRules(orgId, { write = true } = {}) {
       const id = newId('det');
       if (write) {
         run(
-          `INSERT INTO detections (id, org_id, rule_id, event_id, asset_id, title, description, severity, risk_score, confidence, status, explanation, detected_at, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?)`,
+          `INSERT INTO detections (id, org_id, rule_id, event_id, asset_id, title, description, severity, risk_score, confidence, status, explanation, detected_at, created_at, updated_at, data_origin, demo_batch_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?)`,
           id, orgId, row.id, finding.eventId ?? null, finding.assetId ?? null,
           finding.title, finding.description, finding.severity, risk, finding.confidence,
-          JSON.stringify(explanation), nowIso(), nowIso(), nowIso(),
+          JSON.stringify(explanation), nowIso(), nowIso(), nowIso(), dataOrigin, demoBatchId,
         );
         recent.push(finding.signature);
         produced.push({ id, title: finding.title, severity: finding.severity, riskScore: risk, ruleKey: rule.key });
@@ -415,7 +524,7 @@ export function evaluateRules(orgId, { write = true } = {}) {
 export function refreshAssetRisk(orgId) {
   const rows = all(
     `SELECT asset_id, MAX(risk_score) AS top FROM detections
-      WHERE org_id = ? AND asset_id IS NOT NULL AND status = 'open'
+      WHERE org_id = ? AND asset_id IS NOT NULL AND status IN ('open','confirmed')
         AND detected_at >= '${WINDOW(10080)}' GROUP BY asset_id`,
     orgId,
   );

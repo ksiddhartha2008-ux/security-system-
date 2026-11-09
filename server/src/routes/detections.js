@@ -14,6 +14,7 @@ const mapDetection = (d) => ({
   confidence: d.confidence, status: d.status, detectedAt: d.detected_at,
   ruleName: d.rule_name ?? null, ruleKey: d.rule_key ?? null,
   assetId: d.asset_id, assetHostname: d.asset_hostname ?? null,
+  dataOrigin: d.data_origin,
   explanation: parseJson(d.explanation, {}),
 });
 

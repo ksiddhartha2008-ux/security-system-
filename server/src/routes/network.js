@@ -31,6 +31,7 @@ router.get('/', asyncHandler(async (req, res) => {
     id: n.id, srcIp: n.src_ip, srcPort: n.src_port, destIp: n.dest_ip, destPort: n.dest_port,
     protocol: n.protocol, bytesOut: n.bytes_out, bytesIn: n.bytes_in, direction: n.direction,
     verdict: n.verdict, assetId: n.asset_id, assetHostname: n.asset_hostname, occurredAt: n.occurred_at,
+    dataOrigin: n.data_origin,
   })), total, { page, limit });
 }));
 

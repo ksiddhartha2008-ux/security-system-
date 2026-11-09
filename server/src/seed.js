@@ -531,7 +531,12 @@ export function seed({ force = process.argv.includes('--force') } = {}) {
   seedIntegrations();
   seedAudit(users);
 
-  const produced = evaluateRules(DEMO_ORG.id);
+  // Everything created by the demo seeder is demo data with its own batch id.
+  for (const table of ['assets', 'security_events', 'incidents', 'vulnerabilities', 'network_events']) {
+    run(`UPDATE ${table} SET data_origin = 'DEMO', demo_batch_id = 'seed-v1' WHERE org_id = ?`, DEMO_ORG.id);
+  }
+
+  const produced = evaluateRules(DEMO_ORG.id, { dataOrigin: 'DEMO', demoBatchId: 'seed-v1' });
   refreshAssetRisk(DEMO_ORG.id);
 
   // Two genuinely executed simulation runs plus one draft.

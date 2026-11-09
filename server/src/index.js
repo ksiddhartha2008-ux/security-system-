@@ -28,6 +28,7 @@ import forensicRoutes from './routes/forensics.js';
 import networkRoutes from './routes/network.js';
 import reportRoutes from './routes/reports.js';
 import simulationRoutes from './routes/simulations.js';
+import demoRoutes from './routes/demo.js';
 import settingsRoutes from './routes/settings.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -114,6 +115,7 @@ app.use('/api/forensics', forensicRoutes);
 app.use('/api/network', networkRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/simulations', simulationRoutes);
+app.use('/api/demo', demoRoutes);
 app.use('/api/settings', settingsRoutes);
 
 /** Server sent events for live monitoring and simulation progress. */

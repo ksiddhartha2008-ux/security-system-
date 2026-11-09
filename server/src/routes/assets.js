@@ -25,6 +25,7 @@ const map = (a) => ({
   id: a.id, name: a.name, hostname: a.hostname, ipAddress: a.ip_address, macAddress: a.mac_address,
   os: a.os, assetType: a.asset_type, criticality: a.criticality, owner: a.owner, riskScore: a.risk_score,
   status: a.status, tags: parseJson(a.tags, []), lastSeenAt: a.last_seen_at, createdAt: a.created_at,
+  dataOrigin: a.data_origin,
   eventCount: a.event_count ?? undefined, openDetections: a.open_detections ?? undefined,
 });
 

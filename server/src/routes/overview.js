@@ -73,7 +73,7 @@ router.get('/summary', asyncHandler(async (req, res) => {
     `SELECT id, name, hostname, criticality, risk_score, status FROM assets WHERE org_id = ? ORDER BY risk_score DESC, criticality DESC LIMIT 5`, org,
   );
   const recentEvents = all(
-    `SELECT e.id, e.title, e.event_type, e.severity, e.source, e.occurred_at, a.hostname AS asset
+    `SELECT e.id, e.title, e.event_type, e.severity, e.source, e.occurred_at, e.data_origin AS dataOrigin, a.hostname AS asset
        FROM security_events e LEFT JOIN assets a ON a.id = e.asset_id AND a.org_id = e.org_id
       WHERE e.org_id = ? ORDER BY e.occurred_at DESC LIMIT 8`, org,
   );

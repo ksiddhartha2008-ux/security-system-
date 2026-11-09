@@ -39,7 +39,14 @@ export function migrate() {
     const sql = readFileSync(join(here, 'migrations', '003_security.sql'), 'utf8');
     db.exec(sql);
     db.exec('PRAGMA user_version = 3');
+    current = 3;
     console.log('[db] schema v3 applied (CSRF, audit chain, evidence scanning, approvals)');
+  }
+  if (current < 4) {
+    const sql = readFileSync(join(here, 'migrations', '004_demo_data.sql'), 'utf8');
+    db.exec(sql);
+    db.exec('PRAGMA user_version = 4');
+    console.log('[db] schema v4 applied (data origin, demo batches, simulation mirroring)');
   }
 }
 

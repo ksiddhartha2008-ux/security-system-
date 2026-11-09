@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { z } from 'zod';
 import { all, get, run, newId, nowIso, parseJson } from '../db.js';
 import { asyncHandler, notFound, ok, created, pageParams, paginated, validate } from '../lib/http.js';
@@ -88,7 +88,7 @@ router.get('/', asyncHandler(async (req, res) => {
     id: e.id, eventType: e.event_type, source: e.source, severity: e.severity, category: e.category,
     title: e.title, description: e.description, srcIp: e.src_ip, destIp: e.dest_ip, userEmail: e.user_email,
     assetId: e.asset_id, assetHostname: e.asset_hostname, status: e.status, raw: parseJson(e.raw, {}),
-    occurredAt: e.occurred_at,
+    occurredAt: e.occurred_at, dataOrigin: e.data_origin,
   })), total, { page, limit });
 }));
 
@@ -124,7 +124,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
     id: e.id, eventType: e.event_type, source: e.source, severity: e.severity, category: e.category,
     title: e.title, description: e.description, srcIp: e.src_ip, destIp: e.dest_ip, userEmail: e.user_email,
     assetId: e.asset_id, assetHostname: e.asset_hostname, assetCriticality: e.asset_criticality,
-    status: e.status, raw: parseJson(e.raw, {}), occurredAt: e.occurred_at,
+    status: e.status, raw: parseJson(e.raw, {}), occurredAt: e.occurred_at, dataOrigin: e.data_origin,
     detections, related,
   });
 }));

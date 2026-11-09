@@ -20,6 +20,7 @@ const mapIncident = (i) => ({
   id: i.id, ref: i.ref, title: i.title, description: i.description, severity: i.severity, priority: i.priority,
   status: i.status, assigneeId: i.assignee_id, assignee: i.assignee_name ?? null, detectedAt: i.detected_at,
   dueAt: i.due_at, resolvedAt: i.resolved_at, createdAt: i.created_at, updatedAt: i.updated_at,
+  dataOrigin: i.data_origin,
   detectionCount: i.detection_count ?? undefined,
 });
 

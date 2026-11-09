@@ -12,6 +12,7 @@ const mapVuln = (v) => ({
   id: v.id, cveId: v.cve_id, title: v.title, description: v.description, severity: v.severity, cvss: v.cvss,
   assetId: v.asset_id, assetName: v.asset_name ?? null, assetHostname: v.asset_hostname ?? null,
   status: v.status, remediation: v.remediation, dueAt: v.due_at, discoveredAt: v.discovered_at,
+  dataOrigin: v.data_origin,
 });
 
 router.get('/', asyncHandler(async (req, res) => {

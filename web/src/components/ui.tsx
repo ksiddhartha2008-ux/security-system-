@@ -43,6 +43,12 @@ export function RiskBadge({ score }: { score?: number | null }) {
   return <Badge tone={tone}>{score}</Badge>;
 }
 
+export function OriginBadge({ origin }: { origin?: string | null }) {
+  if (!origin || origin === 'REAL') return null;
+  const tone: Tone = origin === 'DEMO' ? 'amber' : origin === 'SIMULATED' ? 'low' : 'neutral';
+  return <Badge tone={tone} dot>{origin.toLowerCase()}</Badge>;
+}
+
 export function RoleBadge({ role }: { role: string }) {
   const tone: Tone = role === 'admin' ? 'mint' : role === 'analyst' ? 'low' : 'neutral';
   return <Badge tone={tone}>{role}</Badge>;

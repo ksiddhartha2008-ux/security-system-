@@ -1,6 +1,8 @@
 import { all, get, run, newId, nowIso, parseJson, transaction } from '../db.js';
 import { ApiError, badRequest, notFound } from '../lib/http.js';
 import { broadcast } from '../lib/events.js';
+import { evaluateRules, refreshAssetRisk } from './detection.js';
+import { correlateDetections } from './correlation.js';
 
 /* ------------------------------------------------------------------ *
  * Synthetic multi-agent simulation engine (SecureFlow native).
@@ -82,6 +84,59 @@ export const SCENARIOS = [
       { name: 'edr-agent', role: 'defender', persona: 'Behavioural endpoint protection with isolate host capability.' },
     ],
   },
+  {
+    key: 'brute-force',
+    name: 'Brute-force attack',
+    summary: 'A password sprayer hammers the sign-in service from one address while rate limiting and MFA respond.',
+    category: 'identity',
+    defaultRounds: 7,
+    defaultConfig: { attemptsPerRound: 9, targetAccounts: 20, mfaCoverage: 0.45, rateLimitEnabled: true },
+    agents: [
+      { name: 'spray-client', role: 'attacker', persona: 'Tries common passwords across a list of valid accounts from a single address.' },
+      { name: 'signin-service', role: 'target', persona: 'Public authentication endpoint with per IP throttling and MFA.' },
+      { name: 'identity-defender', role: 'defender', persona: 'Watches failure ratios and locks the source when the threshold is crossed.' },
+    ],
+  },
+  {
+    key: 'malware',
+    name: 'Malware infection',
+    summary: 'A loader executes on a workstation and drops file encryption before the endpoint agent isolates the host.',
+    category: 'endpoint',
+    defaultRounds: 8,
+    defaultConfig: { encryptionRatePerRound: 110, edrEnabled: true, backupsImmutable: true },
+    agents: [
+      { name: 'loader-process', role: 'attacker', persona: 'Signed installer proxy execution followed by an unsigned payload.' },
+      { name: 'workstation-fin-021', role: 'target', persona: 'Finance workstation with a mapped department share.' },
+      { name: 'edr-agent', role: 'defender', persona: 'Behavioural endpoint protection with host isolation.' },
+    ],
+  },
+  {
+    key: 'sql-injection',
+    name: 'SQL injection attempt',
+    summary: 'A client sends UNION based payloads to a search endpoint while the WAF and parameterized queries decide the outcome.',
+    category: 'application',
+    defaultRounds: 7,
+    defaultConfig: { requestsPerRound: 14, wafEnabled: true, parameterizedQueries: false },
+    agents: [
+      { name: 'injection-client', role: 'attacker', persona: 'Automated scanner sending encoded SQL payloads in query parameters.' },
+      { name: 'customer-api', role: 'target', persona: 'Node service exposing /api/customers/search.' },
+      { name: 'customer-db', role: 'target', persona: 'PostgreSQL database behind the API with read only credentials.' },
+      { name: 'waf', role: 'defender', persona: 'Signature and anomaly inspection at the edge.' },
+    ],
+  },
+  {
+    key: 'suspicious-admin',
+    name: 'Suspicious administrator login',
+    summary: 'A privileged account signs in from an unusual range outside working hours and starts exporting records.',
+    category: 'identity',
+    defaultRounds: 8,
+    defaultConfig: { offHours: true, mfaEnabled: false, exportRows: 120 },
+    agents: [
+      { name: 'admin-account', role: 'attacker', persona: 'Domain administrator credential used from a new network range.' },
+      { name: 'identity-provider', role: 'target', persona: 'Issues sessions and records the source address of each sign-in.' },
+      { name: 'siem', role: 'defender', persona: 'Correlates privileged sign-ins with export volume and working hours.' },
+    ],
+  },
 ];
 
 export const getScenario = (key) => SCENARIOS.find((s) => s.key === key) ?? null;
@@ -98,6 +153,37 @@ function mulberry32(seed) {
 }
 
 const severityRank = { info: 0, low: 1, medium: 2, high: 3, critical: 4 };
+
+const scenarioCategory = (eventType) => {
+  if (eventType.startsWith('auth.') || eventType.startsWith('web.')) return eventType.startsWith('web.') ? 'application' : 'identity';
+  if (eventType.startsWith('email.')) return 'email';
+  if (eventType.startsWith('network.')) return 'network';
+  if (eventType.startsWith('api.')) return 'application';
+  return 'endpoint';
+};
+
+const syntheticSourceIp = (simulationId) => {
+  const sum = [...simulationId].reduce((total, char) => total + char.charCodeAt(0), 0);
+  return `203.0.113.${20 + (sum % 200)}`;
+};
+
+/**
+ * Mirror a simulation event into the security event pipeline. The dedupe key
+ * makes reruns idempotent: the same simulation id, round and index is written
+ * once, so detection and dashboard counts cannot double up.
+ */
+function mirrorSimulationEvent(state, event, index) {
+  const dedupeKey = `sim:${state.simulationId}:${state.round}:${index}`;
+  run(
+    `INSERT OR IGNORE INTO security_events
+       (id, org_id, event_type, source, severity, category, title, description, src_ip, dest_ip, user_email, asset_id, raw, status, occurred_at, created_at, data_origin, demo_batch_id, dedupe_key, simulation_id)
+     VALUES (?, ?, ?, 'simulation', ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, 'new', ?, ?, 'SIMULATED', NULL, ?, ?)`,
+    newId('evt'), state.orgId, event.eventType, event.severity, scenarioCategory(event.eventType),
+    event.eventType, event.message, state.sourceIp,
+    JSON.stringify({ synthetic: true, simulationId: state.simulationId, round: state.round, agentId: event.agentId }),
+    nowIso(), nowIso(), dedupeKey, state.simulationId,
+  );
+}
 
 function pick(rng, list) {
   return list[Math.floor(rng() * list.length) % list.length];
@@ -223,6 +309,62 @@ function roundEvents(scenarioKey, state, agents) {
     return out;
   }
 
+  if (scenarioKey === 'brute-force') {
+    const attacker = byRole('attacker')[0] ?? agents[0];
+    const target = byRole('target')[0] ?? agents[0];
+    const defender = byRole('defender')[0] ?? agents[0];
+    const attempts = Math.max(3, Math.round(config.attemptsPerRound * (0.7 + rng() * 0.6)));
+    for (let i = 0; i < Math.min(attempts, 10); i += 1) {
+      push(attacker, 'auth.failure', 'medium', `Password spray attempt ${i + 1} for account ${Math.floor(rng() * config.targetAccounts)} from ${state.sourceIp}`, { accountIndex: Math.floor(rng() * config.targetAccounts) });
+    }
+    if (rng() < 0.18 * (1 - config.mfaCoverage)) {
+      push(target, 'auth.success', 'high', 'Password accepted for a targeted account');
+    } else if (config.mfaCoverage > 0.3) {
+      push(target, 'auth.mfa_challenge', 'info', 'MFA challenge blocked the sign-in');
+    }
+    if (config.rateLimitEnabled) push(defender, 'auth.rate_limited', 'low', `Source ${state.sourceIp} throttled after repeated failures`);
+    if (progress > 0.5) push(defender, 'detection.rule_match', 'high', 'Brute-force threshold crossed for one source address');
+    if (progress > 0.8) push(defender, 'response.block_ip', 'medium', `Source ${state.sourceIp} blocked at the identity edge`);
+    return out;
+  }
+
+  if (scenarioKey === 'malware') {
+    const loader = byRole('attacker')[0] ?? agents[0];
+    const target = byRole('target')[0] ?? agents[0];
+    const defender = byRole('defender')[0] ?? agents[0];
+    if (round === 1) push(loader, 'process.exec', 'high', 'Signed installer launched an unsigned payload on workstation-fin-021');
+    if (round === 2) push(target, 'malware.detected', 'critical', 'Endpoint sensor flagged a loader written to the user temp directory');
+    if (round >= 2) push(target, 'file.encrypt', 'critical', `${Math.round(config.encryptionRatePerRound * (0.6 + rng() * 0.8))} files encrypted on the mapped department share`);
+    if (progress > 0.5 && config.edrEnabled) push(defender, 'edr.detection', 'high', 'Behavioural rule matched mass file rename');
+    if (progress > 0.7) push(defender, 'response.isolate_host', 'medium', 'Host isolated by the endpoint agent');
+    return out;
+  }
+
+  if (scenarioKey === 'sql-injection') {
+    const attacker = byRole('attacker')[0] ?? agents[0];
+    const target = byRole('target')[0] ?? agents[0];
+    const defender = byRole('defender')[0] ?? agents[0];
+    const requests = Math.round(config.requestsPerRound * (0.8 + rng() * 0.4));
+    push(attacker, 'web.sql_injection', 'critical', `UNION SELECT payload sent to /api/customers/search (${requests} requests)`, { endpoint: '/api/customers/search' });
+    push(target, 'web.request', 'low', 'Search endpoint processed the request');
+    if (config.wafEnabled && rng() < 0.7) push(defender, 'waf.block', 'medium', 'WAF blocked the payload with 403');
+    if (!config.parameterizedQueries && progress > 0.4) push(byRole('target')[1] ?? target, 'db.query_error', 'medium', 'Database returned a syntax error to the application');
+    if (progress > 0.6) push(defender, 'detection.rule_match', 'critical', 'SQL injection signature matched');
+    return out;
+  }
+
+  if (scenarioKey === 'suspicious-admin') {
+    const admin = byRole('attacker')[0] ?? agents[0];
+    const target = byRole('target')[0] ?? agents[0];
+    const defender = byRole('defender')[0] ?? agents[0];
+    if (round === 1) push(admin, 'auth.privileged_login', 'high', `Domain administrator signed in from ${state.sourceIp} outside working hours`, { offHours: config.offHours });
+    push(target, 'authz.grant', 'medium', 'Administrative role granted to the session');
+    if (rng() < 0.6) push(admin, 'data.export', 'high', `${Math.round(config.exportRows * 0.3)} customer records exported`);
+    if (progress > 0.5) push(defender, 'detection.rule_match', 'high', 'Privileged login correlated with export volume');
+    if (progress > 0.8) push(defender, 'response.session_revoke', 'medium', 'Administrative session revoked pending review');
+    return out;
+  }
+
   // ransomware
   const loader = byRole('attacker')[0] ?? agents[0];
   const ws = byRole('target')[0] ?? agents[0];
@@ -313,6 +455,69 @@ function computeOutcome(scenarioKey, state, events) {
       'Require approval for exports above the departmental baseline.',
       'Block removable media on endpoints holding customer data unless explicitly exempted.',
     ];
+  } else if (scenarioKey === 'brute-force') {
+    const failures = count('auth.failure');
+    const success = count('auth.success');
+    const blocked = count('auth.rate_limited') + count('auth.mfa_challenge');
+    metrics = { attempts: failures, successfulLogins: success, blocked, mfaCoverage: config.mfaCoverage };
+    riskScore = Math.min(97, 42 + success * 18 + Math.round(failures / 5) - blocked * 2);
+    findings = [
+      `${failures} failed authentication attempts were generated from one source across ${totalRounds} rounds.`,
+      success > 0 ? `${success} attempt(s) succeeded before the source was contained.` : 'No attempt succeeded; MFA and throttling held.',
+      `${blocked} attempt(s) were challenged or throttled.`,
+    ];
+    recommendations = [
+      'Lock the source after a failure ratio threshold, not only after a fixed count.',
+      'Require MFA for every interactive account.',
+      'Alert on one source touching more than three accounts.',
+    ];
+  } else if (scenarioKey === 'malware') {
+    const encrypted = events.filter((e) => e.eventType === 'file.encrypt').reduce((sum, e) => sum + (e.metadata.files ?? 0), 0);
+    const detected = count('malware.detected');
+    const isolated = count('response.isolate_host');
+    metrics = { filesEncrypted: encrypted, malwareDetections: detected, hostIsolated: isolated > 0, immutableBackups: config.backupsImmutable };
+    riskScore = Math.min(99, 55 + Math.round(encrypted / 40) + detected * 4 - (isolated ? 12 : 0));
+    findings = [
+      `${encrypted} synthetic files were encrypted after the loader executed.`,
+      `${detected} malware verdict(s) were raised by the endpoint sensor.`,
+      isolated ? 'The host was isolated and the run ended with containment.' : 'The host was never isolated.',
+    ];
+    recommendations = [
+      'Block unsigned payloads from user writable directories.',
+      'Alert on mass file rename and shadow copy deletion.',
+      'Keep an immutable backup copy and test restores.',
+    ];
+  } else if (scenarioKey === 'sql-injection') {
+    const attempts = count('web.sql_injection');
+    const blocked = count('waf.block');
+    metrics = { injectionAttempts: attempts, wafBlocks: blocked, parameterizedQueries: config.parameterizedQueries, wafEnabled: config.wafEnabled };
+    riskScore = Math.min(96, 45 + attempts * 8 + (config.parameterizedQueries ? 0 : 18) - (config.wafEnabled ? 6 : 0));
+    findings = [
+      `${attempts} SQL injection payload(s) reached the search endpoint.`,
+      `${blocked} request(s) were blocked by the WAF.`,
+      config.parameterizedQueries ? 'Parameterized queries prevented payload execution.' : 'The simulated query layer used string concatenation.',
+    ];
+    recommendations = [
+      'Use parameterized queries for every database call.',
+      'Keep WAF signatures current and alert on repeated blocks from one source.',
+      'Run a code review of query construction in the search service.',
+    ];
+  } else if (scenarioKey === 'suspicious-admin') {
+    const logins = count('auth.privileged_login');
+    const exports = count('data.export');
+    const revoked = count('response.session_revoke');
+    metrics = { privilegedLogins: logins, exports, sessionRevoked: revoked > 0, mfaEnabled: config.mfaEnabled };
+    riskScore = Math.min(97, 48 + logins * 14 + exports * 6 - (config.mfaEnabled ? 12 : 0) - (revoked ? 8 : 0));
+    findings = [
+      `${logins} privileged sign-in(s) occurred outside the normal pattern.`,
+      `${exports} export event(s) followed the administrative session.`,
+      config.mfaEnabled ? 'MFA was enabled for the administrative account.' : 'The administrative account had no second factor.',
+    ];
+    recommendations = [
+      'Require phishing resistant MFA for privileged accounts.',
+      'Alert on administrative sign-ins from new network ranges.',
+      'Gate bulk exports behind a second approval.',
+    ];
   } else {
     const encrypted = events.filter((e) => e.eventType === 'file.encrypt').reduce((s, e) => s + (e.metadata.files ?? 0), 0);
     const isolated = count('response.isolate_host');
@@ -382,6 +587,8 @@ export function startSimulation(orgId, simulationId) {
     simulationId: sim.id,
     agents,
     scenarioKey: sim.scenario,
+    sourceIp: syntheticSourceIp(sim.id),
+    actorId: sim.created_by ?? null,
   };
 
   tick(state);
@@ -395,13 +602,14 @@ function tick(state) {
   const generated = roundEvents(state.scenarioKey, state, state.agents);
   const ts = nowIso();
   transaction(() => {
-    for (const ev of generated) {
+    for (const [index, ev] of generated.entries()) {
       run(
         `INSERT INTO simulation_events (id, org_id, simulation_id, round, agent_id, event_type, severity, message, metadata, occurred_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         newId('sev'), state.orgId, state.simulationId, state.round, ev.agentId, ev.eventType, ev.severity,
         ev.message, JSON.stringify({ ...ev.metadata, synthetic: true }), ts,
       );
+      mirrorSimulationEvent(state, ev, index);
       state.events.push(ev);
       if (ev.agentId) {
         const weight = severityRank[ev.severity] >= 3 ? 8 : 3;
@@ -449,6 +657,13 @@ function finish(state) {
     run(`UPDATE simulation_agents SET status='idle' WHERE simulation_id = ?`, state.simulationId);
   });
   drivers.delete(state.simulationId);
+  try {
+    evaluateRules(state.orgId, { dataOrigin: 'SIMULATED' });
+    correlateDetections(state.orgId, { limit: 5, actorId: state.actorId });
+    refreshAssetRisk(state.orgId);
+  } catch (err) {
+    console.error('[simulation] post-run detection failed', err.message);
+  }
   broadcast(state.orgId, 'simulation.finished', { simulationId: state.simulationId, riskScore: outcome.riskScore });
 }
 
@@ -474,19 +689,21 @@ export function runToCompletionSync(orgId, simulationId) {
   const state = {
     rng: mulberry32(Number(config.seed ?? 1)), round: 0, totalRounds: sim.total_rounds,
     config, events: [], orgId, simulationId, agents, scenarioKey: sim.scenario,
+    sourceIp: syntheticSourceIp(sim.id), actorId: sim.created_by ?? null,
   };
   const ts = nowIso();
   run(`UPDATE simulations SET status='running', started_at=?, progress=0, current_round=0 WHERE id = ?`, ts, simulationId);
   for (let r = 0; r < sim.total_rounds; r += 1) {
     state.round = r + 1;
     const generated = roundEvents(state.scenarioKey, state, state.agents);
-    for (const ev of generated) {
+    for (const [index, ev] of generated.entries()) {
       run(
         `INSERT INTO simulation_events (id, org_id, simulation_id, round, agent_id, event_type, severity, message, metadata, occurred_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         newId('sev'), orgId, simulationId, state.round, ev.agentId, ev.eventType, ev.severity,
         ev.message, JSON.stringify({ ...ev.metadata, synthetic: true }), ts,
       );
+      mirrorSimulationEvent(state, ev, index);
       state.events.push(ev);
       if (ev.agentId) {
         run(`UPDATE simulation_agents SET activity_count = activity_count + 1, last_action = ?, risk_score = MIN(100, risk_score + ?) WHERE id = ?`,

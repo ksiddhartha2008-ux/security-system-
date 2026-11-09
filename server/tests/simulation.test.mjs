@@ -18,13 +18,16 @@ async function waitForCompletion(c, id, timeoutMs = 25_000) {
   throw new Error(`simulation did not settle in time: ${JSON.stringify(last)}`);
 }
 
-test('all five scenarios are exposed with agent rosters', async () => {
+test('all simulation scenarios are exposed with agent rosters', async () => {
   const c = await login(server.base, ...DEMO.analyst);
   const response = await c.get('/simulations/scenarios');
   assert.equal(response.status, 200);
-  assert.equal(response.body.data.length, 5);
+  assert.equal(response.body.data.length, 9);
   const keys = response.body.data.map((row) => row.key).sort();
-  assert.deepEqual(keys, ['api-abuse', 'credential-stuffing', 'insider-threat', 'phishing', 'ransomware']);
+  assert.deepEqual(keys, [
+    'api-abuse', 'brute-force', 'credential-stuffing', 'insider-threat', 'malware',
+    'phishing', 'ransomware', 'sql-injection', 'suspicious-admin',
+  ]);
   for (const scenario of response.body.data) {
     assert.ok(scenario.agents.length >= 3);
     assert.ok(Object.keys(scenario.defaultConfig).length >= 3);

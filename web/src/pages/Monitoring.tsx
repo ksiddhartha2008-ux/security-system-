@@ -3,14 +3,14 @@ import { Activity, Download, Plus, Radio } from 'lucide-react';
 import { PageHeader } from '../components/layout';
 import {
   Badge, Button, Card, Drawer, EmptyState, ErrorState, Field, Modal, Pagination, SearchInput,
-  SeverityBadge, StatusBadge, TableSkeleton, useToast,
+  SeverityBadge, StatusBadge, TableSkeleton, useToast, OriginBadge,
 } from '../components/ui';
 import { useApi, useDebounced, useEventStream } from '../lib/hooks';
 import { api, ApiError } from '../lib/api';
 import { formatDate, timeAgo } from '../lib/format';
 import { useAuth } from '../lib/auth';
 
-type EventRow = {
+type EventRow = { dataOrigin?: string;
   id: string; eventType: string; source: string; severity: string; category: string; title: string;
   description: string | null; srcIp: string | null; destIp: string | null; userEmail: string | null;
   assetId: string | null; assetHostname: string | null; status: string; occurredAt: string;
@@ -121,6 +121,7 @@ export default function MonitoringPage() {
                       <td>
                         <p className="truncate-cell" style={{ maxWidth: 320 }}>{event.title}</p>
                         <p className="tiny faint mono">{event.eventType}</p>
+                        <OriginBadge origin={event.dataOrigin} />
                       </td>
                       <td className="small muted">{event.source}</td>
                       <td className="mono muted tiny">{event.srcIp ?? '—'}{event.destIp ? ` → ${event.destIp}` : ''}</td>

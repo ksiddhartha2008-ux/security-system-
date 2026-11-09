@@ -4,14 +4,14 @@ import { Radar, SlidersHorizontal } from 'lucide-react';
 import { PageHeader } from '../components/layout';
 import {
   Badge, Button, Card, Drawer, EmptyState, ErrorState, KeyValue, Pagination, RiskBadge,
-  SearchInput, SeverityBadge, StatusBadge, TableSkeleton, Tabs, useToast,
+  SearchInput, SeverityBadge, StatusBadge, TableSkeleton, Tabs, useToast, OriginBadge,
 } from '../components/ui';
 import { useApi, useDebounced } from '../lib/hooks';
 import { api, ApiError } from '../lib/api';
 import { formatDate, timeAgo } from '../lib/format';
 import { useAuth } from '../lib/auth';
 
-type Detection = {
+type Detection = { dataOrigin?: string;
   id: string; title: string; description: string; severity: string; riskScore: number; confidence: number;
   status: string; detectedAt: string; ruleName: string | null; ruleKey: string | null; assetId: string | null;
   assetHostname: string | null; explanation: {
@@ -131,6 +131,7 @@ export default function DetectionsPage() {
                         <td>
                           <p className="truncate-cell" style={{ maxWidth: 340, fontWeight: 550 }}>{detection.title}</p>
                           <p className="tiny faint truncate-cell" style={{ maxWidth: 340 }}>{detection.description}</p>
+                          <OriginBadge origin={detection.dataOrigin} />
                         </td>
                         <td className="small muted">{detection.ruleName ?? 'historical'}</td>
                         <td className="mono tiny muted">{detection.assetHostname ?? '—'}</td>

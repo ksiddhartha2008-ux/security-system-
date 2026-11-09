@@ -4,14 +4,14 @@ import { ArrowLeft, Plus, Siren } from 'lucide-react';
 import { PageHeader } from '../components/layout';
 import {
   Badge, Button, Card, EmptyState, ErrorState, Field, KeyValue, Modal, Pagination, SearchInput,
-  SeverityBadge, StatusBadge, TableSkeleton, Tabs, useToast,
+  SeverityBadge, StatusBadge, TableSkeleton, Tabs, useToast, OriginBadge,
 } from '../components/ui';
 import { useApi, useDebounced } from '../lib/hooks';
 import { api, ApiError } from '../lib/api';
 import { formatDate, timeAgo } from '../lib/format';
 import { useAuth } from '../lib/auth';
 
-type Incident = {
+type Incident = { dataOrigin?: string;
   id: string; ref: string; title: string; description: string; severity: string; priority: string; status: string;
   assigneeId: string | null; assignee: string | null; detectedAt: string; dueAt: string | null; resolvedAt: string | null; createdAt: string;
 };
@@ -81,6 +81,7 @@ export function IncidentsPage() {
                       <td>
                         <Link to={`/incidents/${incident.id}`} style={{ fontWeight: 550 }} className="truncate-cell" >{incident.title}</Link>
                         <p className="tiny faint">{incident.description.slice(0, 90)}{incident.description.length > 90 ? '…' : ''}</p>
+                        <OriginBadge origin={incident.dataOrigin} />
                       </td>
                       <td><SeverityBadge severity={incident.severity} /></td>
                       <td className="mono tiny">{incident.priority}</td>

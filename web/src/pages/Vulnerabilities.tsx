@@ -3,14 +3,14 @@ import { Plus, ShieldCheck } from 'lucide-react';
 import { PageHeader } from '../components/layout';
 import {
   Badge, Button, Card, Drawer, EmptyState, ErrorState, Field, KeyValue, Modal, Pagination,
-  SearchInput, SeverityBadge, StatusBadge, TableSkeleton, useToast,
+  SearchInput, SeverityBadge, StatusBadge, TableSkeleton, useToast, OriginBadge,
 } from '../components/ui';
 import { useApi, useDebounced } from '../lib/hooks';
 import { api, ApiError } from '../lib/api';
 import { formatDate } from '../lib/format';
 import { useAuth } from '../lib/auth';
 
-type Vuln = {
+type Vuln = { dataOrigin?: string;
   id: string; cveId: string | null; title: string; description: string; severity: string; cvss: number;
   assetId: string | null; assetName: string | null; assetHostname: string | null; status: string;
   remediation: string | null; dueAt: string | null; discoveredAt: string;
@@ -78,7 +78,7 @@ export default function VulnerabilitiesPage() {
                   {vulns.data?.data.map((vuln) => (
                     <tr key={vuln.id} className="row-link" onClick={() => setSelected(vuln)} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') setSelected(vuln); }}>
                       <td className="mono tiny">{vuln.cveId ?? '—'}</td>
-                      <td><p className="truncate-cell" style={{ maxWidth: 360, fontWeight: 550 }}>{vuln.title}</p></td>
+                      <td><p className="truncate-cell" style={{ maxWidth: 360, fontWeight: 550 }}>{vuln.title}</p><OriginBadge origin={vuln.dataOrigin} /></td>
                       <td className="mono tiny muted">{vuln.assetHostname ?? 'Unassigned'}</td>
                       <td><SeverityBadge severity={vuln.severity} /></td>
                       <td className="num">{vuln.cvss.toFixed(1)}</td>

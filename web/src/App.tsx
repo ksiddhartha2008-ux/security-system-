@@ -22,6 +22,7 @@ import ReportsPage from './pages/Reports';
 import SimulationsPage from './pages/Simulations';
 import SimulationDetailPage from './pages/SimulationDetail';
 import SettingsPage from './pages/Settings';
+import DemoDataPage from './pages/DemoData';
 import PeoplePage from './pages/People';
 
 function ScrollToTop() {
@@ -66,6 +67,7 @@ export default function App() {
               <Route path="/simulations/:id" element={<SimulationDetailPage />} />
               <Route path="/users" element={<PeoplePage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/demo-data" element={<DemoDataPage />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />

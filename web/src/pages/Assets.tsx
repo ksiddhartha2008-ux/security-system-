@@ -3,14 +3,14 @@ import { Plus, Server } from 'lucide-react';
 import { PageHeader } from '../components/layout';
 import {
   Badge, Button, Card, Drawer, EmptyState, ErrorState, Field, Modal, Pagination, RiskBadge,
-  SearchInput, SeverityBadge, StatusBadge, TableSkeleton, useToast, KeyValue,
+  SearchInput, SeverityBadge, StatusBadge, TableSkeleton, useToast, KeyValue, OriginBadge,
 } from '../components/ui';
 import { useApi, useDebounced } from '../lib/hooks';
 import { api, ApiError } from '../lib/api';
 import { formatDate, timeAgo } from '../lib/format';
 import { useAuth } from '../lib/auth';
 
-type Asset = {
+type Asset = { dataOrigin?: string;
   id: string; name: string; hostname: string; ipAddress: string | null; os: string | null; assetType: string;
   criticality: string; owner: string | null; riskScore: number; status: string; tags: string[];
   eventCount?: number; openDetections?: number; lastSeenAt: string | null;
@@ -102,6 +102,7 @@ export default function AssetsPage() {
                       <td>
                         <p style={{ fontWeight: 550 }}>{asset.name}</p>
                         <p className="tiny faint mono">{asset.hostname}{asset.owner ? ` · ${asset.owner}` : ''}</p>
+                        <OriginBadge origin={asset.dataOrigin} />
                       </td>
                       <td className="mono tiny muted">{asset.ipAddress ?? 'cloud'}</td>
                       <td className="small muted">{asset.assetType}</td>

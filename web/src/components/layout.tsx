@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Activity, AlertTriangle, Blocks, BookOpen, BrainCircuit, ChevronDown, FileText, Fingerprint,
+  Activity, AlertTriangle, Blocks, BookOpen, BrainCircuit, ChevronDown, Database, FileText, Fingerprint,
   FlaskConical, Gauge, Globe2, LayoutDashboard, LogOut, Menu, Network, Radar, Server,
   Settings, ShieldAlert, ShieldCheck, Siren, Users, X, Search,
 } from 'lucide-react';
@@ -49,6 +49,7 @@ const NAV = [
     items: [
       { to: '/users', label: 'People', icon: Users },
       { to: '/settings', label: 'Settings', icon: Settings },
+      { to: '/demo-data', label: 'Demo data', icon: Database },
     ],
   },
 ];
@@ -70,6 +71,7 @@ const TITLES: Record<string, string> = {
   '/simulations': 'Threat simulation lab',
   '/users': 'People and access',
   '/settings': 'Settings',
+  '/demo-data': 'Demo data',
 };
 
 export function AppShell() {
@@ -80,6 +82,7 @@ export function AppShell() {
   const [userOpen, setUserOpen] = useState(false);
   const userRef = useRef<HTMLDivElement>(null);
   const summary = useApi<{ kpis: { incidentsOpen: number; detectionsOpen: number } }>('/overview/summary');
+  const demoStatus = useApi<{ hasDemoData: boolean }>('/demo/status');
   const live = useEventStream(() => {}, true);
 
   const root = `/${location.pathname.split('/')[1] ?? ''}`;
@@ -183,9 +186,11 @@ export function AppShell() {
             <h1 className="topbar-title">{title}</h1>
           </div>
           <div className="topbar-spacer" />
-          <span className="demo-chip" title="This workspace is populated with synthetic demo records">
-            <FlaskConical size={12} aria-hidden="true" /> Demo data
-          </span>
+          {demoStatus.data?.hasDemoData && (
+            <span className="demo-chip" title="This workspace contains synthetic demo records">
+              <FlaskConical size={12} aria-hidden="true" /> Demo data
+            </span>
+          )}
           <Link to="/simulations" className="btn btn-sm topbar-cta" style={{ display: 'inline-flex' }}>
             <BrainCircuit size={14} aria-hidden="true" /> Simulation lab
           </Link>

@@ -6,6 +6,10 @@ Base URL: `/api`. A machine readable index is served at `GET /api/docs` for any 
 
 **Authentication** - session cookie `sf_session` (HttpOnly, SameSite=Lax, seven day expiry). Send `credentials: 'same-origin'` from the browser. Unauthenticated requests receive `401`.
 
+**CSRF** - every state-changing request made with a session cookie must also send `x-csrf-token` with the value of the `sf_csrf` cookie. The server stores a hash of that token on the session row and rejects a missing or mismatched token with `403 csrf_rejected`. The bundled client does this automatically. Public endpoints (`/auth/login`, `/auth/register`, `/auth/mfa/verify`) do not require it because no session exists yet.
+
+**Correlation** - every response carries `X-Request-Id`; audit rows store it as `request_id`.
+
 **Roles** - `viewer` reads, `analyst` writes operational data, `admin` also manages users, settings, integrations, rule enablement and deletion. A `403` means the role is insufficient; a `404` is returned when a record does not exist in the caller's organization, so cross-tenant access is indistinguishable from a missing record.
 
 **Success envelope**
@@ -200,7 +204,7 @@ Every action is recorded with status `simulated` when no external integration is
 | POST | `/forensics/:id/verify` | analyst | Recompute SHA-256 and record the result |
 | POST | `/forensics/:id/custody` | analyst | Record `in_review`, `note` or `released` |
 
-Upload body: `{ caseRef, filename, description, mimeType, contentBase64, collectedFrom }`. Filenames are reduced to a safe basename and stored under a generated name inside the data directory.
+Upload body: `{ caseRef, filename, description, mimeType, contentBase64, collectedFrom }`. Filenames are reduced to a safe basename and stored under a generated name inside the data directory. PNG, JPEG, PDF and ZIP uploads must match their magic bytes; a mismatch is rejected with `400`. When `CLAMAV_HOST` is configured the file is scanned through ClamAV INSTREAM; the result is stored as `scanStatus` (`clean`, `infected`, `error` or `not_scanned`). An infected file is rejected and never stored. In production a configured but unavailable scanner returns `503`.
 
 ## Network
 
@@ -257,6 +261,7 @@ Create body:
 | POST | `/settings/integrations/:key/test` | admin | Configuration test |
 | PATCH | `/settings/integrations/:key` | admin | Enable or disable |
 | GET | `/settings/audit-logs` | admin | Audit trail with filter |
+| GET | `/settings/audit-logs/verify` | admin | Recompute the audit hash chain and report the first broken row |
 | GET | `/settings/health` | any | Service checks and record counts |
 
 Secrets are never accepted by the settings API. Provider keys come from the environment only.

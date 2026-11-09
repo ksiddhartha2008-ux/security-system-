@@ -4,14 +4,14 @@ This document describes what the application actually enforces, how it was verif
 
 ## Authentication
 
-- Passwords are hashed with scrypt and a per user random salt; the format is `scrypt$salt$digest` and verification uses `timingSafeEqual`.
+- Passwords are hashed with scrypt and a per user random salt; the format is `scrypt$salt$digest` and verification uses `timingSafeEqual`. Request paths use the asynchronous scrypt API so a login cannot block the event loop; the seeder uses the synchronous variant because it runs once at startup.
 - Optional TOTP multi-factor authentication. Enrolment requires the current password; login with MFA returns a five minute challenge instead of a session, and no cookie is issued until a valid six digit code is presented. Eight single use recovery codes are stored as SHA-256 hashes. Recovery codes are removed when used.
 - Session tokens are 32 random bytes (base64url). Only the SHA-256 digest is stored, so a database read does not yield usable cookies.
 - At most ten sessions are retained per user; the oldest is dropped. Changing a password deletes every session and issues a fresh one. "Sign out other sessions" is available in Settings.
 - Cookie flags: `HttpOnly`, `SameSite=Lax`, `Path=/`, seven day expiry. `Secure` is added when `NODE_ENV=production`.
 - Login failures return the same message and status for an unknown email and a wrong password, so the endpoint does not disclose account existence.
 - Disabling a member deletes their sessions immediately.
-- Login is rate limited to 12 attempts per 15 minutes per IP. Registration is limited to 6 per hour.
+- Login is rate limited to 12 attempts per 15 minutes per IP, and to 10 failed attempts per account per 15 minutes. Registration is limited to 6 per hour.
 
 ## Authorization
 
@@ -28,7 +28,8 @@ This document describes what the application actually enforces, how it was verif
 
 ## Request integrity
 
-- `SameSite=Lax` plus an `Origin`/`Host` comparison on every non-GET request. Cross-origin writes are rejected with `origin_rejected`.
+- Every cookie authenticated mutation requires a session-bound CSRF token: a `sf_csrf` cookie plus an `x-csrf-token` header whose SHA-256 hash matches the session row. Missing, malformed or mismatched tokens are rejected with `csrf_rejected`.
+- `SameSite=Lax` plus an `Origin`/`Host` comparison on every non-GET request. A missing `Origin` no longer bypasses protection because the token is still required; a foreign `Origin` is rejected with `origin_rejected`.
 - JSON bodies are parsed with an 8 MB limit; URL encoded bodies with a 1 MB limit.
 - All input passes through Zod schemas with explicit types, lengths and enums. Unknown fields are stripped.
 - SQL uses prepared statements with positional parameters. No string interpolation of user input reaches SQL.
@@ -66,6 +67,8 @@ This document describes what the application actually enforces, how it was verif
 
 Security sensitive actions append to `audit_logs`: registration, login, logout, profile changes, asset and indicator changes, incident creation and status changes, rule changes, simulation creation/start/cancel/delete, workflow execution and approval, evidence access, integration changes and report generation. The trail is readable by admins in the UI.
 
+Each organization has an append-only SHA-256 hash chain: every row stores the previous hash and a hash over the immutable fields (actor, action, resource, result, metadata, timestamp). `GET /api/settings/audit-logs/verify` recomputes the chain and reports the first broken row. Insert failures propagate instead of being swallowed. Rows created before schema v3 are reported as legacy rather than as tampering. Atomicity with the business write is partial: the chain proves integrity, not that every crash produced a matching audit row.
+
 ## Demo mode and first admin
 
 Demo mode seeds a synthetic workspace with known accounts (`admin@secureflow.dev` and two others). It is **on by default outside production and off when `NODE_ENV=production`**. In production, an empty database is never seeded with a public password: the server requires `SF_BOOTSTRAP_EMAIL` and `SF_BOOTSTRAP_PASSWORD` (12 or more characters) to create the first admin, and exits with instructions if they are missing. `SF_DEMO_MODE=true` can force demo mode on a throwaway deployment.
@@ -80,10 +83,13 @@ Run a real deployment with demo mode off, a bootstrap admin you control, and dem
 | --- | --- | --- |
 | No password reset flow or email | Users cannot self-recover | Admin creates a new password via People and Settings |
 | TOTP only, no WebAuthn or SSO | Phishing proxies can relay codes; no hardware key support | Add WebAuthn and SAML/OIDC in a future release |
-| No CSRF token, only origin check plus SameSite | Older browsers without SameSite support are weaker | Keep the app same-origin; add a per-session token if embedding changes |
+| No CSRF token for machine clients | None; the token is required for all cookie-authenticated writes | Use the `sf_csrf` cookie value in the `x-csrf-token` header |
 | In-process rate limits | Limits reset on restart and are per instance | Move to a shared store when scaling horizontally |
+| MFA is not enforced by organization policy | An admin can stay password-only | Enforce `mfaPolicy` at login with an enrolment-only session |
 | Session is not bound to a device fingerprint | A stolen cookie works until expiry | Rotate on privilege change and keep the session list short |
-| No antivirus scanning of uploaded evidence | A stored file could be malicious | Keep evidence out of any web root; scan before opening |
+| Malware scanning not verified live | `scan_status` may be `not_scanned` or `error` if ClamAV is absent; production fails closed only when configured | Run ClamAV in staging and verify a clean and an infected sample |
+| Audit atomicity is partial | A crash between a business write and its audit insert can leave a gap | Wrap critical mutations in one transaction |
+| Evidence custody records are not chained | Deleting or reordering custody rows is not detectable | Hash chain custody entries |
 | SQLite has no row level security | Isolation relies on application code | Covered by tests; move to PostgreSQL RLS for defence in depth |
 | Integration collectors are not implemented | No automatic telemetry from Wazuh, Sysmon, Suricata, Zeek, ClamAV or YARA | Use the ingestion API; adapters are a documented backlog item |
 | No deployment here | TLS, HSTS and host hardening are untested in a live environment | Follow DEPLOYMENT.md on a host you control |

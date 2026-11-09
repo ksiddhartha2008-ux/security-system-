@@ -81,6 +81,24 @@ A review of the finished build found one defect that mattered more than any miss
 - Sealed evidence download now requires analyst or admin (viewers could previously download files).
 - The test suite grew from 30 to 33, adding the full MFA lifecycle and demo-mode gating. All pass.
 
+## 10. Security remediation pass (9 November 2026)
+
+An external security brief was applied to the finished product. The brief assumed an existing Prompt Engine and AI framework; inspection proved neither exists (no LLM dependency, no prompt files, no model calls), so that section is documented as not applicable rather than implemented artificially.
+
+Implemented and verified:
+
+- Session-bound CSRF tokens for every authenticated mutation, closing the missing-Origin bypass.
+- Account-based login throttling (10 failures per 15 minutes per account).
+- Async scrypt on all request paths so a login cannot block the event loop.
+- Tamper-evident audit chain with a verification endpoint and a tamper test.
+- SOAR approval is mandatory for destructive actions regardless of workflow config, expires after 30 minutes, supports idempotency keys, and respects a workspace pause.
+- Evidence magic-byte validation plus a ClamAV INSTREAM adapter with production fail-closed behaviour.
+- CSV formula injection neutralisation.
+- Production configuration validation (demo mode, https origins) that refuses to start on an insecure setup.
+- zod upgraded to 4.6.7 for GHSA-mrhx-c7xc-m3w5; dependency audit is clean.
+
+The suite grew from 33 to 42 tests. Full results and remaining gaps are in `SECURITY_AUDIT.md`, `SECURITY_PROGRESS.md` and `SECURITY_TEST_MATRIX.md`.
+
 ## Decisions worth remembering
 
 | Decision | Alternative rejected | Why |

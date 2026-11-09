@@ -7,9 +7,10 @@ Last updated: 8 November 2026. This file reflects what was actually built, run a
 | | |
 | --- | --- |
 | Application | SecureFlow AI, single page client plus REST API |
-| Backend tests | 33 passing, 0 failing (`npm test`) |
+| Backend tests | 42 passing, 0 failing (`npm test`) |
 | Type check | clean (`npm run typecheck`) |
 | Production build | success (`npm run build`) |
+| Dependency audit | 0 vulnerabilities (server and web) |
 | Manual browser verification | signing in, overview, monitoring, assets, incidents (create, transition, note), detections, threat intel, simulations (create, run to completion, history), reports, settings, 404 |
 | Deployment | not performed, by instruction |
 
@@ -43,7 +44,7 @@ Statuses: **Complete and verified** means the UI, API, persistence and a test or
 
 ```
 $ npm test --prefix server
-tests 33 | pass 33 | fail 0 | duration_ms 25491
+tests 42 | pass 42 | fail 0 | duration_ms 45345
 
 $ npm run typecheck --prefix web
 (no output; exit 0)
@@ -51,7 +52,7 @@ $ npm run typecheck --prefix web
 $ npm run build --prefix web
 dist/index.html                 0.75 kB
 dist/assets/index-*.css        25 kB
-dist/assets/index-*.js        503 kB (139 kB gzip)
+dist/assets/index-*.js        503 kB (140 kB gzip)
 ```
 
 Manual browser checks performed in a real browser against the production build served by the API on port 4000:
@@ -80,6 +81,14 @@ Manual browser checks performed in a real browser against the production build s
 | SSRF validation had a DNS rebinding window | The hostname was validated, then `fetch` resolved it again and could connect elsewhere | The scanner now pins the validated address with a custom DNS lookup in `http`/`https.request`, including every redirect hop |
 | Viewers could download sealed evidence | The download route only required a session | Download now requires analyst or admin and writes a custody record |
 | Password change left other sessions valid | Sessions were not revoked on credential change | Every session is deleted and a fresh one issued; a "Sign out other sessions" action exists in Settings |
+| **CSRF protection could be bypassed by omitting Origin** | No token existed and the only check returned early when Origin was absent | Session-bound CSRF token on every authenticated mutation; missing Origin no longer bypasses it. Verified in `tests/hardening.test.mjs` |
+| **Destructive SOAR actions could run without approval** | Approval depended on a workflow flag an admin could turn off | Approval is mandatory for isolate_host, block_ip, disable_user and force_password_reset. Added 30 minute expiry, idempotency keys and a workspace pause |
+| **Audit log was mutable with no integrity check** | Best-effort insert and no hash | Per-organization SHA-256 hash chain, verification endpoint, failures propagate; tamper test passes |
+| **Evidence type was trusted from the client** | Only a MIME allowlist was checked | Magic-byte validation for PNG/JPEG/PDF/ZIP; ClamAV adapter with production fail-closed behaviour |
+| **Login throttling was per IP only** | Distributed attempts against one account were unlimited | 10 failures per account per 15 minutes, in addition to the IP limit |
+| **scrypt blocked the event loop** | Synchronous scrypt on login and registration | Async scrypt on all request paths; full suite passes |
+| **CSV export allowed formula injection** | Cells were quoted but not neutralised | Leading `= + - @` are prefixed before quoting |
+| **zod advisory** | zod 3.23.8 affected by GHSA-mrhx-c7xc-m3w5 | Upgraded to 4.6.7, schemas adjusted, 42 tests pass, audit clean |
 
 ## Known limitations
 

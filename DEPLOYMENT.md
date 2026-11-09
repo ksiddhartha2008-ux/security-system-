@@ -52,7 +52,9 @@ $env:PORT = "4000"
 npm start
 ```
 
-With `NODE_ENV=production` and no `SF_DEMO_MODE`, demo mode is off. On an empty database the server creates the organization and admin from the bootstrap variables. If they are missing it prints what to set and exits rather than falling back to demo credentials. Migrations run automatically, including schema v2 for TOTP MFA.
+With `NODE_ENV=production` and no `SF_DEMO_MODE`, demo mode is off. On an empty database the server creates the organization and admin from the bootstrap variables. If they are missing it prints what to set and exits rather than falling back to demo credentials. Migrations run automatically, including schema v2 for TOTP MFA and schema v3 for CSRF binding, audit chaining and evidence scanning.
+
+Schema v3 deletes existing session rows by design, because sessions created before the change have no CSRF binding. Every user signs in again after the upgrade.
 
 For a throwaway demo deployment, set `SF_DEMO_MODE=true` to seed synthetic records and the three known demo accounts. Do not do this with real data.
 

@@ -61,7 +61,7 @@ All seeded records are synthetic and labelled **Demo data** in the interface.
 │   ├── src/
 │   │   ├── index.js           app wiring, security headers, SPA hosting, SSE
 │   │   ├── db.js              node:sqlite connection, migrations, helpers
-│   │   ├── migrations/        schema v1 and v2 (29 tables, foreign keys, indexes)
+│   │   ├── migrations/        schema v1, v2 and v3 (29 tables, foreign keys, indexes)
 │   │   ├── seed.js            deterministic synthetic demo workspace
 │   │   ├── lib/               http envelope, auth, audit, rate limit, events
 │   │   ├── routes/            module routers, settings, streaming
@@ -83,12 +83,40 @@ All seeded records are synthetic and labelled **Demo data** in the interface.
 ## How the stack fits together
 
 - **Database**: SQLite in WAL mode through the built-in Node driver. 29 tables with foreign keys and indexes. Every tenant owned table carries `org_id`; the server resolves the organization from the session, never from the request body.
-- **Auth**: scrypt password hashes, optional TOTP multi-factor authentication with single use recovery codes, random 256 bit session tokens stored as SHA-256 digests, HttpOnly SameSite=Lax cookie with a seven day expiry, session cap and rotation on password change, origin check on state changing requests, per-route rate limits.
+- **Auth**: scrypt password hashes (async on request paths), optional TOTP multi-factor authentication with single use recovery codes, session-bound CSRF tokens, random 256 bit session tokens stored as SHA-256 digests, HttpOnly SameSite=Lax cookie with a seven day expiry, session cap and rotation on password change, origin check on state changing requests, per-route and per-account rate limits.
+- **Audit**: append-only hash chain per organization with a verification endpoint, request correlation ids and fail-closed writes.
 - **Detection**: nine deterministic rules (brute force, credential stuffing, API abuse, port scan, bulk transfer, ransomware behaviour, phishing interaction, authorization probing, hourly volume anomaly). Each detection stores the factors, weights and observed values that produced its score.
 - **Simulation**: a seeded multi-agent engine advances rounds in the background, writes agent activity and events, then computes findings, recommendations and a deterministic risk score. A server restart marks in-flight runs failed rather than pretending they continued.
 - **Streaming**: Server-Sent Events push new events and simulation rounds to the browser. The UI also polls running simulations, so a dropped stream does not hide progress.
 
 ---
+
+## Security remediation status
+
+Applied in the November 2026 hardening pass. Full evidence is in [SECURITY_AUDIT.md](SECURITY_AUDIT.md) and [SECURITY_PROGRESS.md](SECURITY_PROGRESS.md).
+
+| Control | Status |
+| --- | --- |
+| Demo credentials removed from production seeding and from the client bundle | Implemented, verified |
+| TOTP MFA with single use recovery codes | Implemented, verified |
+| Session-bound CSRF tokens, missing-Origin bypass closed | Implemented, verified |
+| Account-based login throttling | Implemented, verified |
+| Async scrypt on request paths | Implemented, tested |
+| Session cap and rotation on password change | Implemented |
+| Tamper-evident audit hash chain with verification endpoint | Implemented, verified |
+| SOAR approval mandatory for destructive actions, expiry, idempotency, pause | Implemented, verified |
+| Evidence magic-byte validation and optional ClamAV scanning | Implemented; live ClamAV unverified |
+| CSV formula injection neutralisation | Implemented, verified |
+| Production configuration validation (demo mode, HTTPS origins) | Implemented, verified |
+| Dependency audit clean (zod 4.6.7) | Verified |
+| Organization MFA policy enforcement | Not implemented |
+| Password reset and email verification | Blocked on SMTP infrastructure |
+| Shared/distributed rate limiting | Not implemented |
+| Audit atomicity with every business write, custody chaining | Partial |
+
+## AI and Prompt Engine status
+
+There is **no LLM, prompt template engine or agent framework** in this repository. Detection is deterministic and explainable; the UI says so. [PROMPT_ENGINE_SECURITY_AUDIT.md](PROMPT_ENGINE_SECURITY_AUDIT.md) records the verification and [PROMPT_ENGINE_ARCHITECTURE.md](PROMPT_ENGINE_ARCHITECTURE.md) defines the requirements for any future model feature. No AI capability is claimed.
 
 ## Testing
 
@@ -98,9 +126,9 @@ npm run typecheck        # TypeScript project check
 npm run build            # production bundle
 ```
 
-Verified on 8 November 2026: 33 passing, 0 failing. Production bundle: 503 kB JavaScript (139 kB gzip) and 25 kB CSS.
+Verified on 9 November 2026: 42 passing, 0 failing. Production bundle: 503 kB JavaScript (140 kB gzip) and 25 kB CSS.
 
-Coverage includes registration and login, TOTP enrolment and login step-up, recovery code single use, session rotation, RBAC (viewer/analyst/admin), cross-tenant isolation, CSRF origin rejection, detection rules and de-duplication, incident lifecycle guards, simulation execution and cancellation, SSRF protection (including private ranges), evidence hashing and tamper detection, report export and the workflow approval gate.
+Coverage includes registration and login, TOTP enrolment and login step-up, recovery code single use, session rotation, CSRF token enforcement, account-based login throttling, RBAC (viewer/analyst/admin), cross-tenant isolation, detection rules and de-duplication, incident lifecycle guards, simulation execution and cancellation, SSRF protection (including private ranges), evidence signature and tamper detection, audit hash chain, SOAR approval enforcement, CSV formula neutralisation, production config validation, report export and the workflow approval gate.
 
 ---
 
@@ -152,6 +180,11 @@ Neither repository is copied into the frontend or backend. The Threat Simulation
 - [ARCHITECTURE.md](ARCHITECTURE.md) - components, data model, request flow
 - [API_DOCUMENTATION.md](API_DOCUMENTATION.md) - endpoint reference
 - [SECURITY.md](SECURITY.md) - controls, threat model, reporting
+- [SECURITY_AUDIT.md](SECURITY_AUDIT.md) - findings with severity and evidence
+- [SECURITY_REMEDIATION_PLAN.md](SECURITY_REMEDIATION_PLAN.md) and [SECURITY_PROGRESS.md](SECURITY_PROGRESS.md)
+- [SECURITY_TEST_MATRIX.md](SECURITY_TEST_MATRIX.md) - control to test mapping
+- [PROMPT_ENGINE_SECURITY_AUDIT.md](PROMPT_ENGINE_SECURITY_AUDIT.md) - confirms no LLM exists
+- [SECURITY_DEPENDENCY_REPORT.md](SECURITY_DEPENDENCY_REPORT.md) and [PRODUCTION_SECURITY_CHECKLIST.md](PRODUCTION_SECURITY_CHECKLIST.md)
 - [DEPLOYMENT.md](DEPLOYMENT.md) - local, Docker and reverse proxy notes
 - [PROJECT_STATUS.md](PROJECT_STATUS.md) - module by module status and evidence
 - [IMPLEMENTATION_LOG.md](IMPLEMENTATION_LOG.md) - what was built and verified

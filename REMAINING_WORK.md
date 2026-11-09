@@ -7,21 +7,30 @@ Ordered by what a production team would need first. Each item states an acceptan
 1. **Password reset and account lifecycle.** Currently an admin creates passwords manually. Add a signed single use reset token, an SMTP configuration, and account deletion that removes owned evidence files.
    *Acceptance:* a user can request a reset, receive it through a configured transport, set a new password, and all old sessions are invalidated.
 
-2. **Shared rate limiting.** Move limits to Redis or the reverse proxy so they survive restarts and apply across instances.
-   *Acceptance:* limits hold with two API processes behind a load balancer.
+2. **Enforce the MFA policy.** `mfaPolicy` is stored but not applied. Add an enrolment-only session state so an admin under an `admins` policy can sign in, enrol, and is blocked from other APIs until MFA is active.
+   *Acceptance:* an admin without MFA under an `admins` policy cannot reach any module until enrolment completes; tests cover the policy for admin, analyst and viewer.
 
-3. **Real collectors.** Wazuh, Sysmon, Suricata, Zeek, ClamAV and YARA currently have status surfaces and ingestion endpoints only. Build one collector properly (Wazuh first, because its API is documented) before claiming integration.
+3. **Audit atomicity and custody chaining.** Wrap the highest risk mutations (workflow approval, evidence upload, role change, incident closure) in one transaction with the audit insert, and hash chain custody records.
+   *Acceptance:* a forced audit insert failure rolls back the business change; deleting or reordering a custody row is detected by a verification endpoint.
+
+4. **Shared rate limiting.** Move limits to Redis or the reverse proxy so they survive restarts and apply across instances, with fail-closed behaviour when the store is configured but unavailable.
+   *Acceptance:* limits hold with two API processes behind a load balancer; a down store returns 503 instead of unlimited traffic.
+
+5. **Real collectors.** Wazuh, Sysmon, Suricata, Zeek, ClamAV and YARA currently have status surfaces and ingestion endpoints only. Build one collector properly (Wazuh first, because its API is documented) before claiming integration.
    *Acceptance:* the integration screen shows a real last sync time, a count of ingested events, and a clear error when the upstream is unreachable.
 
-4. **Response actions.** Wire the automation engine to one real provider (an EDR isolation API or a firewall block API) behind a feature flag, with a dry run mode.
+6. **Response actions.** Wire the automation engine to one real provider (an EDR isolation API or a firewall block API) behind a feature flag, with a dry run mode.
    *Acceptance:* a test environment actually isolates a host, the execution log records the provider response id, and the action is reversible.
+
+7. **Verify malware scanning live.** The ClamAV adapter exists but has not run against a daemon.
+   *Acceptance:* a clean sample reports `clean`, an EICAR sample is rejected and never written, and an unavailable scanner returns 503 in production.
 
 ## P2 - depth and operations
 
-5. **PostgreSQL migration.** Replace the SQLite driver with a pool and move the JSON1 lookups to `jsonb` operators.
+8. **PostgreSQL migration.** Replace the SQLite driver with a pool and move the JSON1 lookups to `jsonb` operators.
    *Acceptance:* the full test suite passes against PostgreSQL in CI.
 
-6. **WebAuthn and SSO.** TOTP is implemented and tested. Add hardware security keys and SAML/OIDC for teams that require them.
+9. **WebAuthn and SSO.** TOTP is implemented and tested. Add hardware security keys and SAML/OIDC for teams that require them.
    *Acceptance:* a WebAuthn credential can complete login without a TOTP code, and an SSO login maps to a workspace role.
 
 7. **Retention job.** The stored retention value is not enforced. Add a scheduled job that deletes expired events, detections, scans and evidence in batches, with an audit entry per run.

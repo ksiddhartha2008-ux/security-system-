@@ -84,25 +84,28 @@ export function normalizeUrl(input) {
 
 /** Resolve the host and return the verified address list, or throw if any address is non public. */
 async function assertPublicHost(hostname, resolved = new Map()) {
-  if (resolved.has(hostname)) return resolved.get(hostname);
-  if (net.isIP(hostname)) {
-    const reason = blockedIpReason(hostname);
+  // URL.hostname keeps the brackets around IPv6 literals; strip them before
+  // classifying the address so [::1] is blocked as loopback, not as a hostname.
+  const host = hostname.startsWith('[') && hostname.endsWith(']') ? hostname.slice(1, -1) : hostname;
+  if (resolved.has(host)) return resolved.get(host);
+  if (net.isIP(host)) {
+    const reason = blockedIpReason(host);
     if (reason) throw badRequest(`Refusing to scan: ${reason}`);
-    resolved.set(hostname, [hostname]);
-    return [hostname];
+    resolved.set(host, [host]);
+    return [host];
   }
   let records;
   try {
-    records = await lookup(hostname, { all: true, verbatim: true });
+    records = await lookup(host, { all: true, verbatim: true });
   } catch {
-    throw badRequest(`DNS resolution failed for ${hostname}`);
+    throw badRequest(`DNS resolution failed for ${host}`);
   }
-  if (!records.length) throw badRequest(`No DNS records for ${hostname}`);
+  if (!records.length) throw badRequest(`No DNS records for ${host}`);
   for (const record of records) {
     const reason = blockedIpReason(record.address);
-    if (reason) throw badRequest(`Refusing to scan ${hostname}: ${reason}`);
+    if (reason) throw badRequest(`Refusing to scan ${host}: ${reason}`);
   }
-  resolved.set(hostname, records.map((r) => r.address));
+  resolved.set(host, records.map((r) => r.address));
   return records.map((r) => r.address);
 }
 

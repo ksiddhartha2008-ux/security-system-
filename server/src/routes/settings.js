@@ -4,7 +4,8 @@ import { all, get, run, newId, nowIso, parseJson, db } from '../db.js';
 import { asyncHandler, badRequest, conflict, created, notFound, ok, pageParams, paginated, validate } from '../lib/http.js';
 import { requireAuth, requireRole } from '../lib/auth.js';
 import { audit } from '../lib/audit.js';
-import { hashPassword } from '../lib/auth.js';
+import { verifyAuditChain } from '../lib/audit.js';
+import { hashPasswordAsync } from '../lib/auth.js';
 import { mirofishStatus } from '../services/mirofish.js';
 
 const router = Router();
@@ -29,6 +30,8 @@ router.patch('/organization', requireRole('admin'), asyncHandler(async (req, res
       retentionDays: z.number().int().min(7).max(3650).optional(),
       dataResidency: z.string().trim().max(60).optional(),
       contactEmail: z.string().trim().email().max(180).optional().nullable(),
+      automationPaused: z.boolean().optional(),
+      mfaPolicy: z.enum(['optional', 'admins', 'all']).optional(),
     }).optional(),
   }), req.body);
   const org = get('SELECT * FROM organizations WHERE id = ?', req.user.orgId);
@@ -62,7 +65,7 @@ router.post('/users', requireRole('admin'), asyncHandler(async (req, res) => {
   run(
     `INSERT INTO users (id, org_id, email, name, password_hash, role, status, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
-    id, req.user.orgId, body.email, body.name, hashPassword(body.password), body.role, nowIso(), nowIso(),
+    id, req.user.orgId, body.email, body.name, await hashPasswordAsync(body.password), body.role, nowIso(), nowIso(),
   );
   audit(req, 'user.created', 'user', id, { role: body.role, email: body.email });
   return created(res, { id, email: body.email, name: body.name, role: body.role, status: 'active' });
@@ -171,7 +174,7 @@ router.patch('/integrations/:key', requireRole('admin'), asyncHandler(async (req
   if (!item) throw notFound('Unknown integration');
   const body = validate(z.object({
     status: z.enum(['unconfigured', 'configured', 'disabled']).optional(),
-    config: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
+    config: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
   }), req.body);
   const row = get('SELECT * FROM integration_configs WHERE org_id = ? AND key = ?', req.user.orgId, item.key);
   if (!row) throw notFound('Integration record not found');
@@ -186,6 +189,11 @@ router.patch('/integrations/:key', requireRole('admin'), asyncHandler(async (req
   return ok(res, { key: item.key, status: body.status ?? row.status, config });
 }));
 
+router.get('/audit-logs/verify', requireRole('admin'), asyncHandler(async (req, res) => {
+  const result = verifyAuditChain(req.user.orgId);
+  return ok(res, result);
+}));
+
 router.get('/audit-logs', requireRole('admin'), asyncHandler(async (req, res) => {
   const { limit, page, offset } = pageParams(req, { maxLimit: 200, defaultLimit: 30 });
   const where = ['org_id = ?'];
@@ -197,7 +205,8 @@ router.get('/audit-logs', requireRole('admin'), asyncHandler(async (req, res) =>
   const rows = all(`SELECT * FROM audit_logs WHERE ${sqlWhere} ORDER BY created_at DESC LIMIT ? OFFSET ?`, ...params, limit, offset);
   return paginated(res, rows.map((a) => ({
     id: a.id, actorEmail: a.actor_email, action: a.action, resourceType: a.resource_type,
-    resourceId: a.resource_id, ip: a.ip, metadata: parseJson(a.metadata, {}), createdAt: a.created_at,
+    resourceId: a.resource_id, ip: a.ip, result: a.result, requestId: a.request_id,
+    metadata: parseJson(a.metadata, {}), createdAt: a.created_at,
   })), total, { page, limit });
 }));
 

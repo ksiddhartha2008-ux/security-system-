@@ -4,9 +4,10 @@ import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync, existsSync, statSync } from 'node:fs';
 import { join, basename, resolve } from 'node:path';
 import { all, get, run, newId, nowIso, dataDir, parseJson } from '../db.js';
-import { asyncHandler, badRequest, created, notFound, ok, pageParams, paginated, validate } from '../lib/http.js';
+import { asyncHandler, badRequest, created, notFound, ok, pageParams, paginated, validate, ApiError } from '../lib/http.js';
 import { requireAuth, requireRole } from '../lib/auth.js';
 import { audit } from '../lib/audit.js';
+import { scanBuffer, parseClamHost } from '../lib/clamav.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -19,6 +20,19 @@ const ALLOWED_MIME = new Set([
 ]);
 
 const safeName = (name) => basename(String(name)).replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 120) || 'evidence.bin';
+
+const SIGNATURES = [
+  { mime: 'image/png', magic: [0x89, 0x50, 0x4e, 0x47] },
+  { mime: 'image/jpeg', magic: [0xff, 0xd8, 0xff] },
+  { mime: 'application/pdf', magic: [0x25, 0x50, 0x44, 0x46] },
+  { mime: 'application/zip', magic: [0x50, 0x4b, 0x03, 0x04] },
+];
+
+function signatureMismatch(buffer, declaredMime) {
+  const signature = SIGNATURES.find((entry) => entry.mime === declaredMime);
+  if (!signature) return false;
+  return !signature.magic.every((byte, index) => buffer[index] === byte);
+}
 
 router.get('/', asyncHandler(async (req, res) => {
   const { limit, page, offset } = pageParams(req, { maxLimit: 100, defaultLimit: 25 });
@@ -36,7 +50,7 @@ router.get('/', asyncHandler(async (req, res) => {
   return paginated(res, rows.map((e) => ({
     id: e.id, caseRef: e.case_ref, filename: e.filename, description: e.description, mimeType: e.mime_type,
     sizeBytes: e.size_bytes, sha256: e.sha256, collectedFrom: e.collected_from, collectedBy: e.collected_by,
-    status: e.status, createdAt: e.created_at,
+    status: e.status, scanStatus: e.scan_status, createdAt: e.created_at,
   })), total, { page, limit });
 }));
 
@@ -65,6 +79,26 @@ router.post('/', requireRole('analyst', 'admin'), asyncHandler(async (req, res) 
   }
   if (!buffer.length) throw badRequest('The uploaded file is empty');
   if (buffer.length > MAX_BYTES) throw badRequest('Evidence files are limited to 5 MB in this build');
+  if (signatureMismatch(buffer, body.mimeType)) {
+    throw badRequest('File content does not match the declared type');
+  }
+
+  // Optional ClamAV scan. In production a configured but unavailable scanner
+  // fails closed instead of storing unscanned evidence.
+  let scanStatus = 'not_scanned';
+  let scanDetail = null;
+  const clam = parseClamHost(process.env.CLAMAV_HOST);
+  if (clam) {
+    const result = await scanBuffer(buffer, clam);
+    scanStatus = result.status;
+    scanDetail = result.detail;
+    if (result.status === 'infected') {
+      throw badRequest(`The malware scanner rejected this file: ${result.detail}`);
+    }
+    if (result.status === 'error' && process.env.NODE_ENV === 'production') {
+      throw new ApiError(503, 'scanner_unavailable', 'Malware scanning is required but the scanner is unavailable');
+    }
+  }
   const filename = safeName(body.filename);
   const id = newId('evi');
   mkdirSync(EVIDENCE_DIR, { recursive: true });
@@ -74,18 +108,19 @@ router.post('/', requireRole('analyst', 'admin'), asyncHandler(async (req, res) 
   const sha256 = createHash('sha256').update(buffer).digest('hex');
   const ts = nowIso();
   run(
-    `INSERT INTO forensic_evidence (id, org_id, case_ref, filename, description, mime_type, size_bytes, sha256, storage_path, collected_from, collected_by, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sealed', ?)`,
+    `INSERT INTO forensic_evidence (id, org_id, case_ref, filename, description, mime_type, size_bytes, sha256, storage_path, collected_from, collected_by, status, scan_status, scan_detail, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sealed', ?, ?, ?)`,
     id, req.user.orgId, body.caseRef, filename, body.description, body.mimeType, buffer.length, sha256,
-    storagePath, body.collectedFrom ?? null, req.user.id, ts,
+    storagePath, body.collectedFrom ?? null, req.user.id, scanStatus, scanDetail, ts,
   );
   run(
     `INSERT INTO custody_records (id, org_id, evidence_id, action, actor_id, note, hash_at_action, created_at)
      VALUES (?, ?, ?, 'collected', ?, ?, ?, ?)`,
-    newId('cus'), req.user.orgId, id, req.user.id, `Uploaded ${buffer.length} bytes. SHA-256 computed on intake.`, sha256, ts,
+    newId('cus'), req.user.orgId, id, req.user.id,
+    `Uploaded ${buffer.length} bytes. SHA-256 computed on intake. Scan: ${scanStatus}.`, sha256, ts,
   );
-  audit(req, 'evidence.created', 'forensic_evidence', id, { caseRef: body.caseRef, sha256 });
-  return created(res, { id, filename, sha256, sizeBytes: buffer.length, caseRef: body.caseRef, status: 'sealed', createdAt: ts });
+  audit(req, 'evidence.created', 'forensic_evidence', id, { caseRef: body.caseRef, sha256, scanStatus });
+  return created(res, { id, filename, sha256, sizeBytes: buffer.length, caseRef: body.caseRef, status: 'sealed', scanStatus, scanDetail, createdAt: ts });
 }));
 
 router.get('/:id', asyncHandler(async (req, res) => {
@@ -101,6 +136,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
     id: evidence.id, caseRef: evidence.case_ref, filename: evidence.filename, description: evidence.description,
     mimeType: evidence.mime_type, sizeBytes: evidence.size_bytes, sha256: evidence.sha256,
     collectedFrom: evidence.collected_from, collectedBy: evidence.collected_by, status: evidence.status,
+    scanStatus: evidence.scan_status, scanDetail: evidence.scan_detail,
     createdAt: evidence.created_at, filePresent: exists, fileSizeOnDisk: onDisk,
     custody: custody.map((c) => ({ id: c.id, action: c.action, actor: c.actor_name, note: c.note, hashAtAction: c.hash_at_action, createdAt: c.created_at })),
   });

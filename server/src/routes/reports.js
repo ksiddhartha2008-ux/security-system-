@@ -51,19 +51,23 @@ router.get('/:id', asyncHandler(async (req, res) => {
   });
 }));
 
+function csvCell(value) {
+  let text = String(value ?? '');
+  // Neutralise spreadsheet formula injection before quoting.
+  if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
 function toCsv(summary) {
   const lines = [];
   lines.push(`# ${summary.generatedAt}`);
-  for (const kpi of summary.kpis ?? []) lines.push(`KPI,${String(kpi.label).replace(/,/g, ';')},${kpi.value}`);
+  for (const kpi of summary.kpis ?? []) lines.push(`KPI,${csvCell(kpi.label)},${csvCell(kpi.value)}`);
   for (const table of summary.tables ?? []) {
     lines.push('');
     lines.push(`# ${table.title}`);
-    lines.push(table.columns.map((c) => `"${c.label}"`).join(','));
+    lines.push(table.columns.map((c) => csvCell(c.label)).join(','));
     for (const row of table.rows ?? []) {
-      lines.push(table.columns.map((c) => {
-        const value = row[c.key];
-        return `"${String(value ?? '').replace(/"/g, '""')}"`;
-      }).join(','));
+      lines.push(table.columns.map((c) => csvCell(row[c.key])).join(','));
     }
   }
   return lines.join('\r\n');

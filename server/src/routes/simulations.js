@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { z } from 'zod';
 import { all, get, run, nowIso, parseJson } from '../db.js';
 import { asyncHandler, badRequest, created, notFound, ok, pageParams, paginated, validate } from '../lib/http.js';
@@ -46,7 +46,7 @@ router.post('/', requireRole('analyst', 'admin'), rateLimit({ windowMs: 3600_000
     name: z.string().trim().max(120).optional(),
     totalRounds: z.number().int().min(3).max(30).optional(),
     seed: z.number().int().min(0).max(1_000_000).optional(),
-    config: z.record(z.union([z.number(), z.boolean(), z.string()])).optional(),
+    config: z.record(z.string(), z.union([z.number(), z.boolean(), z.string()])).optional(),
   }), req.body);
   const sim = createSimulation(req.user.orgId, req.user.id, body);
   audit(req, 'simulation.created', 'simulation', sim.id, { scenario: sim.scenario, totalRounds: sim.totalRounds });

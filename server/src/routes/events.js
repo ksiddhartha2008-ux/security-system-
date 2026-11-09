@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { z } from 'zod';
 import { all, get, run, newId, nowIso, parseJson } from '../db.js';
 import { asyncHandler, notFound, ok, created, pageParams, paginated, validate } from '../lib/http.js';
@@ -27,7 +27,7 @@ const eventSchema = z.object({
   userEmail: z.string().trim().max(180).optional(),
   assetId: z.string().trim().max(64).optional(),
   occurredAt: z.string().datetime().optional(),
-  raw: z.record(z.any()).optional(),
+  raw: z.record(z.string(), z.any()).optional(),
 });
 
 /** Ingest normalises an external record and runs the deterministic rules immediately. */

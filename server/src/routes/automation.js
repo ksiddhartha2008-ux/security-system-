@@ -40,6 +40,10 @@ router.post('/workflows', requireRole('admin'), asyncHandler(async (req, res) =>
     requiresApproval: z.boolean().default(true),
     enabled: z.boolean().default(true),
   }), req.body);
+  const hasDestructive = body.actions.some((action) => DESTRUCTIVE.has(action.type));
+  if (hasDestructive && body.requiresApproval === false) {
+    throw badRequest('Destructive actions always require human approval');
+  }
   const id = newId('wf');
   run(
     `INSERT INTO response_workflows (id, org_id, name, description, trigger_type, trigger_config, actions, requires_approval, enabled, created_at, updated_at)
@@ -59,6 +63,10 @@ router.patch('/workflows/:id', requireRole('admin'), asyncHandler(async (req, re
   }), req.body);
   const row = get('SELECT * FROM response_workflows WHERE id = ? AND org_id = ?', req.params.id, req.user.orgId);
   if (!row) throw notFound('Workflow not found');
+  if (body.requiresApproval === false) {
+    const destructive = parseJson(row.actions, []).some((action) => DESTRUCTIVE.has(action.type));
+    if (destructive) throw badRequest('Destructive actions always require human approval');
+  }
   const fields = [];
   const params = [];
   if (body.enabled !== undefined) { fields.push('enabled = ?'); params.push(body.enabled ? 1 : 0); }
@@ -100,25 +108,46 @@ router.post('/workflows/:id/run', requireRole('analyst', 'admin'), asyncHandler(
   const body = validate(z.object({
     incidentId: z.string().trim().max(64).optional().nullable(),
     note: z.string().trim().max(500).optional(),
+    idempotencyKey: z.string().trim().min(8).max(80).optional(),
   }), req.body);
   const workflow = get('SELECT * FROM response_workflows WHERE id = ? AND org_id = ?', req.params.id, req.user.orgId);
   if (!workflow) throw notFound('Workflow not found');
+  const org = get('SELECT settings FROM organizations WHERE id = ?', req.user.orgId);
+  if (parseJson(org?.settings, {}).automationPaused === true) {
+    throw badRequest('Automation is paused for this workspace. Resume it in Settings before running workflows.');
+  }
   if (workflow.enabled !== 1) throw badRequest('This workflow is disabled');
   if (body.incidentId && !get('SELECT id FROM incidents WHERE id = ? AND org_id = ?', body.incidentId, req.user.orgId)) {
     throw notFound('Incident not found in this workspace');
   }
   const actions = parseJson(workflow.actions, []);
-  const needsApproval = workflow.requires_approval === 1 && actions.some((a) => DESTRUCTIVE.has(a.type));
+  // Approval is mandatory for destructive actions regardless of workflow config.
+  const needsApproval = actions.some((action) => DESTRUCTIVE.has(action.type));
+  const idempotencyKey = body.idempotencyKey ?? null;
+  if (idempotencyKey) {
+    const existing = get(
+      'SELECT * FROM workflow_executions WHERE workflow_id = ? AND idempotency_key = ? AND org_id = ?',
+      workflow.id, idempotencyKey, req.user.orgId,
+    );
+    if (existing) {
+      return ok(res, {
+        id: existing.id, status: existing.status, requiresApproval: existing.status === 'pending_approval',
+        log: parseJson(existing.log, []), idempotentReplay: true,
+      });
+    }
+  }
   const id = newId('wfx');
   const ts = nowIso();
+  const approvalExpiresAt = needsApproval ? new Date(Date.now() + 30 * 60_000).toISOString() : null;
   const initialLog = needsApproval
     ? [{ step: 1, action: actions[0]?.type ?? 'unknown', status: 'awaiting_approval', detail: 'Workflow requires human approval before running destructive actions.', at: ts }]
     : [];
   run(
-    `INSERT INTO workflow_executions (id, org_id, workflow_id, incident_id, status, current_step, log, started_by, started_at, created_at)
-     VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`,
+    `INSERT INTO workflow_executions (id, org_id, workflow_id, incident_id, status, current_step, log, started_by, started_at, approval_expires_at, idempotency_key, created_at)
+     VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`,
     id, req.user.orgId, workflow.id, body.incidentId ?? null,
-    needsApproval ? 'pending_approval' : 'running', JSON.stringify(initialLog), req.user.id, ts, ts,
+    needsApproval ? 'pending_approval' : 'running', JSON.stringify(initialLog), req.user.id, ts,
+    approvalExpiresAt, idempotencyKey, ts,
   );
   const execution = needsApproval ? get('SELECT * FROM workflow_executions WHERE id = ?', id) : execute(id);
   audit(req, 'workflow.executed', 'workflow_execution', id, { workflowId: workflow.id, needsApproval });
@@ -137,6 +166,12 @@ router.post('/executions/:id/approve', requireRole('analyst', 'admin'), asyncHan
   const execution = get('SELECT * FROM workflow_executions WHERE id = ? AND org_id = ?', req.params.id, req.user.orgId);
   if (!execution) throw notFound('Execution not found');
   if (execution.status !== 'pending_approval') throw badRequest('This execution is not waiting for approval');
+  if (execution.approval_expires_at && new Date(execution.approval_expires_at).getTime() < Date.now()) {
+    run(`UPDATE workflow_executions SET status = 'cancelled', error = ?, finished_at = ? WHERE id = ?`,
+      'approval_expired', nowIso(), execution.id);
+    audit(req, 'workflow.approval_expired', 'workflow_execution', execution.id, {}, { result: 'failure' });
+    throw badRequest('The approval window for this execution has expired. Start a new run.');
+  }
   run('UPDATE workflow_executions SET approved_by = ? WHERE id = ?', req.user.id, execution.id);
   const done = execute(execution.id);
   audit(req, 'workflow.approved', 'workflow_execution', execution.id, {});

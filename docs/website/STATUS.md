@@ -2,7 +2,7 @@
 
 Feature: website onboarding, domain ownership verification, scoped API credentials, SDK, event ingestion, detection, incidents and dashboard.
 
-Code commit: `7d58cd1` (feature), `60e02c8` (incident title fix). Documentation commit: this file's commit.
+Code commit: `7d58cd1` (feature), `60e02c8` (incident title), `763630b` (key usage bound, asset retirement). Documentation commit: this file's commit.
 Date: 11 November 2026 (UTC).
 Environment: Node 24.20.0, Windows, SQLite through `node:sqlite`, local development only. No production access.
 
@@ -84,6 +84,7 @@ The owner did not answer the decision register, so the documented defaults in DE
 | Migration on a copy of the live database | `node scripts/_migrate-test.mjs` (temporary) | schema v5, 41 tables, 711 existing events preserved |
 | Browser walkthrough | manual, 424 px viewport | website created, verified, key created once, events ingested, two detections, one P2 incident |
 | Detection corpus | `backend/tests/website-detection.test.mjs` | precision 1.000, recall 1.000, F1 1.000 on 93 benign and 77 attack events |
+| GitHub Actions | commit `763630b` | success, run 42972327075 |
 
 The corpus is synthetic and small. It measures the rules against the cases it contains, not field accuracy. No claim is made about real traffic.
 

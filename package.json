@@ -13,6 +13,7 @@
     "test": "npm --prefix backend test",
     "test:sdk": "npm --prefix packages/sdk-node test",
     "test:all": "npm test && npm run test:sdk",
+    "scan:secrets": "node scripts/check-secrets.mjs",
     "typecheck": "npm --prefix frontend run typecheck"
   }
 }

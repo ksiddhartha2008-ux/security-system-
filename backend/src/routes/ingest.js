@@ -1,11 +1,12 @@
 import express, { Router } from 'express';
-import { readAuthorizationKey, verifyApiKey } from '../lib/apiKeys.js';
+import { readAuthorizationKey, verifyApiKey, parseApiKey } from '../lib/apiKeys.js';
 import { parseEnvelope, ingestBatch } from '../services/websiteIngest.js';
 import { enqueue } from '../services/websiteScheduler.js';
 import { runWebsitePipeline } from '../services/websitePipeline.js';
 import { websiteProtectionEnabled } from '../lib/websiteFlag.js';
-import { run } from '../db.js';
+import { run, get } from '../db.js';
 import { bus } from '../lib/events.js';
+import { recordRejectedKeyUse } from '../services/websiteKeys.js';
 
 const router = Router();
 
@@ -35,6 +36,12 @@ router.post('/website-events', express.raw({ type: () => true, limit: '256kb' })
   const auth = verifyApiKey(apiKey);
   if (!auth.ok) {
     if (auth.code === 'site_not_verified') return fail(res, 403, 'site_not_verified', 'This website is not verified.');
+    const parsed = parseApiKey(apiKey);
+    if (parsed) {
+      const row = get('SELECT * FROM site_api_keys WHERE key_id = ?', parsed.keyId);
+      const dead = row && (row.revoked_at || (row.expires_at && new Date(row.expires_at).getTime() <= Date.now()));
+      if (dead) recordRejectedKeyUse(row);
+    }
     return fail(res, 401, 'invalid_api_key', 'The API key is not valid.');
   }
 

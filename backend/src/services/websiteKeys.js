@@ -1,8 +1,7 @@
 import { ApiError } from '../lib/http.js';
 import { purgeKeyCache } from '../lib/apiKeys.js';
 import { get, run, all, newId, nowIso, transaction } from '../db.js';
-import { audit } from '../lib/audit.js';
-import { ACTIVE_KEY_LIMIT, activeKeyCount, getSite } from './websiteSites.js';
+import { audit } from '../lib/audit.js';import { ACTIVE_KEY_LIMIT, activeKeyCount, getSite } from './websiteSites.js';
 import { generateApiKey } from '../lib/apiKeys.js';
 
 export function keyStatus(row) {
@@ -67,8 +66,7 @@ export function listKeys(orgId, siteId) {
   return all('SELECT * FROM site_api_keys WHERE org_id = ? AND site_id = ? ORDER BY created_at DESC', orgId, siteId).map(keyMetadata);
 }
 
-export function revokeKey(req, siteId, keyId, reason = 'revoked_by_admin') {
-  const orgId = req.user.orgId;
+export function revokeKey(req, siteId, keyId, reason = 'revoked_by_admin') {  const orgId = req.user.orgId;
   getSite(orgId, siteId);
   const row = get('SELECT * FROM site_api_keys WHERE org_id = ? AND site_id = ? AND key_id = ?', orgId, siteId, keyId);
   if (!row) throw new ApiError(404, 'not_found', 'API key not found');
@@ -80,4 +78,22 @@ export function revokeKey(req, siteId, keyId, reason = 'revoked_by_admin') {
   purgeKeyCache(row.key_id);
   audit(req, 'website.key_revoked', 'site_api_key', row.id, { siteId, keyId: row.key_id, reason });
   return keyMetadata(get('SELECT * FROM site_api_keys WHERE id = ?', row.id));
+}
+
+/**
+ * A revoked or expired key that is presented again is worth one audit entry per
+ * hour. Without the bucket an attacker holding a dead key could flood the audit
+ * chain; without the entry the owner could not see the attempt.
+ */
+export function recordRejectedKeyUse(row) {
+  if (!row) return false;
+  const reason = row.revoked_at ? 'revoked' : 'expired';
+  const bucket = `reject:${row.key_id}:${new Date().toISOString().slice(0, 13)}`;
+  const inserted = run(
+    `INSERT OR IGNORE INTO website_usage (site_id, bucket, count, updated_at) VALUES (?, ?, 1, ?)`,
+    row.site_id, bucket, nowIso(),
+  );
+  if (!inserted.changes) return false;
+  audit(null, 'website.key_rejected', 'site_api_key', row.id, { keyId: row.key_id, reason }, { orgId: row.org_id });
+  return true;
 }

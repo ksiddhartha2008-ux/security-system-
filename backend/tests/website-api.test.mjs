@@ -471,6 +471,7 @@ test('revocation takes effect immediately and the audit chain stays valid', asyn
   assert.ok(actions.includes('website.verified'));
   assert.ok(actions.includes('website.key_created'));
   assert.ok(actions.includes('website.key_revoked'));
+  assert.ok(actions.includes('website.key_rejected'), 'a revoked key presented again is recorded once');
   const serialized = JSON.stringify(audit.body);
   assert.equal(serialized.includes(key), false, 'audit metadata never contains a key');
   assert.equal(serialized.includes('secureflow-site-verification='), false, 'audit metadata never contains a token');

@@ -158,9 +158,13 @@ function attachToIncident(orgId, incident, site, detection, explanation, entitie
     const ts = nowIso();
     const severity = higherSeverity(incident.severity, detection.severity);
     const priority = priorityFor(severity, site.criticality);
+    // The title follows the highest severity rule that has joined the incident.
+    const title = severity !== incident.severity && explanation.ruleName
+      ? `${explanation.ruleName} against ${site.display_name}`
+      : incident.title;
     run(
-      `UPDATE incidents SET severity = ?, priority = ?, updated_at = ? WHERE id = ? AND org_id = ?`,
-      severity, priority, ts, incident.id, orgId,
+      `UPDATE incidents SET severity = ?, priority = ?, title = ?, updated_at = ? WHERE id = ? AND org_id = ?`,
+      severity, priority, title, ts, incident.id, orgId,
     );
     for (const [type, value] of entities) {
       run(

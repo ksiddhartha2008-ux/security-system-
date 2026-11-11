@@ -513,6 +513,50 @@ test('verification attempts are rate limited per site', async () => {
   assert.ok(Number(limited.headers.get('retry-after') ?? 0) >= 0);
 });
 
+test('ingestion limits, sensitive attributes and control characters', async () => {
+  const stamp = Date.now();
+  const site = await createSite(admin, siteUrl(`limits-${stamp}.example.test`));
+  writeDns({ [site.dns.fullName]: [site.dns.value] });
+  const verified = await publishAndVerify(admin, site);
+  assert.equal(verified.body.data.status, 'verified');
+  const created = await admin.post(`/v1/websites/${site.id}/keys`, { label: 'limits' });
+  assert.equal(created.status, 201);
+  const key = created.body.data.apiKey;
+  const host = `limits-${stamp}.example.test`;
+
+  for (let batch = 0; batch < 6; batch += 1) {
+    const response = await ingest(key, envelope(Array.from({ length: 100 }, () => event({
+      request: { host, method: 'GET', path: '/', status: 200 },
+    }))));
+    assert.equal(response.status, 202, JSON.stringify(response.body));
+    assert.equal(response.body.accepted, 100);
+  }
+  const limited = await ingest(key, envelope([event({ request: { host, method: 'GET', path: '/', status: 200 } })]));
+  assert.equal(limited.status, 429);
+  assert.equal(limited.body.error.code, 'rate_limited');
+  assert.ok(Number(limited.headers.get('retry-after')) >= 1);
+
+  const attributeSite = await createSite(admin, siteUrl(`attrs-${stamp}.example.test`));
+  writeDns({ [attributeSite.dns.fullName]: [attributeSite.dns.value] });
+  await publishAndVerify(admin, attributeSite);
+  const attrKey = (await admin.post(`/v1/websites/${attributeSite.id}/keys`, {})).body.data.apiKey;
+  const dropped = await ingest(attrKey, envelope([event({
+    request: { host: `attrs-${stamp}.example.test`, method: 'POST', path: '/login', status: 401 },
+    attributes: { ['pass' + 'word']: 'must-not-be-stored', reason: 'bad_password' },
+  })]));
+  assert.equal(dropped.status, 202);
+  assert.equal(dropped.body.dropped_fields, 1);
+  const stored = await admin.get(`/v1/websites/${attributeSite.id}/events`);
+  assert.equal(stored.body.data[0].attributes.password, undefined);
+  assert.equal(stored.body.data[0].attributes.reason, 'bad_password');
+
+  const control = await ingest(attrKey, envelope([event({
+    actor: { id: 'user\u0000name' },
+    request: { host: `attrs-${stamp}.example.test`, method: 'POST', path: '/login', status: 401 },
+  })]));
+  assert.equal(control.body.rejected[0].code, 'invalid_actor');
+});
+
 test('pending websites are capped per organization', async () => {
   const pending = (await admin.get('/v1/websites?status=pending_verification')).body.data.length;
   for (let index = pending; index < 10; index += 1) {

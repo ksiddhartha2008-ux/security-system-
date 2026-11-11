@@ -116,6 +116,30 @@ test('daily re-verification clears and then sets the failure marker, and lapses 
   void failing;
 });
 
+test('retention deletes only old website events and respects legal hold', async () => {
+  const { applyRetention } = await import('../src/services/websiteData.js');
+  const site = services.get(`SELECT * FROM website_sites WHERE hostname = 'sched.example.test'`);
+  const insert = (id, daysAgo) => services.run(
+    `INSERT INTO security_events (id, org_id, event_type, source, severity, category, title, description, src_ip, raw, status, occurred_at, created_at, website_site_id)
+     VALUES (?, 'org_test', 'auth.failure', 'secureflow-sdk', 'info', 'identity', 'Failed sign-in', 'test', '203.0.113.9', '{}', 'new', ?, ?, ?)`,
+    id, new Date(Date.now() - daysAgo * 86400000).toISOString(), new Date().toISOString(), site.id,
+  );
+  insert('evt_old_retention', 120);
+  insert('evt_fresh_retention', 2);
+
+  const first = applyRetention('org_test');
+  assert.equal(first.events >= 1, true);
+  assert.equal(services.get(`SELECT id FROM security_events WHERE id = 'evt_old_retention'`), undefined);
+  assert.ok(services.get(`SELECT id FROM security_events WHERE id = 'evt_fresh_retention'`));
+
+  services.run(`UPDATE organizations SET settings = ? WHERE id = 'org_test'`, JSON.stringify({ retentionDays: 90, legalHold: true }));
+  insert('evt_held_retention', 400);
+  const held = applyRetention('org_test');
+  assert.equal(held.skipped, 'legal_hold');
+  assert.ok(services.get(`SELECT id FROM security_events WHERE id = 'evt_held_retention'`));
+  services.run(`UPDATE organizations SET settings = '{}' WHERE id = 'org_test'`);
+});
+
 test('the scheduler creates periodic jobs without duplicating them', () => {
   scheduler.ensureScheduledJobs();
   scheduler.ensureScheduledJobs();

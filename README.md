@@ -6,15 +6,38 @@ The repository is a working full stack application, not a mockup. The React clie
 
 ---
 
-## What is inside
+## Problem and audience
 
-| Area | Modules |
-| --- | --- |
-| Operations | Security overview, live monitoring, threat intelligence, asset inventory, website protection |
-| Response | Incidents with a lifecycle and timeline, investigations with notes and findings, deterministic detections, phishing URL scanner |
-| Exposure | Vulnerability register, network flows, digital forensics with SHA-256 and chain of custody |
-| Programme | Response automation with an approval gate, reports with Markdown/CSV/JSON export, Threat Simulation Lab |
-| Workspace | Role based access (admin, analyst, viewer), TOTP multi-factor authentication, demo data management, organization settings, integration status, audit log, system health |
+Small and medium businesses and educational institutions usually run a handful of disconnected tools. A failed sign-in lives in one log, a suspicious request in a web server, an incident in a spreadsheet, and evidence in a shared folder. SecureFlow AI puts the operational path in one application: collect events, evaluate deterministic rules, score and correlate them, open an incident, record the investigation and the evidence hash, and produce a report.
+
+The intended users are security analysts and IT administrators in organisations without a full security operations centre, and students or instructors who need a realistic, self-hosted lab. The application is honest about what is simulated: demo records, simulation runs and response automation actions are labelled, and there is no machine learning model in the decision path.
+
+## Modules and status
+
+Status labels: **IMPLEMENTED** (works, not directly covered by an automated test), **TESTED** (automated tests executed and passed), **SIMULATED** (demonstration behaviour, labelled in the UI), **PARTIALLY IMPLEMENTED** (core works, a named capability is absent), **PLANNED** (not built), **UNVERIFIED** (not run here).
+
+| # | Module | Status | Evidence |
+| --- | --- | --- | --- |
+| 1 | Authentication and access control | TESTED | `backend/tests/auth.test.mjs`, `mfa.test.mjs`, `isolation.test.mjs` |
+| 2 | Security overview dashboard | IMPLEMENTED | SQL aggregates; manual browser walkthrough |
+| 3 | Live security monitoring | TESTED | `backend/tests/detection.test.mjs`; streaming checked manually |
+| 4 | Threat intelligence | PARTIALLY IMPLEMENTED | Local IOC store and lookup tested; external providers need keys and are unconfigured |
+| 5 | Asset management | IMPLEMENTED | Asset API and inventory used by detection and website protection |
+| 6 | Incident management | TESTED | `backend/tests/workflow.test.mjs` |
+| 7 | Threat investigation | IMPLEMENTED | Investigation routes, notes and findings; manual check |
+| 8 | Detection centre, deterministic | TESTED | `backend/tests/detection.test.mjs`, `website-detection.test.mjs`. AI-assisted scoring is PLANNED and not implemented |
+| 9 | Phishing URL scanner | TESTED | `backend/tests/security.test.mjs`, SSRF and scheme cases |
+| 10 | Vulnerability management | IMPLEMENTED | Register, CVSS, remediation status; demo data |
+| 11 | Security automation (SOAR) | TESTED for the approval gate; actions SIMULATED | `backend/tests/workflow.test.mjs`; no EDR or firewall is connected |
+| 12 | Digital forensics | TESTED | `backend/tests/workflow.test.mjs`, SHA-256 and tamper detection |
+| 13 | Network monitoring | IMPLEMENTED | Flow list, summary and ingestion; manual check |
+| 14 | Reports and analytics | TESTED | `backend/tests/workflow.test.mjs`, export formats |
+| 15 | Settings and administration | TESTED | `backend/tests/auth.test.mjs`; audit chain verification |
+| + | Website protection | TESTED, launch gate G1 blocked | `backend/tests/website-*.test.mjs`; [status](docs/website/STATUS.md) |
+| + | Threat simulation lab | TESTED, all data SIMULATED | `backend/tests/simulation.test.mjs` |
+| + | Demo data management | TESTED | `backend/tests/demo.test.mjs` |
+
+No LLM, prompt template engine or agent framework exists in the repository. Detection is deterministic and explainable; the interface says so where scores appear. See [PROMPT_ENGINE_SECURITY_AUDIT.md](docs/PROMPT_ENGINE_SECURITY_AUDIT.md).
 
 Five simulation scenarios: credential stuffing, API abuse, phishing, insider threat and ransomware.
 
@@ -83,6 +106,23 @@ All seeded records are synthetic and labelled **Demo data** in the interface.
 ```
 
 ---
+
+## How a signal becomes an incident
+
+```
+Event ingestion (session API or website SDK key)
+  -> strict validation and normalization
+  -> security_events (org scoped, origin labelled)
+  -> deterministic rules (at ingest, post commit and on demand)
+  -> risk score from severity, stored factors, asset criticality and confidence
+  -> correlation by asset, website, source address and actor
+  -> incident with a timeline and linked evidence
+  -> investigation notes and findings
+  -> approval gated response (actions recorded as simulated)
+  -> audit hash chain and reports
+```
+
+Website events follow the same path after the API key resolves the organization and site. The decision path contains no model inference. A detection stores the factors, weights and observed values that produced its score, so an analyst can audit it.
 
 ## How the stack fits together
 
@@ -181,6 +221,22 @@ External integrations currently report configuration state and expose ingestion 
 
 ---
 
+## Deployment
+
+```powershell
+npm run build            # builds frontend/dist
+npm start                # API and built client on PORT, default 4000
+```
+
+- Migrations run automatically at startup and are tracked with `PRAGMA user_version`. The current schema is v5, 41 tables.
+- The database and evidence files live in `SF_DATA_DIR` (default `backend/data`). Mount a persistent volume in a container.
+- `Dockerfile` is a multi stage build with a non-root runtime user. `docker-compose.yml` maps port 4000 and a data volume.
+- Put a TLS terminating reverse proxy in front, set `SF_TRUST_PROXY=true` only when that proxy overwrites `X-Forwarded-For`, and keep the session cookie `Secure` in production.
+- `GET /api/health` is the container health probe and contains no tenant data.
+- Single node SQLite is the supported topology. The PostgreSQL and shared rate limiting plan is in [docs/website/SCALABILITY_PLAN.md](docs/website/SCALABILITY_PLAN.md).
+
+No deployment was performed as part of this repository work. See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full procedure.
+
 ## Third party repositories
 
 Both supplied archives were extracted to `third_party/` and read before any integration work:
@@ -209,6 +265,23 @@ Neither repository is copied into the frontend or backend. The Threat Simulation
 - MiroFish cannot be executed here (Python version and external LLM/Zep credentials), so only its adapter and unconfigured path are verified.
 
 ---
+
+## Roadmap
+
+Priority order, with the reason each item is not done today.
+
+1. **Email verification and password reset.** Needs SMTP infrastructure. This is also website protection gate G1, so it blocks enabling that feature for customers.
+2. **Shared rate limiting and a PostgreSQL path.** Plan written, not implemented. Single node SQLite is the current limit.
+3. **Independent security assessment.** Local tests and a self-review do not replace a penetration test.
+4. **Real collectors and integrations.** Wazuh, Sysmon, Suricata, Zeek, ClamAV, YARA and reputation providers are configuration surfaces plus ingestion APIs. No finished connectors ship.
+5. **SSO and WebAuthn.** TOTP MFA exists; organisation-wide MFA policy and hardware authenticators do not.
+6. **Browser SDK and automatic key rotation.** Website protection is server side by design. Rotation is manual with a two key overlap.
+7. **AI-assisted scoring, only as advice.** No model exists. Any future model must not lower a rule severity and needs a timeout with a rule-only fallback.
+8. **Accessibility audit at 360 px and with a screen reader.** The interface is keyboard operable and labelled, but no automated engine was run.
+
+## Screenshots
+
+No screenshots are committed. The interface was exercised in a real browser during the website protection walkthrough, and the steps and results are recorded in [docs/website/verification/W4.1.md](docs/website/verification/W4.1.md). Adding stock or mock screenshots would misrepresent the application, so none are included. Run the app locally to see the current UI.
 
 ## Documentation
 

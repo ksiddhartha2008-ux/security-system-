@@ -1,17 +1,18 @@
 # Project status
 
-Last updated: 8 November 2026. This file reflects what was actually built, run and verified in this session. Nothing below is marked complete on the strength of a plan.
+Last updated: 11 November 2026. This file reflects what was actually built, run and verified. Nothing below is marked complete on the strength of a plan. The website protection evidence pack is in [website/STATUS.md](website/STATUS.md).
 
 ## Summary
 
 | | |
 | --- | --- |
 | Application | SecureFlow AI, single page client plus REST API |
-| Backend tests | 47 passing, 0 failing (`npm test`) |
+| Backend tests | 91 passing, 0 failing (`npm test`) |
+| SDK tests | 13 passing, 0 failing (`npm run test:sdk`) |
 | Type check | clean (`npm run typecheck`) |
-| Production build | success (`npm run build`) |
+| Production build | success (`npm run build`), 568 kB JavaScript |
 | Dependency audit | 0 vulnerabilities (server and web) |
-| Manual browser verification | signing in, overview, monitoring, assets, incidents (create, transition, note), detections, threat intel, simulations (create, run to completion, history), reports, settings, 404 |
+| Manual browser verification | signing in, overview, monitoring, assets, incidents (create, transition, note), detections, threat intel, simulations (create, run to completion, history), reports, settings, website onboarding, DNS verification, key creation, ingestion, detections and incidents, 404 |
 | Deployment | not performed, by instruction |
 
 ## Module status
@@ -27,7 +28,7 @@ Statuses: **Complete and verified** means the UI, API, persistence and a test or
 | 5 | Asset management | Complete and verified | `tests/isolation.test.mjs`, manual run | Criticality, risk, owner, tags, detail with correlated records |
 | 6 | Incident management | Complete and verified | `tests/workflow.test.mjs` | Forward-only lifecycle guard, timeline, notes, assignment, promotion from a detection |
 | 7 | Threat investigation | Complete and verified | Manual run | Hypothesis, correlated timeline, notes, findings, linked incident, assets, indicators |
-| 8 | AI detection centre | Complete and verified | `tests/detection.test.mjs` | Nine deterministic rules including a statistical hourly volume anomaly, stored explanation, feedback, rule enablement, asset risk refresh |
+| 8 | Detection centre, deterministic | Complete and verified | `tests/detection.test.mjs`, `tests/website-detection.test.mjs` | 18 deterministic rules, 9 platform and 9 website. No AI or model inference exists; AI-assisted scoring is not implemented. Stored explanation, feedback, rule enablement, asset risk refresh |
 | 9 | Phishing URL scanner | Complete and verified | `tests/security.test.mjs` | SSRF protections verified against eight blocked ranges and four schemes; heuristics, redirect chain, optional reputation |
 | 10 | Vulnerability management | Complete and verified | Manual run | Register with CVE, CVSS, asset, remediation, status flow |
 | 11 | Security automation (SOAR) | Complete with limitation | `tests/workflow.test.mjs` | Approval gate and execution log work; actions are recorded as simulated because no EDR/firewall/identity integration is configured |
@@ -35,6 +36,7 @@ Statuses: **Complete and verified** means the UI, API, persistence and a test or
 | 13 | Network monitoring | Complete and verified | Manual run | Flows, summary, protocol mix, top talkers, ingestion |
 | 14 | Reports and analytics | Complete and verified | `tests/workflow.test.mjs`, manual run | Six report types from live data, Markdown/CSV/JSON export |
 | 15 | Settings and administration | Complete and verified | Manual run, `tests/auth.test.mjs` | Organization, members, roles, integrations, audit log, health, account |
+| + | Website protection | Complete with a blocked launch gate | `tests/website-*.test.mjs`, [website/STATUS.md](website/STATUS.md) | Registration, DNS TXT verification, scoped keys, SDK ingestion, detection, incidents, dashboard, scheduler, retention, export and deletion. Gate G1 (verified email) is blocked, so the feature stays off by default in production |
 | + | Threat Simulation Lab | Complete and verified | `tests/simulation.test.mjs`, manual run | Five scenarios, seeded engine, live progress, agents, events, findings, recommendations, report download |
 | + | Demo data management | Complete and verified | `tests/demo.test.mjs` | Per-workspace deterministic 45 asset / ~258 event batch, detection and incident correlation, safe reset, origin labels, admin only |
 | + | Simulation to event pipeline | Complete and verified | `tests/demo.test.mjs`, `tests/simulation.test.mjs` | Simulation events mirrored to `security_events` with dedupe keys, then detection, correlation and asset risk refresh |
@@ -42,6 +44,8 @@ Statuses: **Complete and verified** means the UI, API, persistence and a test or
 | + | API Anything evaluation | Documented | `docs/API_ANYTHING_INTEGRATION.md` | MIT tool, Node 22.13+, local MCP; deliberately not a runtime dependency |
 
 ## Verification log
+
+The commands below are the 8 November 2026 baseline. The current counts after the website protection work are 91 backend tests and 13 SDK tests, with a 568 kB production bundle; the full run is recorded in [website/verification](website/verification/).
 
 ```
 $ npm test --prefix backend

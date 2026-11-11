@@ -77,6 +77,16 @@ The demo passwords are no longer compiled into the client bundle. The login page
 
 Run a real deployment with demo mode off, a bootstrap admin you control, and demo data removed.
 
+## Website protection
+
+- A website is verified by a DNS TXT record with a random token, compared exactly. The record is re-checked daily and a site lapses after the grace period.
+- API keys are scoped to one site and one permission (`events:write`). The secret is shown once, stored as a SHA-256 hash, compared in constant time and revoked immediately with the validation cache purged.
+- Key creation, revocation, website deletion and event data deletion require a password re-entry inside ten minutes, plus a TOTP code when MFA is enabled.
+- Ingestion authenticates with the key only. The organization and site come from the key row. Cookies are ignored, query string keys are refused, and client supplied severity or organization ids do not exist in the schema.
+- Event bodies are not stored beyond validated fields, and attribute names that look like credentials are dropped on both the SDK and the server.
+- A rejected key that is revoked or expired writes one audit entry per hour, so a dead key cannot flood the chain.
+- The full abuse case matrix is in [website/THREAT_MODEL.md](website/THREAT_MODEL.md). Launch gates and residual risk are in [website/STATUS.md](website/STATUS.md).
+
 ## Known gaps
 
 | Gap | Impact | Mitigation |
@@ -88,7 +98,9 @@ Run a real deployment with demo mode off, a bootstrap admin you control, and dem
 | MFA is not enforced by organization policy | An admin can stay password-only | Enforce `mfaPolicy` at login with an enrolment-only session |
 | Session is not bound to a device fingerprint | A stolen cookie works until expiry | Rotate on privilege change and keep the session list short |
 | Malware scanning not verified live | `scan_status` may be `not_scanned` or `error` if ClamAV is absent; production fails closed only when configured | Run ClamAV in staging and verify a clean and an infected sample |
-| Audit atomicity is partial | A crash between a business write and its audit insert can leave a gap | Wrap critical mutations in one transaction |
+| Audit atomicity is partial | A crash between a business write and its audit insert can leave a gap | Wrap critical mutations in one transaction; website actions are tested for rollback |
+| Website launch gate G1 is blocked | There is no verified email requirement before adding a website | Keep `SF_WEBSITE_PROTECTION` off in production until email verification exists |
+| DNS verification trusts the configured resolver | A spoofed DNS answer could satisfy the challenge | Optional two resolver corroboration is not implemented; daily re-checks limit the window |
 | Evidence custody records are not chained | Deleting or reordering custody rows is not detectable | Hash chain custody entries |
 | SQLite has no row level security | Isolation relies on application code | Covered by tests; move to PostgreSQL RLS for defence in depth |
 | Integration collectors are not implemented | No automatic telemetry from Wazuh, Sysmon, Suricata, Zeek, ClamAV or YARA | Use the ingestion API; adapters are a documented backlog item |

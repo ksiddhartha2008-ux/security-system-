@@ -43,12 +43,12 @@ The browser never receives database credentials and never chooses its organizati
 2. `checkOrigin` compares `Origin` with `Host` for every non-GET request. Cross-origin writes are rejected even if a cookie leaks.
 3. Route middleware applies `requireAuth` and, for writes, `requireRole`. Roles rank `viewer < analyst < admin`; a route may name explicit roles.
 4. Handlers read `req.user.orgId` and pass it into every SQL statement. Client supplied `orgId` fields are ignored.
-5. Writes that matter are appended to `audit_logs` with actor, resource, IP and metadata.
-6. Errors are converted to `{ error: { code, message, details } }`. Stack traces are logged server side and never returned.
+5. Writes that matter are appended to `audit_logs` with actor, resource, IP and metadata. Sensitive website actions also require `requireRecentAuth`, which reads the session confirmation timestamp set by `POST /api/auth/step-up`.
+6. Errors are converted to `{ error: { code, message, details, request_id } }`. Stack traces are logged server side and never returned.
 
 ## Data model
 
-30 tables in four groups.
+41 tables in five groups. Schema v5.
 
 **Identity** `organizations`, `users`, `sessions`, `login_attempts`, `audit_logs`.
 
@@ -57,6 +57,8 @@ The browser never receives database credentials and never chooses its organizati
 **Response** `incidents`, `incident_events`, `investigations`, `investigation_notes`, `iocs`, `intel_lookups`, `phishing_scans`, `vulnerabilities`, `response_workflows`, `workflow_executions`, `forensic_evidence`, `custody_records`.
 
 **Simulation and reporting** `simulations`, `simulation_agents`, `simulation_events`, `simulation_reports`, `reports`, `integration_configs`.
+
+**Website protection** `website_sites`, `domain_verifications`, `site_api_keys`, `website_event_ids`, `website_verification_attempts`, `website_usage`, `website_jobs`, `notifications`, `incident_entities`, `incident_detections`, `website_deletion_requests`.
 
 Key relationships:
 
@@ -72,6 +74,9 @@ investigations 1--n investigation_notes
 simulations   1--n simulation_agents / simulation_events
 simulations   1--1 simulation_reports
 forensic_evidence 1--n custody_records
+website_sites 1--n domain_verifications / site_api_keys
+website_sites 1--1 assets (asset is created at verification)
+incidents     1--n incident_entities / incident_detections
 ```
 
 Every tenant table has `org_id` with an index that leads with it (`org_id, <time or score>`). Timestamps are ISO 8601 strings so lexicographic ordering matches chronological ordering. SQLite JSON1 functions are used for a few metadata lookups; the schema stores JSON as text.
@@ -79,16 +84,18 @@ Every tenant table has `org_id` with an index that leads with it (`org_id, <time
 ## Detection pipeline
 
 ```
-event ingest (API)
-   -> validation
+event ingest (session API or website SDK key)
+   -> validation and normalization
    -> insert security_event
-   -> evaluateRules(orgId)
+   -> evaluateRules(orgId)  (inline, post commit or on demand)
         -> per enabled rule: aggregate query over the rule window
+        -> 18 rules: 9 platform + 9 website
         -> score = base severity + capped factor weights + asset criticality + confidence lift
         -> de-duplicate against detections from the last two hours by signature
         -> insert detection with explanation JSON
+   -> website detections: correlate by site, source address and actor
    -> refreshAssetRisk(orgId)
-   -> broadcast SSE 'event.ingested'
+   -> broadcast SSE 'event.ingested' or 'website.events'
 ```
 
 The score is deterministic and every factor is stored. The interface shows the factors, the observed values and the score model. No model inference is part of the decision.

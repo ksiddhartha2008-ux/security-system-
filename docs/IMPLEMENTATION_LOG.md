@@ -119,3 +119,13 @@ npm run build
 npm start
 # open http://localhost:4000 and sign in with analyst@secureflow.dev / Analyst#2026
 ```
+
+## 11 November 2026: website protection
+
+- Added website onboarding, DNS TXT verification, scoped API keys, key-scoped ingestion, nine website detection rules, incident correlation and a website dashboard.
+- Schema v5 adds 11 tables and three columns. The migration was run against a copy of the live database: 711 existing events preserved, 41 tables, `PRAGMA user_version = 5`.
+- Added a private Node SDK with bounded queue, retries, timeouts and graceful shutdown.
+- Added a job scheduler with a lease, daily re-verification, retention, in-app notification throttling, export and verifiable data deletion.
+- Backend suite grew from 47 to 91 tests; the SDK suite adds 13. Type check and production build pass.
+- Detailed evidence, decisions and launch gates are in `docs/website/STATUS.md`. Gate G1 (verified email before adding a website) is blocked, so the feature stays off by default in production.
+- No production deployment was performed.

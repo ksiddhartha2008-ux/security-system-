@@ -11,6 +11,8 @@ import { seed } from './seed.js';
 import { isDemoMode } from './lib/demo.js';
 import { createBootstrapAdmin } from './lib/bootstrap.js';
 import { checkProductionConfig } from './lib/config.js';
+import { websiteProtectionEnabled } from './lib/websiteFlag.js';
+import { startWebsiteScheduler } from './services/websiteScheduler.js';
 import { recoverInterruptedSimulations, SCENARIOS, DISCLAIMER } from './services/simulation.js';
 
 import authRoutes from './routes/auth.js';
@@ -30,6 +32,8 @@ import reportRoutes from './routes/reports.js';
 import simulationRoutes from './routes/simulations.js';
 import demoRoutes from './routes/demo.js';
 import settingsRoutes from './routes/settings.js';
+import websiteRoutes from './routes/websites.js';
+import ingestRoutes from './routes/ingest.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -88,6 +92,10 @@ app.use((req, res, next) => {
   next();
 });
 
+// Ingestion is mounted before cookie parsing and CSRF: it authenticates with the
+// API key only, ignores ambient credentials and caps the body while reading.
+app.use('/api/v1/ingest', ingestRoutes);
+
 app.use(express.json({ limit: '8mb' }));
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 app.use(attachUser);
@@ -117,6 +125,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/simulations', simulationRoutes);
 app.use('/api/demo', demoRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/v1/websites', websiteRoutes);
 
 /** Server sent events for live monitoring and simulation progress. */
 app.get('/api/stream', requireAuth, (req, res) => {
@@ -238,6 +247,24 @@ app.get('/api/docs', requireAuth, (req, res) => {
         ['GET', '/api/simulations/mirofish/status', 'MiroFish adapter status'],
         ['POST', '/api/simulations/mirofish/import', 'Import a MiroFish run'],
       ] },
+      { tag: 'Website protection', endpoints: [
+        ['POST', '/api/v1/websites', 'Register a website and create a DNS challenge (admin)'],
+        ['GET', '/api/v1/websites', 'Websites with verification and connection status'],
+        ['GET', '/api/v1/websites/:id', 'Detail, verification record, keys and counters'],
+        ['POST', '/api/v1/websites/:id/verify', 'Run one DNS TXT check'],
+        ['POST', '/api/v1/websites/:id/verification/restart', 'Replace an expired challenge'],
+        ['PATCH', '/api/v1/websites/:id', 'Name, criticality and sensitive paths (admin)'],
+        ['DELETE', '/api/v1/websites/:id', 'Soft delete and revoke keys (admin, recent auth)'],
+        ['POST', '/api/v1/websites/:id/keys', 'Create an API key once (admin, recent auth)'],
+        ['GET', '/api/v1/websites/:id/keys', 'Key metadata, never secrets (admin)'],
+        ['DELETE', '/api/v1/websites/:id/keys/:keyId', 'Revoke immediately (admin, recent auth)'],
+        ['GET', '/api/v1/websites/:id/events', 'Website events'],
+        ['GET', '/api/v1/websites/:id/detections', 'Website detections'],
+        ['GET', '/api/v1/websites/:id/incidents', 'Linked incidents'],
+        ['GET', '/api/v1/websites/:id/export', 'Tenant scoped export (admin)'],
+        ['POST', '/api/v1/websites/:id/data-deletion', 'Delete website event data (admin, recent auth)'],
+        ['POST', '/api/v1/ingest/website-events', 'SDK ingestion, API key only'],
+      ] },
       { tag: 'Settings', endpoints: [
         ['GET', '/api/settings/organization', 'Organization settings'], ['PATCH', '/api/settings/organization', 'Update (admin)'],
         ['GET', '/api/settings/users', 'Members'], ['POST', '/api/settings/users', 'Create a member (admin)'],
@@ -246,6 +273,7 @@ app.get('/api/docs', requireAuth, (req, res) => {
       ] },
     ],
     scenarios: SCENARIOS.map((s) => ({ key: s.key, name: s.name, rounds: s.defaultRounds })),
+    features: { websiteProtection: websiteProtectionEnabled() },
     simulationDisclaimer: DISCLAIMER,
   });
 });
@@ -284,7 +312,10 @@ const server = app.listen(PORT, () => {
   console.log(`[secureflow] environment: ${process.env.NODE_ENV ?? 'development'}`);
   console.log(`[secureflow] demo mode: ${demoMode ? 'on (synthetic data, known demo accounts)' : 'off'}`);
   console.log(`[secureflow] demo database: ${process.env.SF_DB_PATH ?? 'backend/data/secureflow.db'}`);
+  console.log(`[secureflow] website protection: ${websiteProtectionEnabled() ? 'on' : 'off'}`);
 });
+
+if (websiteProtectionEnabled()) startWebsiteScheduler();
 
 function shutdown(signal) {
   console.log(`[secureflow] ${signal} received, closing server`);

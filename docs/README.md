@@ -30,6 +30,16 @@ Start with the [project README](../README.md).
 - [DATA_FLOW_AUDIT.md](DATA_FLOW_AUDIT.md) - why a workspace showed zero and what changed
 - [DEMO_DATA_GUIDE.md](DEMO_DATA_GUIDE.md) - generate, classify and reset demo data
 
+## Website protection
+
+- [website/STATUS.md](website/STATUS.md) - workflow, task status, launch gates and verdict
+- [website/REUSE_MAP.md](website/REUSE_MAP.md) - what existing code the feature reuses
+- [website/DECISIONS.md](website/DECISIONS.md) - binding design decisions and owner defaults
+- [website/EVENT_MAPPING.md](website/EVENT_MAPPING.md) - SDK event types to stored events
+- [website/HTTP_API.md](website/HTTP_API.md) - raw ingestion API for other languages
+- [website/THREAT_MODEL.md](website/THREAT_MODEL.md) - abuse cases and the tests that cover them
+- [website/SECRET_SCANNING.md](website/SECRET_SCANNING.md) - key pattern and scanning commands
+
 ## Integrations
 
 - [MIROFISH_INTEGRATION.md](MIROFISH_INTEGRATION.md)

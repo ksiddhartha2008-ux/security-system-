@@ -11,6 +11,8 @@
     "start": "node backend/src/index.js",
     "seed": "npm --prefix backend run seed",
     "test": "npm --prefix backend test",
+    "test:sdk": "npm --prefix packages/sdk-node test",
+    "test:all": "npm test && npm run test:sdk",
     "typecheck": "npm --prefix frontend run typecheck"
   }
 }

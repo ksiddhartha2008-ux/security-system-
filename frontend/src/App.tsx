@@ -24,6 +24,9 @@ import SimulationDetailPage from './pages/SimulationDetail';
 import SettingsPage from './pages/Settings';
 import DemoDataPage from './pages/DemoData';
 import PeoplePage from './pages/People';
+import WebsitesPage from './pages/Websites';
+import WebsiteNewPage from './pages/WebsiteNew';
+import WebsiteDetailPage from './pages/WebsiteDetail';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -51,6 +54,9 @@ export default function App() {
               <Route path="/overview" element={<OverviewPage />} />
               <Route path="/monitoring" element={<MonitoringPage />} />
               <Route path="/assets" element={<AssetsPage />} />
+              <Route path="/websites" element={<WebsitesPage />} />
+              <Route path="/websites/new" element={<WebsiteNewPage />} />
+              <Route path="/websites/:id" element={<WebsiteDetailPage />} />
               <Route path="/incidents" element={<IncidentsPage />} />
               <Route path="/incidents/:id" element={<IncidentDetailPage />} />
               <Route path="/investigations" element={<InvestigationsPage />} />

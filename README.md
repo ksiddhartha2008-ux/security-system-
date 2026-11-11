@@ -10,7 +10,7 @@ The repository is a working full stack application, not a mockup. The React clie
 
 | Area | Modules |
 | --- | --- |
-| Operations | Security overview, live monitoring, threat intelligence, asset inventory |
+| Operations | Security overview, live monitoring, threat intelligence, asset inventory, website protection |
 | Response | Incidents with a lifecycle and timeline, investigations with notes and findings, deterministic detections, phishing URL scanner |
 | Exposure | Vulnerability register, network flows, digital forensics with SHA-256 and chain of custody |
 | Programme | Response automation with an approval gate, reports with Markdown/CSV/JSON export, Threat Simulation Lab |
@@ -61,12 +61,12 @@ All seeded records are synthetic and labelled **Demo data** in the interface.
 │   ├── src/
 │   │   ├── index.js           app wiring, security headers, SPA hosting, SSE
 │   │   ├── db.js              node:sqlite connection, migrations, helpers
-│   │   ├── migrations/        schema v1 to v4 (30 tables, foreign keys, indexes)
+│   │   ├── migrations/        schema v1 to v5 (41 tables, foreign keys, indexes)
 │   │   ├── seed.js            deterministic synthetic demo workspace
 │   │   ├── lib/               http envelope, auth, audit, rate limit, events
 │   │   ├── routes/            module routers, settings, demo data, streaming
-│   │   └── services/          detection, correlation, demo, simulation, phishing, MiroFish, reports
-│   └── tests/                 47 node:test integration tests
+│   │   └── services/          detection, correlation, demo, simulation, phishing, MiroFish, reports, website protection
+│   └── tests/                 86 node:test integration and unit tests
 ├── frontend/                  React 19 + TypeScript + Vite + Tailwind CSS v4
 │   └── src/
 │       ├── pages/             one page per module, public pages, detail views
@@ -74,6 +74,7 @@ All seeded records are synthetic and labelled **Demo data** in the interface.
 │       └── lib/               API client, auth context, hooks, formatting
 ├── docs/                      audits, guides, API reference, security and simulation documentation
 ├── scripts/                   development verification and smoke scripts
+├── packages/sdk-node/         server side Node SDK, private, zero runtime dependencies
 ├── third_party/               MiroFish and API Anything sources (inspected, not vendored into the app)
 ├── Dockerfile                 multi stage build, non-root runtime
 ├── docker-compose.yml
@@ -85,10 +86,10 @@ All seeded records are synthetic and labelled **Demo data** in the interface.
 
 ## How the stack fits together
 
-- **Database**: SQLite in WAL mode through the built-in Node driver. 30 tables with foreign keys and indexes. Every tenant owned table carries `org_id`; the server resolves the organization from the session, never from the request body.
+- **Database**: SQLite in WAL mode through the built-in Node driver. 41 tables with foreign keys and indexes. Every tenant owned table carries `org_id`; the server resolves the organization from the session, never from the request body.
 - **Auth**: scrypt password hashes (async on request paths), optional TOTP multi-factor authentication with single use recovery codes, session-bound CSRF tokens, random 256 bit session tokens stored as SHA-256 digests, HttpOnly SameSite=Lax cookie with a seven day expiry, session cap and rotation on password change, origin check on state changing requests, per-route and per-account rate limits.
 - **Audit**: append-only hash chain per organization with a verification endpoint, request correlation ids and fail-closed writes.
-- **Detection**: nine deterministic rules (brute force, credential stuffing, API abuse, port scan, bulk transfer, ransomware behaviour, phishing interaction, authorization probing, hourly volume anomaly). Each detection stores the factors, weights and observed values that produced its score.
+- **Detection**: eighteen deterministic rules. Nine cover the existing telemetry (brute force, credential stuffing, API abuse, port scan, bulk transfer, ransomware behaviour, phishing interaction, authorization probing, hourly volume anomaly) and nine cover website SDK events (credential stuffing, one account brute force, success after failures, MFA failures, scanning, sensitive paths, injection bursts, repeated denials, known bad address). Each detection stores the factors, weights and observed values that produced its score.
 - **Simulation**: a seeded multi-agent engine advances rounds in the background, writes agent activity and events, then computes findings, recommendations and a deterministic risk score. A server restart marks in-flight runs failed rather than pretending they continued.
 - **Streaming**: Server-Sent Events push new events and simulation rounds to the browser. The UI also polls running simulations, so a dropped stream does not hide progress.
 
@@ -127,17 +128,32 @@ A new workspace starts empty, so its dashboard correctly shows zero. An administ
 
 Simulation runs are no longer isolated. Each generated event is mirrored into `security_events` as `SIMULATED`, with a dedupe key, and a finished run evaluates the deterministic rules, correlates incidents and refreshes asset risk. See [DATA_FLOW_AUDIT.md](docs/DATA_FLOW_AUDIT.md), [DEMO_DATA_GUIDE.md](docs/DEMO_DATA_GUIDE.md), [SIMULATION_ENGINE.md](docs/SIMULATION_ENGINE.md) and [DASHBOARD_DATA_DICTIONARY.md](docs/DASHBOARD_DATA_DICTIONARY.md).
 
+## Website protection
+
+A business owner registers a website, proves ownership with a DNS TXT record, creates a scoped API key, installs the Node SDK and sees website events, detections and incidents in the same application.
+
+1. `POST /api/v1/websites` normalizes the URL, rejects IP literals, public suffixes and reserved names, and returns the exact TXT record to publish.
+2. `POST /api/v1/websites/:id/verify` performs one DNS check. A scheduler retries pending checks and re-checks verified websites daily. Resolver errors never count as failures.
+3. A verified website becomes an asset of type `website`. A key is created only for a verified site, only by an admin, only after a password re-entry inside ten minutes, and the secret is shown once.
+4. `POST /api/v1/ingest/website-events` accepts batches authenticated by the key alone. The organization and site come from the key. Duplicates are counted, not stored twice.
+5. Nine deterministic website rules create detections. Correlation groups them by shared website, source address and account so one attack becomes one incident. Notifications are throttled and every suppression records a reason.
+
+The workflow is documented in [docs/website/STATUS.md](docs/website/STATUS.md), with the reuse map, decisions, event mapping and evidence files beside it. Website protection is on by default outside production and off in production until the launch gates are accepted. Set `SF_WEBSITE_PROTECTION=true` to override.
+
+Production readiness is **not** claimed. Gate G1 (verified email addresses) is blocked because the product has no email verification, and no independent penetration test has been performed. The gate matrix records this.
+
 ## Testing
 
 ```powershell
-npm test                 # 30 integration tests, isolated database per test file
+npm test                 # 86 backend tests, isolated database per test file
+npm run test:sdk         # 13 SDK tests against a local HTTP server
 npm run typecheck        # TypeScript project check
 npm run build            # production bundle
 ```
 
-Verified on 9 November 2026: 47 passing, 0 failing. Production bundle: 513 kB JavaScript (142 kB gzip) and 25 kB CSS.
+Verified on 11 November 2026: 86 backend tests passing, 0 failing; 13 SDK tests passing. Production bundle: 568 kB JavaScript (155 kB gzip) and 26.6 kB CSS.
 
-Coverage includes registration and login, TOTP enrolment and login step-up, recovery code single use, session rotation, CSRF token enforcement, account-based login throttling, RBAC (viewer/analyst/admin), cross-tenant isolation, detection rules and de-duplication, incident lifecycle guards, simulation execution and cancellation, simulation-to-event pipeline, demo generation and safe reset, SSRF protection (including private ranges), evidence signature and tamper detection, audit hash chain, SOAR approval enforcement, CSV formula neutralisation, production config validation, report export and the workflow approval gate.
+Coverage includes registration and login, TOTP enrolment and login step-up, recovery code single use, session rotation, CSRF token enforcement, account-based login throttling, RBAC (viewer/analyst/admin), cross-tenant isolation, detection rules and de-duplication, incident lifecycle guards, simulation execution and cancellation, simulation-to-event pipeline, demo generation and safe reset, SSRF protection (including private ranges), evidence signature and tamper detection, audit hash chain, SOAR approval enforcement, CSV formula neutralisation, production config validation, report export and the workflow approval gate. Website protection adds URL normalization, DNS verification, key lifecycle, ingestion limits, idempotency, tenant isolation, incident correlation, notification throttling, scheduler leases, retention, export, deletion and the SDK reliability suite.
 
 ---
 
@@ -154,6 +170,12 @@ Copy `.env.example` to `.env` or export the variables in your shell. Nothing is 
 | `WAZUH_API_URL`, `SYSMON_COLLECTOR_URL`, `SURICATA_EVE_PATH`, `ZEEK_LOG_PATH`, `CLAMAV_HOST`, `YARA_RULES_PATH` | Integration status and adapter hooks |
 | `MIROFISH_BASE_URL`, `MIROFISH_API_KEY` | Optional separate MiroFish service |
 | `API_ANYTHING_ENABLED` | Documents the optional development tool |
+| `SF_WEBSITE_PROTECTION` | Website protection. Default on outside production and off in production |
+| `SF_ALLOW_TEST_HOSTNAMES` | Allows `.test` hostnames for development and tests. Rejected in production |
+| `SF_WEBSITE_VERIFICATION_GRACE_DAYS` | Days a failing re-verification may last before the website lapses. Default 14 |
+| `SF_DNS_RESOLVERS` | Optional comma separated DNS servers for verification. Default the system resolver |
+| `SF_PLATFORM_DOMAINS` | Comma separated platform domains that cannot be registered |
+| `SF_SDK_HEARTBEAT_SECONDS`, `SF_NOTIFICATION_HOURLY_CAP` | Health threshold and notification cap |
 
 External integrations currently report configuration state and expose ingestion endpoints; they do not ship working collectors for every product. This is stated again under limitations.
 
@@ -175,7 +197,11 @@ Neither repository is copied into the frontend or backend. The Threat Simulation
 - Detection rules are threshold based and deterministic. There is no machine learning model in the decision path; the interface says so where scores appear.
 - Response automation records actions as **simulated** because no EDR, firewall or identity integration is configured. It does not isolate hosts or block addresses.
 - External integration collectors (Wazuh, Sysmon, Suricata, Zeek, ClamAV, YARA) are configuration surfaces plus ingestion APIs, not finished connectors.
-- Retention is a stored target value; no automatic deletion job runs.
+- Retention is a stored target value for existing module data; website events now have a retention job, but evidence and incident records have no automatic deletion.
+- Website protection launch gate G1 is blocked: the product has no email verification, so an account with a verified address cannot be required before adding a website. The feature is off by default in production.
+- DNS verification uses the system resolver by default. Two-resolver corroboration is not implemented.
+- Website notifications are in-app only. There is no email or webhook delivery, and suppression is recorded rather than retried.
+- There is no browser SDK and no request blocking. Events arrive only from explicit `track()` calls on the server.
 - Account deletion and password reset email are not implemented. There is no SMTP configuration, so no email is sent.
 - Multi-factor authentication is TOTP only. WebAuthn security keys and SSO are not implemented.
 - The URL scanner fetches a single page and does not execute JavaScript. A low score is not proof that a site is safe.

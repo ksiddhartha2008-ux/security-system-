@@ -1,0 +1,22 @@
+{
+  "name": "secureflow-sdk-node",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SecureFlow AI server side Node.js SDK. Sends explicit security events from a website to the SecureFlow ingestion API.",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test --test-concurrency=1"
+  },
+  "license": "UNLICENSED"
+}

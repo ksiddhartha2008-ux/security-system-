@@ -25,5 +25,14 @@ export function checkProductionConfig(env = process.env) {
   if (!env.MIROFISH_BASE_URL) {
     warnings.push('MIROFISH_BASE_URL is not configured. The simulation lab uses the native engine only.');
   }
+  if (env.SF_DNS_FAKE_FILE) {
+    errors.push('SF_DNS_FAKE_FILE is a test seam and must never be set in production.');
+  }
+  if (env.SF_ALLOW_TEST_HOSTNAMES === 'true') {
+    errors.push('SF_ALLOW_TEST_HOSTNAMES must be off in production.');
+  }
+  if ((env.SF_WEBSITE_PROTECTION ?? env.WEBSITE_PROTECTION_ENABLED) === 'true') {
+    warnings.push('Website protection is enabled in production. Launch gate G1 (verified email addresses) is not implemented; see docs/website/STATUS.md before enabling this for customers.');
+  }
   return { errors, warnings };
 }

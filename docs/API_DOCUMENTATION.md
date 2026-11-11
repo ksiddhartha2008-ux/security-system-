@@ -31,7 +31,8 @@ Paginated endpoints add `meta`:
 
 ```json
 { "error": { "code": "validation_failed", "message": "Request validation failed",
-  "details": [{ "path": "email", "message": "Enter a valid email address" }] } }
+  "details": [{ "path": "email", "message": "Enter a valid email address" }],
+  "request_id": "9f0a7f4e-3f1b-4d38-9d6f-2a0f4c1d5e77" } }
 ```
 
 **Pagination and filters** - `?page=1&limit=25`. Most list endpoints accept `q`, `severity`, `status`, `from`, `to` and resource specific filters.
@@ -280,6 +281,51 @@ Records return `dataOrigin` in events, assets, detections, incidents, vulnerabil
 | GET | `/settings/health` | any | Service checks and record counts |
 
 Secrets are never accepted by the settings API. Provider keys come from the environment only.
+
+## Website protection
+
+Base path `/api/v1`. The feature flag `SF_WEBSITE_PROTECTION` must be on; otherwise these routes return `404`. Session routes need the CSRF header like every other state changing route. The ingestion route is the only one authenticated by an API key, and it is mounted before cookie parsing so ambient credentials are ignored.
+
+### Websites
+
+| Method | Path | Role | Purpose |
+| --- | --- | --- | --- |
+| POST | `/v1/websites/preview` | admin | Normalize and validate a URL without writing |
+| POST | `/v1/websites` | admin | Create a website and its DNS challenge |
+| GET | `/v1/websites` | any | List with derived verification and connection state, plus `meta.summary` |
+| GET | `/v1/websites/:id` | any | Detail, verification record, DNS instructions, counters, health, notifications, install snippet |
+| PATCH | `/v1/websites/:id` | admin | Display name, criticality, sensitive paths |
+| DELETE | `/v1/websites/:id` | admin + recent auth | Soft delete, revoke keys, release the hostname |
+| POST | `/v1/websites/:id/verify` | admin | Run one DNS TXT check |
+| POST | `/v1/websites/:id/verification/restart` | admin | Replace the challenge |
+| GET | `/v1/websites/:id/events` | any | Paginated website events, `type` and `q` filters |
+| GET | `/v1/websites/:id/detections` | any | Paginated detections with factors and linked incident |
+| GET | `/v1/websites/:id/incidents` | any | Paginated incidents linked to the website asset |
+| GET | `/v1/websites/:id/export` | admin | Tenant scoped JSON export, `Cache-Control: no-store` |
+| POST | `/v1/websites/:id/data-deletion` | admin + recent auth | Delete website event data, body `{ "confirm": "<hostname>" }` |
+
+### Keys
+
+| Method | Path | Role | Purpose |
+| --- | --- | --- | --- |
+| POST | `/v1/websites/:id/keys` | admin + recent auth | Create a key, returns the secret once with `Cache-Control: no-store` |
+| GET | `/v1/websites/:id/keys` | admin | Key metadata only, never a secret or hash |
+| DELETE | `/v1/websites/:id/keys/:keyId` | admin + recent auth | Revoke immediately, cache purged |
+
+Recent authentication means a password re-entry inside ten minutes, with a TOTP code when MFA is enabled. Missing it returns `403 recent_auth_required`; `POST /api/auth/step-up` records the confirmation for the current session.
+
+### Ingestion
+
+`POST /api/v1/ingest/website-events`
+
+- The `Authorization` header carries a `Bearer` token holding the website key. Keys in a query string or cookie are refused.
+- `Content-Type: application/json`, body at most 256 KiB, at most 100 events.
+- `202 { accepted, duplicates, rejected: [{ index, event_id, code }], dropped_fields }`.
+- `400 invalid_batch` for an envelope problem, `401 invalid_api_key`, `403 site_not_verified`, `413 payload_too_large`, `415 unsupported_media_type`, `429 rate_limited` with `Retry-After`, `503 service_unavailable` with `Retry-After`.
+
+### Website error codes
+
+`invalid_url`, `unsupported_scheme`, `reserved_hostname`, `public_suffix_not_allowed`, `ip_address_not_allowed`, `userinfo_not_allowed`, `too_many_pending_sites`, `site_conflict`, `verification_rate_limited`, `verification_not_found`, `site_not_verified`, `key_limit_reached`, `recent_auth_required`, `invalid_api_key`, `payload_too_large`, `unsupported_media_type`, `invalid_batch`, `rate_limited`, `service_unavailable`.
 
 ## Health
 

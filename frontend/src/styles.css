@@ -465,3 +465,15 @@ table.data td.num { font-variant-numeric: tabular-nums; }
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
 }
 
+
+/* Website protection pages */
+.website-split { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.website-overview .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 900px) {
+  .website-split { grid-template-columns: minmax(0, 1fr); }
+  .website-overview .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 420px) {
+  .website-overview .grid-4 { grid-template-columns: minmax(0, 1fr); }
+}
+.website-snippet .code-block { max-height: 420px; overflow: auto; }

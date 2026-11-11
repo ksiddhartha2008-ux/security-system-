@@ -25,6 +25,7 @@ type AuthState = {
   user: User | null;
   organization: Organization | null;
   permissions: { canWrite: boolean; canAdmin: boolean; canApprove: boolean };
+  features: { websiteProtection: boolean };
   loading: boolean;
   login: (email: string, password: string) => Promise<{ mfaRequired: boolean }>;
   register: (input: { name: string; email: string; password: string; organizationName: string }) => Promise<void>;
@@ -33,11 +34,13 @@ type AuthState = {
 };
 
 const EMPTY_PERMISSIONS = { canWrite: false, canAdmin: false, canApprove: false };
+const EMPTY_FEATURES = { websiteProtection: false };
 
 const AuthContext = createContext<AuthState>({
   user: null,
   organization: null,
   permissions: EMPTY_PERMISSIONS,
+  features: EMPTY_FEATURES,
   loading: true,
   login: async () => ({ mfaRequired: false }),
   register: async () => {},
@@ -49,19 +52,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [permissions, setPermissions] = useState(EMPTY_PERMISSIONS);
+  const [features, setFeatures] = useState(EMPTY_FEATURES);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     try {
-      const data = await api.get<{ user: User; organization: Organization; permissions: AuthState['permissions'] }>('/auth/me');
+      const data = await api.get<{ user: User; organization: Organization; permissions: AuthState['permissions']; features?: AuthState['features'] }>('/auth/me');
       setUser(data.user);
       setOrganization(data.organization);
       setPermissions(data.permissions);
+      setFeatures(data.features ?? EMPTY_FEATURES);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setUser(null);
         setOrganization(null);
         setPermissions(EMPTY_PERMISSIONS);
+        setFeatures(EMPTY_FEATURES);
       }
     } finally {
       setLoading(false);
@@ -87,11 +93,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setOrganization(null);
       setPermissions(EMPTY_PERMISSIONS);
+      setFeatures(EMPTY_FEATURES);
     }
   }, []);
 
-  const value = useMemo(() => ({ user, organization, permissions, loading, login, register, logout, refresh: load }),
-    [user, organization, permissions, loading, login, register, logout, load]);
+  const value = useMemo(() => ({ user, organization, permissions, features, loading, login, register, logout, refresh: load }),
+    [user, organization, permissions, features, loading, login, register, logout, load]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

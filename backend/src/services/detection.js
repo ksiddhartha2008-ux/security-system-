@@ -1,4 +1,5 @@
 import { all, get, run, newId, nowIso, parseJson } from '../db.js';
+import { WEBSITE_RULES } from './websiteRules.js';
 
 /** ISO timestamp N minutes in the past, matching the stored ISO-8601 format exactly. */
 const WINDOW = (minutes) => new Date(Date.now() - minutes * 60_000).toISOString();
@@ -442,7 +443,7 @@ export function ruleRowToRule(row) {
 export function ensureRules(orgId) {
   const existing = all('SELECT key FROM detection_rules WHERE org_id = ?', orgId).map((r) => r.key);
   const ts = nowIso();
-  for (const rule of RULES) {
+  for (const rule of [...RULES, ...WEBSITE_RULES]) {
     if (existing.includes(rule.key)) continue;
     run(
       `INSERT INTO detection_rules (id, org_id, key, name, category, severity, description, threshold, window_minutes, enabled, created_at, updated_at)
@@ -464,7 +465,7 @@ export function evaluateRules(orgId, { write = true, dataOrigin: originHint = nu
 
   const produced = [];
   for (const row of dbRules) {
-    const rule = RULES.find((r) => r.key === row.key);
+    const rule = [...RULES, ...WEBSITE_RULES].find((r) => r.key === row.key);
     if (!rule) continue;
     let findings = [];
     try {
@@ -499,6 +500,7 @@ export function evaluateRules(orgId, { write = true, dataOrigin: originHint = nu
         scoreModel: 'base severity + capped factor weights + asset criticality + confidence lift',
         deterministic: true,
         windowMinutes: rule.windowMinutes,
+        websiteSiteId: finding.siteId ?? null,
         evaluatedAt: nowIso(),
       };
       const id = newId('det');
@@ -511,9 +513,9 @@ export function evaluateRules(orgId, { write = true, dataOrigin: originHint = nu
           JSON.stringify(explanation), nowIso(), nowIso(), nowIso(), dataOrigin, demoBatchId,
         );
         recent.push(finding.signature);
-        produced.push({ id, title: finding.title, severity: finding.severity, riskScore: risk, ruleKey: rule.key });
+        produced.push({ id, title: finding.title, severity: finding.severity, riskScore: risk, ruleKey: rule.key, siteId: finding.siteId ?? null });
       } else {
-        produced.push({ title: finding.title, severity: finding.severity, riskScore: risk, ruleKey: rule.key });
+        produced.push({ title: finding.title, severity: finding.severity, riskScore: risk, ruleKey: rule.key, siteId: finding.siteId ?? null });
       }
     }
   }

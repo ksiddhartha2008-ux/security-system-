@@ -17,6 +17,7 @@ const NAV = [
       { to: '/monitoring', label: 'Live monitoring', icon: Activity },
       { to: '/threat-intel', label: 'Threat intelligence', icon: Globe2 },
       { to: '/assets', label: 'Assets', icon: Server },
+      { to: '/websites', label: 'Websites', icon: Globe2 },
     ],
   },
   {
@@ -59,6 +60,7 @@ const TITLES: Record<string, string> = {
   '/monitoring': 'Live monitoring',
   '/threat-intel': 'Threat intelligence',
   '/assets': 'Asset inventory',
+  '/websites': 'Websites',
   '/incidents': 'Incident response',
   '/investigations': 'Investigations',
   '/detections': 'Detections',
@@ -75,7 +77,7 @@ const TITLES: Record<string, string> = {
 };
 
 export function AppShell() {
-  const { user, organization, logout } = useAuth();
+  const { user, organization, logout, features } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [navOpen, setNavOpen] = useState(false);
@@ -123,6 +125,11 @@ export function AppShell() {
     detections: summary.data?.kpis.detectionsOpen ?? 0,
   };
 
+  const nav = NAV.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => item.to !== '/websites' || features.websiteProtection),
+  }));
+
   const handleLogout = async () => {
     await logout();
     navigate('/login', { replace: true });
@@ -146,7 +153,7 @@ export function AppShell() {
           </button>
         </div>
         <nav className="nav">
-          {NAV.map((group) => (
+          {nav.map((group) => (
             <div key={group.label}>
               <p className="nav-group-label">{group.label}</p>
               {group.items.map((item) => {
@@ -182,8 +189,7 @@ export function AppShell() {
             <Menu size={18} aria-hidden="true" />
           </button>
           <div style={{ minWidth: 0 }}>
-            <p className="topbar-crumb">{NAV.flatMap((g) => g.items).find((i) => root === i.to)?.label ? 'Workspace' : 'SecureFlow AI'}</p>
-            <h1 className="topbar-title">{title}</h1>
+            <p className="topbar-crumb">{NAV.flatMap((g) => g.items).find((i) => root === i.to)?.label ? 'Workspace' : 'SecureFlow AI'}</p>            <h1 className="topbar-title">{title}</h1>
           </div>
           <div className="topbar-spacer" />
           {demoStatus.data?.hasDemoData && (

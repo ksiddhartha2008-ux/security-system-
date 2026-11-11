@@ -23,5 +23,7 @@ jobs:
         run: npm ci --prefix frontend
       - name: Backend tests
         run: npm test --prefix backend
+      - name: SDK tests
+        run: npm test --prefix packages/sdk-node
       - name: Type check and build frontend
         run: npm run build --prefix frontend

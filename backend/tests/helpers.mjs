@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const serverRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 /** Boot an isolated API instance with its own database file. */
-export async function startServer() {
+export async function startServer(extraEnv = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'secureflow-test-'));
   const port = 4400 + Math.floor(Math.random() * 400);
   const proc = spawn(process.execPath, ['src/index.js'], {
@@ -18,9 +18,11 @@ export async function startServer() {
       NODE_ENV: 'test',
       SF_DB_PATH: join(dir, 'test.db'),
       SF_DATA_DIR: dir,
+      SF_WEBSITE_SCHEDULER: 'off',
       VIRUSTOTAL_API_KEY: '',
       ABUSEIPDB_API_KEY: '',
       MIROFISH_BASE_URL: '',
+      ...extraEnv,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });

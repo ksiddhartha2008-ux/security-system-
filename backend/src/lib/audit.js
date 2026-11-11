@@ -25,15 +25,15 @@ const hashRecord = (prevHash, record) => createHash('sha256').update(chainInput(
  * Failures throw: a critical action must not silently lose its audit record.
  */
 export function audit(req, action, resourceType, resourceId, metadata = {}, { result = 'success', orgId } = {}) {
-  const resolvedOrg = req.user?.orgId ?? orgId ?? 'system';
+  const resolvedOrg = req?.user?.orgId ?? orgId ?? 'system';
   const record = {
     orgId: resolvedOrg,
-    actorId: req.user?.id ?? null,
-    actorEmail: req.user?.email ?? 'system',
+    actorId: req?.user?.id ?? null,
+    actorEmail: req?.user?.email ?? 'system',
     action,
     resourceType,
     resourceId: resourceId ?? null,
-    ip: req.ip ?? null,
+    ip: req?.ip ?? null,
     result,
     metadata: JSON.stringify(metadata ?? {}),
     createdAt: nowIso(),
@@ -49,7 +49,7 @@ export function audit(req, action, resourceType, resourceId, metadata = {}, { re
     `INSERT INTO audit_logs (id, org_id, actor_id, actor_email, action, resource_type, resource_id, ip, metadata, result, request_id, prev_hash, hash, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     newId('aud'), record.orgId, record.actorId, record.actorEmail, record.action, record.resourceType,
-    record.resourceId, record.ip, record.metadata, record.result, req.requestId ?? null, prevHash, hash, record.createdAt,
+    record.resourceId, record.ip, record.metadata, record.result, req?.requestId ?? null, prevHash, hash, record.createdAt,
   );
   return hash;
 }

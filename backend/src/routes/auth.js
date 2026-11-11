@@ -8,6 +8,7 @@ import { audit } from '../lib/audit.js';
 import { rateLimit } from '../lib/ratelimit.js';
 import { DEMO_ACCOUNTS, isDemoMode } from '../lib/demo.js';
 import { verifyTotp, generateSecret, otpauthUrl, generateRecoveryCodes, hashRecoveryCode } from '../lib/totp.js';
+import { websiteProtectionEnabled } from '../lib/websiteFlag.js';
 
 const router = Router();
 
@@ -145,6 +146,7 @@ router.get('/me', requireAuth, asyncHandler(async (req, res) => {
       canAdmin: req.user.role === 'admin',
       canApprove: req.user.role !== 'viewer',
     },
+    features: { websiteProtection: websiteProtectionEnabled() },
   });
 }));
 
@@ -170,8 +172,44 @@ router.patch('/me', requireAuth, asyncHandler(async (req, res) => {
   return ok(res, { user: publicUser(updated, null) });
 }));
 
-router.get('/sessions', requireAuth, asyncHandler(async (req, res) => {
-  const rows = all('SELECT id, ip, user_agent, created_at, expires_at FROM sessions WHERE user_id = ? AND expires_at > ? ORDER BY created_at DESC', req.user.id, nowIso());
+/**
+ * Password re-entry for sensitive actions. The session records when it was last
+ * confirmed, never the password itself. When MFA is enabled a TOTP code is
+ * required as well, so a stolen cookie alone cannot unlock key management.
+ */
+router.post('/step-up', requireAuth, rateLimit({ windowMs: 10 * 60 * 1000, max: 10, keyPrefix: 'step-up' }), asyncHandler(async (req, res) => {
+  const body = validate(z.object({
+    password: z.string().min(1, 'Enter your password').max(200),
+    code: z.string().trim().min(6).max(24).optional(),
+  }), req.body);
+  const user = get('SELECT * FROM users WHERE id = ? AND org_id = ?', req.user.id, req.user.orgId);
+  if (!user || user.status !== 'active') throw unauthorized();
+  if (!await verifyPasswordAsync(body.password, user.password_hash)) {
+    audit(req, 'auth.step_up_failed', 'user', user.id, {}, { result: 'failure' });
+    throw badRequest('Password is incorrect');
+  }
+  if (user.mfa_enabled === 1) {
+    if (!body.code) throw badRequest('Enter the six digit code from your authenticator app.');
+    let accepted = verifyTotp(user.mfa_secret, body.code);
+    if (!accepted) {
+      const recovery = parseJson(user.mfa_recovery, []);
+      const candidate = hashRecoveryCode(body.code);
+      if (recovery.includes(candidate)) {
+        accepted = true;
+        run('UPDATE users SET mfa_recovery = ?, updated_at = ? WHERE id = ?',
+          JSON.stringify(recovery.filter((hash) => hash !== candidate)), nowIso(), user.id);
+      }
+    }
+    if (!accepted) throw badRequest('That code is not valid');
+  }
+  const ts = nowIso();
+  run('UPDATE sessions SET reauthenticated_at = ? WHERE id = ? AND user_id = ?', ts, req.user.sessionId, user.id);
+  req.reauthenticatedAt = ts;
+  audit(req, 'auth.step_up', 'user', user.id, { factors: user.mfa_enabled === 1 ? 'password+totp' : 'password' });
+  return ok(res, { reauthenticatedAt: ts, expiresAt: new Date(Date.now() + 10 * 60_000).toISOString() });
+}));
+
+router.get('/sessions', requireAuth, asyncHandler(async (req, res) => {  const rows = all('SELECT id, ip, user_agent, created_at, expires_at FROM sessions WHERE user_id = ? AND expires_at > ? ORDER BY created_at DESC', req.user.id, nowIso());
   return ok(res, rows.map((r) => ({ id: r.id.slice(0, 8), ip: r.ip, userAgent: r.user_agent, createdAt: r.created_at, expiresAt: r.expires_at })));
 }));
 

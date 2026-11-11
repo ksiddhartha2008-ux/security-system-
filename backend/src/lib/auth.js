@@ -141,7 +141,7 @@ export function attachUser(req, _res, next) {
   req.user = null;
   if (!token) return next();
   const row = get(
-    `SELECT s.id AS session_id, s.expires_at, s.csrf_hash, u.id, u.org_id, u.email, u.name, u.role, u.status
+    `SELECT s.id AS session_id, s.expires_at, s.csrf_hash, s.reauthenticated_at, u.id, u.org_id, u.email, u.name, u.role, u.status
        FROM sessions s JOIN users u ON u.id = s.user_id
       WHERE s.id = ?`,
     hashToken(token),
@@ -158,8 +158,10 @@ export function attachUser(req, _res, next) {
     email: row.email,
     name: row.name,
     role: row.role,
+    sessionId: row.session_id,
   };
   req.csrfHash = row.csrf_hash;
+  req.reauthenticatedAt = row.reauthenticated_at ?? null;
   return next();
 }
 
@@ -183,6 +185,21 @@ export function requireRole(...roles) {
 
 export const isAdmin = (user) => user?.role === 'admin';
 export const canWrite = (user) => RANK[user?.role] >= RANK.analyst;
+
+/** Sensitive website actions require a password re-entry inside this window (gate G2 interim). */
+export const RECENT_AUTH_MS = 10 * 60 * 1000;
+
+export function isRecentAuth(req) {
+  if (!req.reauthenticatedAt) return false;
+  const at = new Date(req.reauthenticatedAt).getTime();
+  return Number.isFinite(at) && Date.now() - at <= RECENT_AUTH_MS;
+}
+
+export function requireRecentAuth(req, _res, next) {
+  if (!req.user) return next(unauthorized());
+  if (isRecentAuth(req)) return next();
+  return next(new ApiError(403, 'recent_auth_required', 'Confirm your password again to continue.'));
+}
 
 /** CSRF defense in depth: SameSite=Lax cookie plus Origin/Host comparison on state changes. */
 export function checkOrigin(req, _res, next) {

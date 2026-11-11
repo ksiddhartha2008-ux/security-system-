@@ -48,6 +48,12 @@ export function migrate() {
     db.exec('PRAGMA user_version = 4');
     console.log('[db] schema v4 applied (data origin, demo batches, simulation mirroring)');
   }
+  if (current < 5) {
+    const sql = readFileSync(join(here, 'migrations', '005_website_protection.sql'), 'utf8');
+    db.exec(sql);
+    db.exec('PRAGMA user_version = 5');
+    console.log('[db] schema v5 applied (website protection, scoped API keys, notifications)');
+  }
 }
 
 export const all = (sql, ...params) => db.prepare(sql).all(...params);

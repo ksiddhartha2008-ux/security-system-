@@ -68,20 +68,22 @@ export function formatZod(error) {
 
 /** Consistent error envelope + no stack traces in responses. */
 export function errorHandler(err, req, res, _next) {
+  const requestId = req.requestId ?? null;
   if (err instanceof ZodError) {
-    return res.status(400).json({ error: { code: 'validation_failed', message: 'Request validation failed', details: formatZod(err) } });
+    return res.status(400).json({ error: { code: 'validation_failed', message: 'Request validation failed', details: formatZod(err), request_id: requestId } });
   }
   if (err instanceof ApiError) {
+    if (err.status === 429) res.setHeader('Retry-After', '60');
     return res.status(err.status).json({
-      error: { code: err.code, message: err.message, details: err.details },
+      error: { code: err.code, message: err.message, details: err.details, request_id: requestId },
     });
   }
   if (err?.type === 'entity.too.large') {
-    return res.status(413).json({ error: { code: 'payload_too_large', message: 'Request body exceeds the allowed size' } });
+    return res.status(413).json({ error: { code: 'payload_too_large', message: 'Request body exceeds the allowed size', request_id: requestId } });
   }
   console.error('[error]', req.method, req.originalUrl, err);
   return res.status(500).json({
-    error: { code: 'internal_error', message: 'Something went wrong on our side. The failure was logged.' },
+    error: { code: 'internal_error', message: 'Something went wrong on our side. The failure was logged.', request_id: requestId },
   });
 }
 

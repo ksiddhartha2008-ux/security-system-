@@ -370,7 +370,10 @@ export function ingestBatch({ site, key, envelope }) {
     bumpUsage(site.id, key.key_id, accepted + duplicates + rejected.length);
 
     if (touchKey(key)) {
-      run('UPDATE site_api_keys SET last_used_at = ? WHERE id = ? AND (last_used_at IS NULL OR last_used_at < ?)', ts, key.id, ts);
+      run(
+        'UPDATE site_api_keys SET last_used_at = ? WHERE id = ? AND (last_used_at IS NULL OR last_used_at < ?)',
+        ts, key.id, new Date(Date.now() - 60_000).toISOString(),
+      );
     }
   });
 

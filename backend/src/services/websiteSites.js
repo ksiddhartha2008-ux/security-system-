@@ -543,6 +543,9 @@ export function softDeleteSite(req, siteId) {
     );
     run(`UPDATE website_sites SET status = 'deleted', deleted_at = ?, status_changed_at = ?, updated_at = ? WHERE id = ? AND org_id = ?`,
       ts, ts, ts, site.id, orgId);
+    if (site.asset_id) {
+      run(`UPDATE assets SET status = 'decommissioned', updated_at = ? WHERE id = ? AND org_id = ?`, ts, site.asset_id, orgId);
+    }
     run(`UPDATE website_sites SET verification_failing_since = NULL WHERE id = ?`, site.id);
     run(`UPDATE domain_verifications SET status = 'superseded' WHERE org_id = ? AND site_id = ? AND status = 'pending'`, orgId, site.id);
     audit(req, 'website.deleted', 'website_site', site.id, { hostname: site.hostname, revokedKeys: keys.length });

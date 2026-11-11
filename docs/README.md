@@ -38,6 +38,7 @@ Start with the [project README](../README.md).
 - [website/EVENT_MAPPING.md](website/EVENT_MAPPING.md) - SDK event types to stored events
 - [website/HTTP_API.md](website/HTTP_API.md) - raw ingestion API for other languages
 - [website/THREAT_MODEL.md](website/THREAT_MODEL.md) - abuse cases and the tests that cover them
+- [website/SCALABILITY_PLAN.md](website/SCALABILITY_PLAN.md) - shared rate limiting and the PostgreSQL migration plan
 - [website/SECRET_SCANNING.md](website/SECRET_SCANNING.md) - key pattern and scanning commands
 
 ## Integrations

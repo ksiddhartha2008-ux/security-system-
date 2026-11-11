@@ -58,7 +58,7 @@ TruffleHog custom detector regex is the same pattern.
 1. Open the website, **Keys**, and revoke the key. Ingestion stops immediately.
 2. Create a replacement key, install it on the server and confirm the connection.
 3. Review events in the exposure window for unexpected sources.
-4. Check the audit log for `website.key_revoked` and record who revoked it.
+4. Check the audit log for `website.key_revoked` and `website.key_rejected`. The rejection entry is written at most once per hour per key, so a flood of dead key requests cannot fill the audit chain.
 5. Rotate the actor pepper only if identifiers, not just the key, may have leaked. Rotating it breaks pseudonym continuity.
 
 The feature does not rotate keys automatically. Rotation is create the second key, deploy it, revoke the first. The two key limit exists for that overlap.

@@ -62,6 +62,7 @@ Then press **Verify now**. The resolver seam is refused when `NODE_ENV=productio
 | [EVENT_MAPPING.md](EVENT_MAPPING.md) | Event vocabulary and stored shape |
 | [HTTP_API.md](HTTP_API.md) | Raw ingestion API |
 | [THREAT_MODEL.md](THREAT_MODEL.md) | A1 to A30 and coverage |
+| [SCALABILITY_PLAN.md](SCALABILITY_PLAN.md) | Shared limits and the PostgreSQL migration plan |
 | [SECRET_SCANNING.md](SECRET_SCANNING.md) | Key pattern and response steps |
 | [PHASE_REPORT_W1.md](PHASE_REPORT_W1.md) to [W4](PHASE_REPORT_W4.md) | What each phase delivered |
 | [verification/](verification/) | Evidence files with commands and results |

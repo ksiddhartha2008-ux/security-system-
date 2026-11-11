@@ -66,7 +66,7 @@ All seeded records are synthetic and labelled **Demo data** in the interface.
 │   │   ├── lib/               http envelope, auth, audit, rate limit, events
 │   │   ├── routes/            module routers, settings, demo data, streaming
 │   │   └── services/          detection, correlation, demo, simulation, phishing, MiroFish, reports, website protection
-│   └── tests/                 86 node:test integration and unit tests
+│   └── tests/                 91 node:test integration and unit tests
 ├── frontend/                  React 19 + TypeScript + Vite + Tailwind CSS v4
 │   └── src/
 │       ├── pages/             one page per module, public pages, detail views
@@ -145,13 +145,13 @@ Production readiness is **not** claimed. Gate G1 (verified email addresses) is b
 ## Testing
 
 ```powershell
-npm test                 # 86 backend tests, isolated database per test file
+npm test                 # 91 backend tests, isolated database per test file
 npm run test:sdk         # 13 SDK tests against a local HTTP server
 npm run typecheck        # TypeScript project check
 npm run build            # production bundle
 ```
 
-Verified on 11 November 2026: 86 backend tests passing, 0 failing; 13 SDK tests passing. Production bundle: 568 kB JavaScript (155 kB gzip) and 26.6 kB CSS.
+Verified on 11 November 2026: 91 backend tests passing, 0 failing; 13 SDK tests passing. Production bundle: 568 kB JavaScript (155 kB gzip) and 26.6 kB CSS.
 
 Coverage includes registration and login, TOTP enrolment and login step-up, recovery code single use, session rotation, CSRF token enforcement, account-based login throttling, RBAC (viewer/analyst/admin), cross-tenant isolation, detection rules and de-duplication, incident lifecycle guards, simulation execution and cancellation, simulation-to-event pipeline, demo generation and safe reset, SSRF protection (including private ranges), evidence signature and tamper detection, audit hash chain, SOAR approval enforcement, CSV formula neutralisation, production config validation, report export and the workflow approval gate. Website protection adds URL normalization, DNS verification, key lifecycle, ingestion limits, idempotency, tenant isolation, incident correlation, notification throttling, scheduler leases, retention, export, deletion and the SDK reliability suite.
 

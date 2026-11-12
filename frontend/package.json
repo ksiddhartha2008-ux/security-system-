@@ -7,15 +7,22 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --noEmit",
+    "astryx": "astryx",
+    "theme:build": "astryx theme build src/lib/theme/secureflowTheme.ts --out src/lib/theme/secureflow.css",
+    "check:theme": "astryx theme build src/lib/theme/secureflowTheme.ts --out src/lib/theme/secureflow.css --check",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@astryxdesign/core": "0.7.13",
+    "@astryxdesign/theme-neutral": "0.7.13",
+    "@stylexjs/stylex": "0.19.1",
     "lucide-react": "^0.469.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.1.1"
   },
   "devDependencies": {
+    "@astryxdesign/cli": "0.7.13",
     "@tailwindcss/vite": "^4.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

@@ -1,21 +1,26 @@
+@layer reset, theme, base, astryx-base, astryx-theme, components, utilities;
+
 @import "tailwindcss";
+@import "@astryxdesign/core/reset.css";
+@import "@astryxdesign/core/astryx.css";
+@import "./lib/theme/secureflow.css";
 
 @theme {
-  --color-base: #070b10;
-  --color-canvas: #0a1017;
-  --color-panel: #0f1720;
-  --color-panel-2: #131d27;
-  --color-line: #1e2b38;
-  --color-line-strong: #2a3a4a;
-  --color-ink: #e8eef5;
-  --color-muted: #94a6b8;
+  --color-base: #0a0e15;
+  --color-canvas: #0e141f;
+  --color-panel: #131b2a;
+  --color-panel-2: #1a2334;
+  --color-line: #253149;
+  --color-line-strong: #384664;
+  --color-ink: #e9eff9;
+  --color-muted: #9dacca;
   --color-faint: #6b7f92;
-  --color-mint: #3ddc97;
+  --color-mint: #3fce8e;
   --color-mint-dim: #1d7d5a;
-  --color-amber: #f5c451;
-  --color-orange: #ff9f43;
-  --color-red: #ff6b6b;
-  --color-blue: #58a6ff;
+  --color-amber: #f2c744;
+  --color-orange: #ffa35c;
+  --color-red: #ff6b6e;
+  --color-blue: #61b3ff;
   --radius-card: 12px;
 }
 
@@ -156,6 +161,7 @@ h1, h2, h3, h4, p { margin: 0; }
 .page { padding: 24px 22px 56px; width: 100%; max-width: 1500px; margin: 0 auto; }
 .page-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
 .page-title { font-size: 22px; font-weight: 650; letter-spacing: -0.02em; }
+h1.page-title { font-size: 22px; line-height: 1.25; }
 .page-sub { color: var(--color-muted); font-size: 13px; margin-top: 4px; max-width: 720px; }
 .page-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -243,9 +249,7 @@ h1, h2, h3, h4, p { margin: 0; }
 .checkbox { width: 15px; height: 15px; accent-color: #3ddc97; }
 
 .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.search { position: relative; flex: 1; min-width: 180px; max-width: 340px; }
-.search svg { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--color-faint); }
-.search .input { padding-left: 30px; }
+.search { flex: 1; min-width: 180px; max-width: 340px; }
 
 .table-wrap { overflow-x: auto; }
 .table-wrap table.data { min-width: 660px; }

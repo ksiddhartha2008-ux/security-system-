@@ -1,10 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Activity, AlertTriangle, Blocks, BookOpen, BrainCircuit, ChevronDown, Database, FileText, Fingerprint,
-  FlaskConical, Gauge, Globe2, LayoutDashboard, LogOut, Menu, Network, Radar, Server,
-  Settings, ShieldAlert, ShieldCheck, Siren, Users, X, Search,
+  Activity, Blocks, BrainCircuit, ChevronDown, Database, FileText, Fingerprint,
+  FlaskConical, Globe2, LayoutDashboard, LogOut, Network, Radar, Server,
+  Settings, ShieldAlert, ShieldCheck, Siren, Users, Search,
 } from 'lucide-react';
+import { AppShell } from '@astryxdesign/core/AppShell';
+import { TopNav, TopNavHeading } from '@astryxdesign/core/TopNav';
+import { SideNav, SideNavItem, SideNavSection } from '@astryxdesign/core/SideNav';
+import { Button } from '@astryxdesign/core/Button';
+import { Heading } from '@astryxdesign/core/Heading';
+import { Text } from '@astryxdesign/core/Text';
 import { useAuth } from '../lib/auth';
 import { useApi, useEventStream } from '../lib/hooks';
 import { initials, ROLE_LABEL } from '../lib/format';
@@ -76,11 +82,10 @@ const TITLES: Record<string, string> = {
   '/demo-data': 'Demo data',
 };
 
-export function AppShell() {
+export function AppShellLayout() {
   const { user, organization, logout, features } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [navOpen, setNavOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const userRef = useRef<HTMLDivElement>(null);
   const summary = useApi<{ kpis: { incidentsOpen: number; detectionsOpen: number } }>('/overview/summary');
@@ -88,23 +93,11 @@ export function AppShell() {
   const live = useEventStream(() => {}, true);
 
   const root = `/${location.pathname.split('/')[1] ?? ''}`;
-  const title = TITLES[root] ?? (location.pathname === '/' ? 'SecureFlow AI' : 'SecureFlow AI');
+  const title = TITLES[root] ?? 'SecureFlow AI';
 
   useEffect(() => {
     document.title = `${title} · SecureFlow AI`;
   }, [title]);
-
-  useEffect(() => {
-    setNavOpen(false);
-    setUserOpen(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    if (!navOpen) return undefined;
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setNavOpen(false); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [navOpen]);
 
   useEffect(() => {
     if (!userOpen) return undefined;
@@ -136,106 +129,136 @@ export function AppShell() {
   };
 
   return (
-    <div className="shell">
-      <a href="#main" className="skip-link">Skip to main content</a>
-      {navOpen && <div className="sidebar-scrim" onClick={() => setNavOpen(false)} aria-hidden="true" />}
-      <aside className={`sidebar ${navOpen ? 'open' : ''}`} aria-label="Primary navigation">
-        <div className="brand">
-          <Link to="/overview" className="row" style={{ gap: 10 }} aria-label="SecureFlow AI home">
-            <span className="brand-mark" aria-hidden="true">SF</span>
-            <span>
-              <span className="brand-name" style={{ display: 'block' }}>SecureFlow AI</span>
-              <span className="brand-sub">Security operations</span>
-            </span>
-          </Link>
-          <button className="btn btn-ghost btn-icon mobile-only" style={{ marginLeft: 'auto' }} onClick={() => setNavOpen(false)} aria-label="Close navigation" type="button">
-            <X size={16} aria-hidden="true" />
-          </button>
-        </div>
-        <nav className="nav">
+    <AppShell
+      height="fill"
+      contentPadding={0}
+      variant="surface"
+      topNav={(
+        <TopNav
+          label="Product navigation"
+          heading={(
+            <TopNavHeading
+              heading="SecureFlow AI"
+              subheading={organization?.name ?? 'Workspace'}
+              headingHref="/overview"
+              logo={(
+                <span
+                  aria-hidden="true"
+                  style={{
+                    display: 'grid', placeItems: 'center', width: 28, height: 28, borderRadius: 8,
+                    background: 'var(--color-accent)', color: 'var(--color-on-accent)',
+                    fontWeight: 700, fontSize: 12, letterSpacing: '0.02em',
+                  }}
+                >
+                  SF
+                </span>
+              )}
+            />
+          )}
+          endContent={(
+            <div className="row" style={{ gap: 8 }}>
+              {demoStatus.data?.hasDemoData && (
+                <span className="demo-chip" title="This workspace contains synthetic demo records">
+                  <FlaskConical size={12} aria-hidden="true" /> Demo data
+                </span>
+              )}
+              <span className="topbar-cta">
+                <Button
+                  label="Simulation lab"
+                  variant="secondary"
+                  size="sm"
+                  href="/simulations"
+                  icon={<BrainCircuit size={14} aria-hidden="true" />}
+                />
+              </span>
+              <div style={{ position: 'relative' }} ref={userRef}>
+                <button
+                  className="user-button"
+                  onClick={() => setUserOpen((value) => !value)}
+                  aria-haspopup="menu"
+                  aria-expanded={userOpen}
+                  aria-label={`Account menu for ${user?.name}`}
+                  type="button"
+                >
+                  <span className="avatar" aria-hidden="true">{initials(user?.name)}</span>
+                  <span style={{ textAlign: 'left', lineHeight: 1.2 }} className="tiny user-meta">
+                    <span style={{ display: 'block', fontWeight: 600, color: 'var(--color-text-primary)' }}>{user?.name}</span>
+                    <span className="faint">{ROLE_LABEL[user?.role ?? ''] ?? user?.role}</span>
+                  </span>
+                  <ChevronDown size={13} aria-hidden="true" />
+                </button>
+                {userOpen && (
+                  <div role="menu" style={{
+                    position: 'absolute', right: 0, top: 42, width: 232, background: 'var(--color-background-popover)',
+                    border: '1px solid var(--color-border-emphasized)', borderRadius: 10, boxShadow: 'var(--shadow-2)', padding: 6, zIndex: 40,
+                  }}>
+                    <div style={{ padding: '8px 10px 10px', borderBottom: '1px solid var(--color-border)', marginBottom: 4 }}>
+                      <p style={{ fontSize: 12.5, fontWeight: 600 }}>{user?.name}</p>
+                      <p className="tiny faint">{user?.email}</p>
+                    </div>
+                    <Link to="/settings" role="menuitem" className="nav-item" style={{ margin: 0 }}>
+                      <Settings size={14} aria-hidden="true" /> Settings
+                    </Link>
+                    <Link to="/users" role="menuitem" className="nav-item" style={{ margin: 0 }}>
+                      <Users size={14} aria-hidden="true" /> People and access
+                    </Link>
+                    <button
+                      role="menuitem"
+                      className="nav-item"
+                      style={{ margin: 0, width: '100%', background: 'none', border: 'none', cursor: 'pointer' }}
+                      onClick={handleLogout}
+                      type="button"
+                    >
+                      <LogOut size={14} aria-hidden="true" /> Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        />
+      )}
+      sideNav={(
+        <SideNav
+          footer={(
+            <div style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)' }}>
+              <div className="row tiny" style={{ gap: 7, color: 'var(--color-text-secondary)' }}>
+                <span
+                  style={{ width: 7, height: 7, borderRadius: 50, background: live ? 'var(--color-success)' : 'var(--color-text-disabled)', display: 'inline-block' }}
+                  aria-hidden="true"
+                />
+                {live ? 'Live stream connected' : 'Live stream offline'}
+              </div>
+              <p className="tiny faint" style={{ marginTop: 4 }}>{organization?.name ?? 'Workspace'}</p>
+            </div>
+          )}
+        >
           {nav.map((group) => (
-            <div key={group.label}>
-              <p className="nav-group-label">{group.label}</p>
+            <SideNavSection key={group.label} title={group.label}>
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const badgeValue = item.badge ? counts[item.badge] : undefined;
+                const selected = location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
                 return (
-                  <NavLink
+                  <SideNavItem
                     key={item.to}
-                    to={item.to}
-                    className={({ isActive }) => `nav-item ${isActive || location.pathname.startsWith(`${item.to}/`) ? 'active' : ''}`}
-                  >
-                    <Icon size={16} aria-hidden="true" />
-                    <span>{item.label}</span>
-                    {badgeValue !== undefined && badgeValue > 0 && <span className="count">{badgeValue}</span>}
-                  </NavLink>
+                    label={item.label}
+                    href={item.to}
+                    isSelected={selected}
+                    icon={Icon}
+                    endContent={badgeValue !== undefined && badgeValue > 0 ? <span className="count">{badgeValue}</span> : undefined}
+                  />
                 );
               })}
-            </div>
+            </SideNavSection>
           ))}
-        </nav>
-        <div style={{ padding: '12px 16px 16px', borderTop: '1px solid var(--color-line)' }}>
-          <div className="row tiny" style={{ gap: 7, color: '#94a6b8' }}>
-            <span style={{ width: 7, height: 7, borderRadius: 50, background: live ? '#3ddc97' : '#6b7f92', display: 'inline-block' }} aria-hidden="true" />
-            {live ? 'Live stream connected' : 'Live stream offline'}
-          </div>
-          <p className="tiny faint" style={{ marginTop: 4 }}>{organization?.name ?? 'Workspace'}</p>
-        </div>
-      </aside>
-
-      <div className="main">
-        <header className="topbar">
-          <button className="btn btn-ghost btn-icon mobile-only" onClick={() => setNavOpen(true)} aria-label="Open navigation" aria-expanded={navOpen} type="button">
-            <Menu size={18} aria-hidden="true" />
-          </button>
-          <div style={{ minWidth: 0 }}>
-            <p className="topbar-crumb">{NAV.flatMap((g) => g.items).find((i) => root === i.to)?.label ? 'Workspace' : 'SecureFlow AI'}</p>            <h1 className="topbar-title">{title}</h1>
-          </div>
-          <div className="topbar-spacer" />
-          {demoStatus.data?.hasDemoData && (
-            <span className="demo-chip" title="This workspace contains synthetic demo records">
-              <FlaskConical size={12} aria-hidden="true" /> Demo data
-            </span>
-          )}
-          <Link to="/simulations" className="btn btn-sm topbar-cta" style={{ display: 'inline-flex' }}>
-            <BrainCircuit size={14} aria-hidden="true" /> Simulation lab
-          </Link>
-          <div style={{ position: 'relative' }} ref={userRef}>
-            <button className="user-button" onClick={() => setUserOpen((v) => !v)} aria-haspopup="menu" aria-expanded={userOpen} aria-label={`Account menu for ${user?.name}`} type="button">
-              <span className="avatar" aria-hidden="true">{initials(user?.name)}</span>
-              <span style={{ textAlign: 'left', lineHeight: 1.2 }} className="tiny user-meta">
-                <span style={{ display: 'block', fontWeight: 600, color: '#e8eef5' }}>{user?.name}</span>
-                <span className="faint">{ROLE_LABEL[user?.role ?? ''] ?? user?.role}</span>
-              </span>
-              <ChevronDown size={13} aria-hidden="true" />
-            </button>
-            {userOpen && (
-              <div role="menu" style={{
-                position: 'absolute', right: 0, top: 42, width: 232, background: '#101a23',
-                border: '1px solid #2a3a4a', borderRadius: 10, boxShadow: '0 18px 40px rgba(0,0,0,0.45)', padding: 6, zIndex: 40,
-              }}>
-                <div style={{ padding: '8px 10px 10px', borderBottom: '1px solid #1e2b38', marginBottom: 4 }}>
-                  <p style={{ fontSize: 12.5, fontWeight: 600 }}>{user?.name}</p>
-                  <p className="tiny faint">{user?.email}</p>
-                </div>
-                <Link to="/settings" role="menuitem" className="nav-item" style={{ margin: 0 }}>
-                  <Settings size={14} aria-hidden="true" /> Settings
-                </Link>
-                <Link to="/users" role="menuitem" className="nav-item" style={{ margin: 0 }}>
-                  <Users size={14} aria-hidden="true" /> People and access
-                </Link>
-                <button role="menuitem" className="nav-item" style={{ margin: 0, width: '100%', background: 'none', border: 'none', cursor: 'pointer' }} onClick={handleLogout} type="button">
-                  <LogOut size={14} aria-hidden="true" /> Sign out
-                </button>
-              </div>
-            )}
-          </div>
-        </header>
-        <main id="main" className="page">
-          <Outlet />
-        </main>
+        </SideNav>
+      )}
+    >
+      <div className="page">
+        <Outlet />
       </div>
-    </div>
+    </AppShell>
   );
 }
 
@@ -243,8 +266,8 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
   return (
     <div className="page-head">
       <div>
-        <h1 className="page-title">{title}</h1>
-        {subtitle && <p className="page-sub">{subtitle}</p>}
+        <Heading level={1} className="page-title">{title}</Heading>
+        {subtitle && <Text as="p" type="supporting" className="page-sub">{subtitle}</Text>}
       </div>
       {actions && <div className="page-actions">{actions}</div>}
     </div>
@@ -257,7 +280,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
-        <div className="row muted"><Gauge size={16} className="spin" aria-hidden="true" /> Loading workspace…</div>
+        <div className="row muted"><Activity size={16} className="spin" aria-hidden="true" /> Loading workspace…</div>
       </div>
     );
   }
@@ -274,4 +297,3 @@ function NavigateToLogin({ from }: { from: string }) {
   }, [navigate, from]);
   return <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}><span className="muted">Redirecting to sign in…</span></div>;
 }
-

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FileText, Plus } from 'lucide-react';
 import { PageHeader } from '../components/layout';
+import { Heading } from '@astryxdesign/core/Heading';
 import {
   Badge, Button, Card, Drawer, EmptyState, ErrorState, Field, Modal, Pagination, TableSkeleton, useToast,
 } from '../components/ui';
@@ -50,13 +51,14 @@ export default function ReportsPage() {
       <PageHeader title="Reports and analytics" subtitle="Reports are generated on demand from stored records. Export as Markdown, CSV or JSON."
         actions={<Button variant="primary" icon={<Plus size={14} aria-hidden="true" />} onClick={() => setGenerateOpen(true)}>Generate report</Button>} />
 
+      <Heading level={2} className="card-title" style={{ marginBottom: 10 }}>Report types</Heading>
       <div className="feature-grid" style={{ marginBottom: 16 }}>
         {(types.data ?? []).map((type) => (
           <button key={type.key} type="button" className="card feature" style={{ textAlign: 'left', cursor: 'pointer' }}
             onClick={() => { setPresetType(type.key); setGenerateOpen(true); }}>
             <div className="row" style={{ gap: 8, marginBottom: 6 }}>
-              <FileText size={14} aria-hidden="true" color="#7defbb" />
-              <h3>{type.name}</h3>
+              <FileText size={14} aria-hidden="true" color="var(--color-success)" />
+              <span style={{ fontWeight: 600 }}>{type.name}</span>
             </div>
             <p>{type.description}</p>
           </button>

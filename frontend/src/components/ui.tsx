@@ -4,15 +4,22 @@ import {
 } from 'react';
 import { AlertTriangle, Check, ChevronLeft, ChevronRight, Copy, Inbox, Loader2, Search, X } from 'lucide-react';
 import type { Tone } from '../lib/format';
+import { Badge as AstryxBadge } from '@astryxdesign/core/Badge';
+import { TextInput } from '@astryxdesign/core/TextInput';
 
 /* ------------------------------- badges ------------------------------- */
 
 export function Badge({ tone = 'neutral', children, dot = false }: { tone?: Tone; children: ReactNode; dot?: boolean }) {
+  const variant = ({
+    critical: 'red', high: 'orange', medium: 'yellow', low: 'blue', info: 'blue',
+    neutral: 'gray', mint: 'green', amber: 'yellow', purple: 'purple',
+  } as const)[tone] ?? 'gray';
   return (
-    <span className={`badge badge-${tone}`}>
-      {dot && <span className="dot" aria-hidden="true" />}
-      {children}
-    </span>
+    <AstryxBadge
+      variant={variant}
+      label={children}
+      icon={dot ? <span aria-hidden="true" style={{ display: 'inline-block', width: 5, height: 5, borderRadius: 50, background: 'currentColor' }} /> : undefined}
+    />
   );
 }
 
@@ -77,19 +84,6 @@ export function Card({ title, subtitle, actions, children, footer, className = '
   );
 }
 
-export function Kpi({ label, value, foot, icon, spark }: { label: string; value: ReactNode; foot?: ReactNode; icon?: ReactNode; spark?: ReactNode }) {
-  return (
-    <div className="card kpi">
-      <div className="kpi-label">
-        {icon}{label}
-      </div>
-      <div className="kpi-value">{value}</div>
-      {foot && <div className="kpi-foot">{foot}</div>}
-      {spark && <div className="kpi-spark">{spark}</div>}
-    </div>
-  );
-}
-
 export function KeyValue({ items }: { items: { label: string; value: ReactNode }[] }) {
   return (
     <dl className="kv">
@@ -141,13 +135,21 @@ export function Field({ label, htmlFor, hint, error, children, required }: {
 export function SearchInput({ value, onChange, placeholder = 'Search', label }: {
   value: string; onChange: (value: string) => void; placeholder?: string; label?: string;
 }) {
-  const id = useId();
   return (
-    <div className="search">
-      <Search size={14} aria-hidden="true" />
-      <label htmlFor={id} className="sr-only" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{label ?? placeholder}</label>
-      <input id={id} className="input" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} type="search" />
-    </div>
+    <TextInput
+      type="search"
+      size="sm"
+      label={label ?? placeholder}
+      isLabelHidden
+      placeholder={placeholder}
+      value={value}
+      onChange={(next) => onChange(next)}
+      startIcon={Search}
+      hasClear
+      width="100%"
+      containerClassName="search"
+      enterKeyHint="search"
+    />
   );
 }
 

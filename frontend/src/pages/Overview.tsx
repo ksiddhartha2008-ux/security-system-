@@ -3,9 +3,10 @@ import {
   Activity, AlertTriangle, ArrowUpRight, CheckCircle2, FlaskConical, Radar, Server, Siren, Sparkles,
 } from 'lucide-react';
 import { PageHeader } from '../components/layout';
-import { Badge, Button, Card, ErrorState, Kpi, RiskBadge, SeverityBadge, StatusBadge, TableSkeleton } from '../components/ui';
+import { Badge, Button, Card, ErrorState, RiskBadge, SeverityBadge, StatusBadge, TableSkeleton } from '../components/ui';
 import { Donut, RankBars, RiskGauge, Sparkline, TrendChart } from '../components/charts';
-import { useApi } from '../lib/hooks';
+import { useApi, useEventStream } from '../lib/hooks';
+import { MetricCard } from '../components/design';
 import { formatNumber, timeAgo } from '../lib/format';
 import { useAuth } from '../lib/auth';
 
@@ -23,10 +24,22 @@ type Summary = {
 
 type Trend = { day: string; events: number; highSeverity: number; incidents: number; detections: number; avgRisk: number; bytesOut: number; flows: number };
 
+type DetectionRow = {
+  id: string;
+  title: string;
+  severity: string;
+  riskScore: number;
+  status: string;
+  detectedAt: string;
+  assetHostname: string | null;
+};
+
 export default function OverviewPage() {
   const { user } = useAuth();
   const summary = useApi<Summary>('/overview/summary');
   const trends = useApi<Trend[]>('/overview/trends?days=14');
+  const detections = useApi<{ data: DetectionRow[] }>('/detections?limit=5');
+  const live = useEventStream(() => {}, true);
 
   if (summary.error) return <><PageHeader title={`Good to see you, ${user?.name?.split(' ')[0] ?? 'analyst'}`} /><Card><ErrorState message={summary.error} onRetry={summary.refresh} /></Card></>;
 
@@ -49,14 +62,14 @@ export default function OverviewPage() {
         <div className="grid grid-4">{Array.from({ length: 4 }).map((_, i) => <div className="card kpi" key={i}><div className="skeleton" style={{ height: 12, width: '50%' }} /><div className="skeleton" style={{ height: 26, width: '35%', marginTop: 12 }} /></div>)}</div>
       ) : (
         <div className="grid grid-4">
-          <Kpi label="Security events · 24h" value={formatNumber(k.events24h)} icon={<Activity size={12} aria-hidden="true" />}
-            foot={<><span style={{ color: '#ffb0b0' }}>{formatNumber(k.highSeverityEvents)} high severity</span> of {formatNumber(k.eventsTotal)} total</>}
+          <MetricCard label="Security events · 24h" value={formatNumber(k.events24h)} icon={<Activity size={12} aria-hidden="true" />}
+            foot={<><span style={{ color: 'var(--color-error)' }}>{formatNumber(k.criticalEvents)} critical</span> · {formatNumber(k.highSeverityEvents)} high or critical of {formatNumber(k.eventsTotal)} total</>}
             spark={<Sparkline values={(trends.data ?? []).slice(-14).map((t) => t.events)} />} />
-          <Kpi label="Open incidents" value={formatNumber(k.incidentsOpen)} icon={<Siren size={12} aria-hidden="true" />}
+          <MetricCard label="Open incidents" value={formatNumber(k.incidentsOpen)} icon={<Siren size={12} aria-hidden="true" />}
             foot={<>{formatNumber(k.criticalIncidents)} critical · {formatNumber(k.incidents7d)} opened this week</>} />
-          <Kpi label="Open detections" value={formatNumber(k.detectionsOpen)} icon={<Radar size={12} aria-hidden="true" />}
-            foot={<><span style={{ color: '#ffc78f' }}>{formatNumber(k.detectionsHighRisk)} at risk ≥ 70</span> awaiting triage</>} />
-          <Kpi label="Assets at risk" value={`${formatNumber(k.assetsAtRisk)} / ${formatNumber(k.assetsTotal)}`} icon={<Server size={12} aria-hidden="true" />}
+          <MetricCard label="Open detections" value={formatNumber(k.detectionsOpen)} icon={<Radar size={12} aria-hidden="true" />}
+            foot={<><span style={{ color: 'var(--color-warning)' }}>{formatNumber(k.detectionsHighRisk)} at risk ≥ 70</span> awaiting triage</>} />
+          <MetricCard label="Assets at risk" value={`${formatNumber(k.assetsAtRisk)} / ${formatNumber(k.assetsTotal)}`} icon={<Server size={12} aria-hidden="true" />}
             foot={<>Mean risk {k.avgAssetRisk ?? 0}/100 · {formatNumber(k.criticalAssets)} critical assets</>} />
         </div>
       )}
@@ -153,6 +166,58 @@ export default function OverviewPage() {
               </p>
             </div>
           </div>
+        </Card>
+      </div>
+
+      <div className="grid grid-2" style={{ marginTop: 14, gridTemplateColumns: '1.4fr 1fr' }}>
+        <Card title="Recent detections" subtitle="Newest rule matches, with the stored risk score" bodyClass=""
+          actions={<Link to="/detections" className="btn btn-sm btn-ghost">Detection queue <ArrowUpRight size={13} aria-hidden="true" /></Link>}>
+          {detections.loading ? <TableSkeleton rows={4} cols={3} /> : detections.error ? (
+            <ErrorState message={detections.error} onRetry={detections.refresh} />
+          ) : (detections.data?.data.length ?? 0) === 0 ? (
+            <div className="empty">
+              <CheckCircle2 size={22} color="var(--color-success)" aria-hidden="true" />
+              <p className="empty-title" style={{ marginTop: 8 }}>No detections</p>
+              <p className="empty-body">Rules have not matched any event yet.</p>
+            </div>
+          ) : (
+            <div>
+              {detections.data?.data.map((detection) => (
+                <Link key={detection.id} to="/detections" className="row" style={{ padding: '12px 16px', borderBottom: '1px solid var(--color-border)', gap: 12 }}>
+                  <SeverityBadge severity={detection.severity} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <p className="truncate-cell" style={{ fontWeight: 550, fontSize: 13 }}>{detection.title}</p>
+                    <p className="tiny faint">{detection.assetHostname ?? 'Unassigned asset'} · {timeAgo(detection.detectedAt)}</p>
+                  </div>
+                  <RiskBadge score={detection.riskScore} />
+                </Link>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <Card title="Monitoring status" subtitle="Connection and newest signal">
+          <div className="stack" style={{ gap: 12 }}>
+            <div className="row-between">
+              <span className="small muted">Event stream</span>
+              <Badge tone={live ? 'mint' : 'neutral'} dot>{live ? 'Connected' : 'Offline'}</Badge>
+            </div>
+            <div className="row-between">
+              <span className="small muted">Newest event</span>
+              <span className="small">{summary.data?.recentEvents[0] ? timeAgo(summary.data.recentEvents[0].occurred_at) : 'No events yet'}</span>
+            </div>
+            <div className="row-between">
+              <span className="small muted">Sources reporting</span>
+              <span className="small">{summary.data?.topSources.length ?? 0}</span>
+            </div>
+            <div className="row-between">
+              <span className="small muted">Events, 24 hours</span>
+              <span className="small">{formatNumber(k.events24h)}</span>
+            </div>
+          </div>
+          <p className="tiny faint" style={{ marginTop: 12 }}>
+            The stream pushes new events to this page. If it is offline, figures still load from the API on navigation and refresh.
+          </p>
         </Card>
       </div>
 

@@ -2,6 +2,7 @@ node_modules/
 frontend/dist/
 backend/data/
 *.db
+!demo/secureflow-demo.db
 *.db-wal
 *.db-shm
 *.sqlite

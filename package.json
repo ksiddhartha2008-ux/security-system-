@@ -14,6 +14,7 @@
     "test:sdk": "npm --prefix packages/sdk-node test",
     "test:all": "npm test && npm run test:sdk",
     "scan:secrets": "node scripts/check-secrets.mjs",
+    "demo:snapshot": "node scripts/export-demo-snapshot.mjs",
     "typecheck": "npm --prefix frontend run typecheck",
     "theme:build": "npm --prefix frontend run theme:build",
     "check:theme": "npm --prefix frontend run check:theme",

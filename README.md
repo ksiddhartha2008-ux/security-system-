@@ -170,6 +170,8 @@ There is **no LLM, prompt template engine or agent framework** in this repositor
 
 A new workspace starts empty, so its dashboard correctly shows zero. An administrator can open **Demo data** and generate a deterministic synthetic workspace: 45 assets, about 258 events, network telemetry, 14 vulnerabilities, then detections and correlated incidents through the real engine. Every record is tagged `DEMO` and a reset removes only that batch.
 
+A sanitized SQLite snapshot of the Meridian demo workspace is published in [demo/README.md](demo/README.md). It contains only synthetic demo records; sessions, audit logs, API keys, evidence and the personal workspace in the local database were removed. Regenerate it with `npm run demo:snapshot`.
+
 Simulation runs are no longer isolated. Each generated event is mirrored into `security_events` as `SIMULATED`, with a dedupe key, and a finished run evaluates the deterministic rules, correlates incidents and refreshes asset risk. See [DATA_FLOW_AUDIT.md](docs/DATA_FLOW_AUDIT.md), [DEMO_DATA_GUIDE.md](docs/DEMO_DATA_GUIDE.md), [SIMULATION_ENGINE.md](docs/SIMULATION_ENGINE.md) and [DASHBOARD_DATA_DICTIONARY.md](docs/DASHBOARD_DATA_DICTIONARY.md).
 
 ## Website protection

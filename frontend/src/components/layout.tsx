@@ -262,10 +262,34 @@ export function AppShellLayout() {
   );
 }
 
+const MODULE_LABEL: Record<string, string> = {
+  '/overview': 'MODULE 02',
+  '/monitoring': 'MODULE 03',
+  '/threat-intel': 'MODULE 04',
+  '/assets': 'MODULE 05',
+  '/incidents': 'MODULE 06',
+  '/investigations': 'MODULE 07',
+  '/detections': 'MODULE 08',
+  '/phishing': 'MODULE 09',
+  '/vulnerabilities': 'MODULE 10',
+  '/automation': 'MODULE 11',
+  '/forensics': 'MODULE 12',
+  '/network': 'MODULE 13',
+  '/reports': 'MODULE 14',
+  '/settings': 'MODULE 15',
+  '/users': 'MODULE 15',
+  '/websites': 'MODULE 16',
+  '/simulations': 'SIMULATION LAB',
+  '/demo-data': 'DEMO TOOL',
+};
+
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: React.ReactNode }) {
+  const root = `/${useLocation().pathname.split('/')[1] ?? ''}`;
+  const eyebrow = MODULE_LABEL[root];
   return (
     <div className="page-head">
       <div>
+        {eyebrow && <p className="page-eyebrow">{eyebrow}</p>}
         <Heading level={1} className="page-title">{title}</Heading>
         {subtitle && <Text as="p" type="supporting" className="page-sub">{subtitle}</Text>}
       </div>

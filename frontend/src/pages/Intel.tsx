@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Globe2, Plus, Search } from 'lucide-react';
 import { PageHeader } from '../components/layout';
+import { MetricCard } from '../components/design';
 import {
   Badge, Button, Card, Drawer, EmptyState, ErrorState, Field, Modal, Pagination, RiskBadge,
   SearchInput, StatusBadge, TableSkeleton, useToast, CopyButton, InlineNotice,
@@ -20,6 +21,7 @@ type LookupResult = {
   external: { provider: string; malicious?: number; suspicious?: number; harmless?: number; note?: string; error?: string; abuseConfidenceScore?: number; totalReports?: number; countryCode?: string }[];
   providersConfigured: boolean; note: string | null; lookedUpAt: string;
 };
+type IntelSummary = { total: number; active: number; highConfidence: number; sources: number };
 
 const TYPES = ['ip', 'domain', 'url', 'sha256', 'md5', 'email'];
 
@@ -43,6 +45,7 @@ export default function IntelPage() {
   if (query.trim()) params.set('q', query.trim());
 
   const iocs = useApi<{ data: Ioc[]; meta: { page: number; limit: number; total: number; totalPages: number } }>(`/threat-intel?${params.toString()}`);
+  const intelSummary = useApi<IntelSummary>('/threat-intel/summary');
   const recent = useApi<{ id: string; type: string; value: string; verdict: string; score: number; source: string; createdAt: string }[]>('/threat-intel/lookups/recent');
   const debounced = useDebounced(query, 300);
 
@@ -73,6 +76,13 @@ export default function IntelPage() {
     <>
       <PageHeader title="Threat intelligence" subtitle="Indicators you track, with local matching and optional external enrichment. No provider is called unless its key is configured."
         actions={permissions.canWrite ? <Button variant="primary" icon={<Plus size={14} aria-hidden="true" />} onClick={() => setAddOpen(true)}>Add indicator</Button> : undefined} />
+
+      <div className="grid grid-4" style={{ marginBottom: 14 }}>
+        <MetricCard label="Indicators" value={intelSummary.data?.total ?? 0} foot="Tracked in this workspace" icon={<Globe2 size={12} aria-hidden="true" />} />
+        <MetricCard label="Active" value={intelSummary.data?.active ?? 0} foot="Status active for matching" />
+        <MetricCard label="High confidence" value={intelSummary.data?.highConfidence ?? 0} foot="Confidence 80 or higher" />
+        <MetricCard label="Sources" value={intelSummary.data?.sources ?? 0} foot="Distinct feeds and manual sources" />
+      </div>
 
       <div className="grid" style={{ gridTemplateColumns: '1.6fr 1fr', marginBottom: 14 }}>
         <Card title="Indicator lookup" subtitle="IP, domain, URL, file hash or email address">

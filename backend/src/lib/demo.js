@@ -1,7 +1,7 @@
 export const DEMO_ACCOUNTS = [
-  { role: 'Admin', email: 'admin@secureflow.dev', password: 'Admin#2026' },
-  { role: 'Analyst', email: 'analyst@secureflow.dev', password: 'Analyst#2026' },
-  { role: 'Viewer', email: 'viewer@secureflow.dev', password: 'Viewer#2026' },
+  { role: 'Admin', name: 'Priya Raman', email: 'admin@secureflow.dev', password: 'Admin#2026' },
+  { role: 'Analyst', name: 'Marcus Vale', email: 'analyst@secureflow.dev', password: 'Analyst#2026' },
+  { role: 'Viewer', name: 'Dana Okafor', email: 'viewer@secureflow.dev', password: 'Viewer#2026' },
 ];
 
 /**

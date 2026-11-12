@@ -45,7 +45,7 @@ function seedOrg() {
 
 const USERS = DEMO_ACCOUNTS.map((account, index) => ({
   email: account.email,
-  name: ['Priya Raman', 'Marcus Vale', 'Dana Okafor'][index] ?? account.role,
+  name: account.name ?? ['Priya Raman', 'Marcus Vale', 'Dana Okafor'][index] ?? account.role,
   role: account.email.startsWith('admin') ? 'admin' : account.email.startsWith('analyst') ? 'analyst' : 'viewer',
   password: account.password,
 }));

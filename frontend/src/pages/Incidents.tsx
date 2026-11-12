@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Plus, Siren } from 'lucide-react';
 import { PageHeader } from '../components/layout';
+import { MetricCard } from '../components/design';
 import {
   Badge, Button, Card, EmptyState, ErrorState, Field, KeyValue, Modal, Pagination, SearchInput,
   SeverityBadge, StatusBadge, TableSkeleton, Tabs, useToast, OriginBadge,
@@ -44,10 +45,10 @@ export function IncidentsPage() {
         actions={permissions.canWrite ? <Button variant="primary" icon={<Plus size={14} aria-hidden="true" />} onClick={() => setCreateOpen(true)}>Open incident</Button> : undefined} />
 
       <div className="grid grid-4" style={{ marginBottom: 14 }}>
-        <div className="card kpi"><div className="kpi-label">Open queue</div><div className="kpi-value">{(counts.open ?? 0) + (counts.investigating ?? 0) + (counts.contained ?? 0)}</div><div className="kpi-foot">Across open, investigating and contained</div></div>
-        <div className="card kpi"><div className="kpi-label">Investigating</div><div className="kpi-value">{counts.investigating ?? 0}</div><div className="kpi-foot">Owner assigned and work in progress</div></div>
-        <div className="card kpi"><div className="kpi-label">Contained</div><div className="kpi-value">{counts.contained ?? 0}</div><div className="kpi-foot">Exposure stopped, closure pending</div></div>
-        <div className="card kpi"><div className="kpi-label">Resolved</div><div className="kpi-value">{(counts.resolved ?? 0) + (counts.closed ?? 0)}</div><div className="kpi-foot">Of {total} recorded incidents</div></div>
+        <MetricCard label="Open queue" value={(counts.open ?? 0) + (counts.investigating ?? 0) + (counts.contained ?? 0)} foot="Across open, investigating and contained" />
+        <MetricCard label="Investigating" value={counts.investigating ?? 0} foot="Owner assigned and work in progress" />
+        <MetricCard label="Contained" value={counts.contained ?? 0} foot="Exposure stopped, closure pending" />
+        <MetricCard label="Resolved" value={(counts.resolved ?? 0) + (counts.closed ?? 0)} foot={`Of ${total} recorded incidents`} />
       </div>
 
       <Card bodyClass="">

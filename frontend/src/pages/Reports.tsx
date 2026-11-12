@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { FileText, Plus } from 'lucide-react';
 import { PageHeader } from '../components/layout';
 import { Heading } from '@astryxdesign/core/Heading';
+import { MetricCard } from '../components/design';
 import {
   Badge, Button, Card, Drawer, EmptyState, ErrorState, Field, Modal, Pagination, TableSkeleton, useToast,
 } from '../components/ui';
@@ -21,6 +22,12 @@ type ReportDetail = {
   };
   bodyMd: string;
 };
+type OverviewSummary = {
+  kpis: {
+    events24h: number; eventsTotal: number; highSeverityEvents: number; criticalEvents: number;
+    incidentsOpen: number; detectionsOpen: number; assetsAtRisk: number; assetsTotal: number;
+  };
+};
 
 export default function ReportsPage() {
   const { permissions } = useAuth();
@@ -32,6 +39,7 @@ export default function ReportsPage() {
   const [busy, setBusy] = useState(false);
 
   const types = useApi<ReportType[]>('/reports/types');
+  const summary = useApi<OverviewSummary>('/overview/summary');
   const reports = useApi<{ data: ReportRow[]; meta: { page: number; limit: number; total: number; totalPages: number } }>(`/reports?page=${page}&limit=15`);
   const detail = useApi<ReportDetail>(selected ? `/reports/${selected}` : null);
 
@@ -51,6 +59,13 @@ export default function ReportsPage() {
       <PageHeader title="Reports and analytics" subtitle="Reports are generated on demand from stored records. Export as Markdown, CSV or JSON."
         actions={<Button variant="primary" icon={<Plus size={14} aria-hidden="true" />} onClick={() => setGenerateOpen(true)}>Generate report</Button>} />
 
+      <Heading level={2} className="card-title" style={{ marginBottom: 10 }}>Posture snapshot</Heading>
+      <div className="grid grid-4" style={{ marginBottom: 16 }}>
+        <MetricCard label="Events, 24 hours" value={summary.data?.kpis.events24h ?? '—'} foot={`${summary.data?.kpis.eventsTotal ?? 0} recorded in total`} />
+        <MetricCard label="Critical and high" value={summary.data?.kpis.highSeverityEvents ?? '—'} foot={`${summary.data?.kpis.criticalEvents ?? 0} critical`} />
+        <MetricCard label="Open incidents" value={summary.data?.kpis.incidentsOpen ?? '—'} foot="Across the response queue" />
+        <MetricCard label="Active detections" value={summary.data?.kpis.detectionsOpen ?? '—'} foot={`${summary.data?.kpis.assetsAtRisk ?? 0} of ${summary.data?.kpis.assetsTotal ?? 0} assets at risk`} />
+      </div>
       <Heading level={2} className="card-title" style={{ marginBottom: 10 }}>Report types</Heading>
       <div className="feature-grid" style={{ marginBottom: 16 }}>
         {(types.data ?? []).map((type) => (

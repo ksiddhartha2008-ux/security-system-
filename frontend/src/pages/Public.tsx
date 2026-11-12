@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Activity, ArrowRight, Check, FileSearch, Fingerprint, FlaskConical, Gauge, KeyRound,
+  Activity, ArrowRight, Check, FileSearch, Fingerprint, FlaskConical, Gauge, Info, KeyRound,
   Layers, LockKeyhole, ShieldCheck, Siren, Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { useApi } from '../lib/hooks';
 import { api, ApiError } from '../lib/api';
+import { Badge } from '../components/ui';
 
 export function useTitle(title: string) {
   useEffect(() => {
@@ -218,13 +219,21 @@ function AuthAside() {
   );
 }
 
-type DemoAccount = { role: string; email: string; password: string };
+type DemoAccount = { role: string; name: string; email: string; password: string };
+
+const ROLE_COPY: Record<string, { label: string; body: string }> = {
+  Admin: { label: 'Administrator', body: 'Unlocks Settings, People and destructive actions.' },
+  Analyst: { label: 'Security Analyst', body: 'Unlocks monitoring, triage and response work.' },
+  Viewer: { label: 'Viewer', body: 'Read-only access across every module.' },
+};
 
 export function LoginPage() {
   useTitle('Sign in');
   const { login, user, refresh } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  const [mode, setMode] = useState<'demo' | 'credentials'>('demo');
+  const [selectedEmail, setSelectedEmail] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
@@ -233,18 +242,26 @@ export function LoginPage() {
   const [busy, setBusy] = useState(false);
   const next = params.get('next') ?? '/overview';
   const demoAccounts = useApi<DemoAccount[]>('/auth/demo-accounts');
+  const accounts = demoAccounts.data ?? [];
+  const selected = accounts.find((account) => account.email === selectedEmail) ?? accounts[0];
 
   useEffect(() => {
     if (user) navigate(next, { replace: true });
   }, [user, navigate, next]);
 
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setError(null);
-    if (!email.trim() || !password) { setError('Enter your email and password'); return; }
+  useEffect(() => {
+    if (!selectedEmail && accounts.length > 0) setSelectedEmail(accounts[0].email);
+  }, [accounts, selectedEmail]);
+
+  useEffect(() => {
+    if (demoAccounts.data && demoAccounts.data.length === 0) setMode('credentials');
+  }, [demoAccounts.data]);
+
+  const completeLogin = async (accountEmail: string, accountPassword: string) => {
     setBusy(true);
+    setError(null);
     try {
-      const result = await login(email.trim(), password);
+      const result = await login(accountEmail, accountPassword);
       if (result.mfaRequired) {
         setMfaStep(true);
         setPassword('');
@@ -257,6 +274,17 @@ export function LoginPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!email.trim() || !password) { setError('Enter your email and password'); return; }
+    await completeLogin(email.trim(), password);
+  };
+
+  const continueWithDemo = async () => {
+    if (!selected) return;
+    await completeLogin(selected.email, selected.password);
   };
 
   const verify = async (event: React.FormEvent) => {
@@ -275,78 +303,122 @@ export function LoginPage() {
     }
   };
 
+  const showDemo = mode === 'demo' && accounts.length > 0;
+  const selectedCopy = selected ? ROLE_COPY[selected.role] ?? { label: selected.role, body: '' } : null;
+
   return (
-    <div className="auth-wrap">
-      <AuthAside />
-      <div className="auth-form-wrap">
-        <div className="auth-card stack">
+    <main className="login-page">
+      <div className="login-panel">
+        <div className="login-brand">
+          <span className="login-logo" aria-hidden="true"><ShieldCheck size={22} /></span>
           <div>
-            <h1>Sign in</h1>
-            <p className="sub">Use your workspace account. Sessions last seven days.</p>
+            <h1>SecureFlow AI</h1>
+            <p>Intelligent cybersecurity platform · MODULE 01</p>
           </div>
-          {mfaStep ? (
-            <form onSubmit={verify} className="stack" noValidate>
-              {error && <div className="error-box" role="alert">{error}</div>}
-              <p className="small muted">
-                Enter the six digit code from your authenticator app. A recovery code also works here, once.
-              </p>
-              <div className="field">
-                <label className="label" htmlFor="mfa-code">Authentication code</label>
-                <input id="mfa-code" className="input mono" inputMode="numeric" autoComplete="one-time-code"
-                  value={code} onChange={(e) => setCode(e.target.value)} placeholder="123456" autoFocus required />
-              </div>
-              <button className="btn btn-primary btn-lg" type="submit" disabled={busy}>
-                {busy ? 'Verifying…' : <>Verify and sign in <ArrowRight size={15} aria-hidden="true" /></>}
-              </button>
-              <button className="btn btn-ghost btn-sm" type="button" onClick={() => { setMfaStep(false); setCode(''); setError(null); }}>
-                Back to sign in
-              </button>
-            </form>
-          ) : (
-          <>
-          <form onSubmit={submit} className="stack" noValidate>
+        </div>
+
+        <div className="login-demo-note">
+          <Info size={18} aria-hidden="true" />
+          <div>
+            <p className="login-note-title">Demo authentication</p>
+            <p>
+              This screen signs in with a seeded workspace account through the real API. The backend issues the
+              session and enforces the role; a client-side role label never grants access.
+            </p>
+          </div>
+        </div>
+
+        {mfaStep ? (
+          <form onSubmit={verify} className="stack" noValidate>
             {error && <div className="error-box" role="alert">{error}</div>}
+            <p className="small muted">
+              Enter the six digit code from your authenticator app. A recovery code also works here, once.
+            </p>
             <div className="field">
-              <label className="label" htmlFor="email">Work email</label>
-              <input id="email" className="input" type="email" autoComplete="email" value={email}
-                onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" required />
-            </div>
-            <div className="field">
-              <label className="label" htmlFor="password">Password</label>
-              <input id="password" className="input" type="password" autoComplete="current-password" value={password}
-                onChange={(e) => setPassword(e.target.value)} placeholder="Your password" required />
+              <label className="label" htmlFor="mfa-code">Authentication code</label>
+              <input id="mfa-code" className="input mono" inputMode="numeric" autoComplete="one-time-code"
+                value={code} onChange={(e) => setCode(e.target.value)} placeholder="123456" autoFocus required />
             </div>
             <button className="btn btn-primary btn-lg" type="submit" disabled={busy}>
-              {busy ? 'Signing in…' : <>Sign in <ArrowRight size={15} aria-hidden="true" /></>}
+              {busy ? 'Verifying…' : <>Verify and sign in <ArrowRight size={15} aria-hidden="true" /></>}
+            </button>
+            <button className="btn btn-ghost btn-sm" type="button" onClick={() => { setMfaStep(false); setCode(''); setError(null); }}>
+              Back to sign in
             </button>
           </form>
-
-          {(demoAccounts.data?.length ?? 0) > 0 && (
-          <div className="demo-accounts stack" style={{ gap: 6 }}>
-            <p className="row" style={{ gap: 6, fontWeight: 600, color: '#b9c8d6' }}>
-              <KeyRound size={12} aria-hidden="true" /> Demo accounts
-            </p>
-            {(demoAccounts.data ?? []).map((account) => (
-              <button key={account.email} type="button" onClick={() => { setEmail(account.email); setPassword(account.password); setError(null); }}>
-                {account.role} · {account.email}
+        ) : showDemo && selected ? (
+          <form onSubmit={(event) => { event.preventDefault(); void continueWithDemo(); }} className="stack" noValidate>
+            {error && <div className="error-box" role="alert">{error}</div>}
+            <div className="field">
+              <label className="label" htmlFor="demo-name">Display name · Required</label>
+              <input id="demo-name" className="input" value={selected.name} readOnly />
+              <p className="hint">From the seeded account. The server uses its own user record.</p>
+            </div>
+            <div className="field">
+              <label className="label" htmlFor="demo-email">Email · Required</label>
+              <input id="demo-email" className="input" value={selected.email} readOnly />
+            </div>
+            <div className="field">
+              <span className="label" id="demo-role-label">Demo role — controls which seeded account signs in</span>
+              <div className="demo-segment" role="group" aria-labelledby="demo-role-label">
+                {accounts.map((account) => (
+                  <button
+                    key={account.email}
+                    type="button"
+                    aria-pressed={account.email === selected.email}
+                    onClick={() => { setSelectedEmail(account.email); setError(null); }}
+                  >
+                    {ROLE_COPY[account.role]?.label ?? account.role}
+                  </button>
+                ))}
+              </div>
+              {selectedCopy && <p className="hint">{selectedCopy.body}</p>}
+            </div>
+            <button className="btn btn-primary btn-lg btn-block" type="submit" disabled={busy}>
+              {busy ? 'Signing in…' : <>Continue to console <ArrowRight size={15} aria-hidden="true" /></>}
+            </button>
+            <div className="login-footnote">
+              <Badge tone="neutral">SIMULATED</Badge>
+              <span>Demo dataset. No customer credentials are involved.</span>
+            </div>
+            <button className="btn btn-ghost btn-sm" type="button" onClick={() => { setMode('credentials'); setError(null); }}>
+              Sign in with another account
+            </button>
+          </form>
+        ) : mode === 'demo' ? (
+          <p className="small muted">Loading demo accounts…</p>
+        ) : (
+          <>
+            <form onSubmit={submit} className="stack" noValidate>
+              {error && <div className="error-box" role="alert">{error}</div>}
+              <div className="field">
+                <label className="label" htmlFor="email">Work email</label>
+                <input id="email" className="input" type="email" autoComplete="email" value={email}
+                  onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" required />
+              </div>
+              <div className="field">
+                <label className="label" htmlFor="password">Password</label>
+                <input id="password" className="input" type="password" autoComplete="current-password" value={password}
+                  onChange={(e) => setPassword(e.target.value)} placeholder="Your password" required />
+              </div>
+              <button className="btn btn-primary btn-lg btn-block" type="submit" disabled={busy}>
+                {busy ? 'Signing in…' : <>Sign in <ArrowRight size={15} aria-hidden="true" /></>}
               </button>
-            ))}
-            <p className="tiny faint">Selecting a row fills the form. Demo data only.</p>
-          </div>
-          )}
+            </form>
+            {accounts.length > 0 && (
+              <button className="btn btn-ghost btn-sm" type="button" onClick={() => { setMode('demo'); setError(null); }}>
+                Back to demo access
+              </button>
+            )}
           </>
-          )}
+        )}
 
-          <p className="small muted">
-            No account? <Link to="/signup" style={{ color: '#7defbb' }}>Create a workspace</Link>
-          </p>
-          <p className="tiny faint">
-            By signing in you accept the <Link to="/terms" style={{ textDecoration: 'underline' }}>terms</Link> and{' '}
-            <Link to="/privacy" style={{ textDecoration: 'underline' }}>privacy notice</Link>.
-          </p>
-        </div>
+        <p className="login-legal">
+          No account? <Link to="/signup">Create a workspace</Link>. By signing in you accept the{' '}
+          <Link to="/terms">terms</Link> and <Link to="/privacy">privacy notice</Link>.
+        </p>
       </div>
-    </div>
+    </main>
   );
 }
 

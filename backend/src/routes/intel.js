@@ -45,6 +45,23 @@ router.get('/', asyncHandler(async (req, res) => {
   })), total, { page, limit });
 }));
 
+router.get('/summary', asyncHandler(async (req, res) => {
+  const row = get(
+    `SELECT COUNT(*) AS total,
+            SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active,
+            SUM(CASE WHEN confidence >= 80 THEN 1 ELSE 0 END) AS high_confidence,
+            COUNT(DISTINCT source) AS sources
+       FROM iocs WHERE org_id = ?`,
+    req.user.orgId,
+  );
+  return ok(res, {
+    total: row.total ?? 0,
+    active: row.active ?? 0,
+    highConfidence: row.high_confidence ?? 0,
+    sources: row.sources ?? 0,
+  });
+}));
+
 router.post('/', requireRole('analyst', 'admin'), asyncHandler(async (req, res) => {
   const body = validate(z.object({
     type: z.enum(IOC_TYPES),

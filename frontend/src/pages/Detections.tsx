@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Radar, SlidersHorizontal } from 'lucide-react';
 import { PageHeader } from '../components/layout';
+import { MetricCard } from '../components/design';
 import {
   Badge, Button, Card, Drawer, EmptyState, ErrorState, KeyValue, Pagination, RiskBadge,
   SearchInput, SeverityBadge, StatusBadge, TableSkeleton, Tabs, useToast, OriginBadge,
@@ -95,10 +96,10 @@ export default function DetectionsPage() {
         </>} />
 
       <div className="grid grid-4" style={{ marginBottom: 14 }}>
-        <div className="card kpi"><div className="kpi-label">Open</div><div className="kpi-value">{summary.data?.status.open ?? 0}</div><div className="kpi-foot">Awaiting a decision</div></div>
-        <div className="card kpi"><div className="kpi-label">Detected last 24h</div><div className="kpi-value">{summary.data?.last24h ?? 0}</div><div className="kpi-foot">Across all rules</div></div>
-        <div className="card kpi"><div className="kpi-label">Confirmed</div><div className="kpi-value">{summary.data?.status.confirmed ?? 0}</div><div className="kpi-foot">Validated by an analyst</div></div>
-        <div className="card kpi"><div className="kpi-label">False positives</div><div className="kpi-value">{summary.data?.status.false_positive ?? 0}</div><div className="kpi-foot">Kept for tuning history</div></div>
+        <MetricCard label="Open" value={summary.data?.status.open ?? 0} foot="Awaiting a decision" />
+        <MetricCard label="Detected last 24h" value={summary.data?.last24h ?? 0} foot="Across all rules" />
+        <MetricCard label="Confirmed" value={summary.data?.status.confirmed ?? 0} foot="Validated by an analyst" />
+        <MetricCard label="False positives" value={summary.data?.status.false_positive ?? 0} foot="Kept for tuning history" />
       </div>
 
       {tab === 'queue' ? (

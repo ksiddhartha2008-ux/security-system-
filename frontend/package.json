@@ -8,8 +8,8 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --noEmit",
     "astryx": "astryx",
-    "theme:build": "astryx theme build src/lib/theme/secureflowTheme.ts --out src/lib/theme/secureflow.css",
-    "check:theme": "astryx theme build src/lib/theme/secureflowTheme.ts --out src/lib/theme/secureflow.css --check",
+    "theme:build": "cd src/lib/theme && astryx theme build secureflowTheme.ts --out secureflow.css",
+    "check:theme": "cd src/lib/theme && astryx theme build secureflowTheme.ts --out secureflow.css --check",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -1,0 +1,17 @@
+# Normalize text files to LF in the repository and in every checkout.
+# The Astryx theme build is byte-compared by `npm run check:theme`; mixed
+# CRLF/LF endings would make a fresh Windows clone fail that check.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.db binary
+*.sqlite binary

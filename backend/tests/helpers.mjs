@@ -6,41 +6,56 @@ import { fileURLToPath } from 'node:url';
 
 const serverRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** Boot an isolated API instance with its own database file. */
+/**
+ * Boot an isolated API instance with its own database file.
+ * The port is chosen at random, so a busy port is retried instead of failing
+ * every test in the file with a startup error.
+ */
 export async function startServer(extraEnv = {}) {
-  const dir = mkdtempSync(join(tmpdir(), 'secureflow-test-'));
-  const port = 4400 + Math.floor(Math.random() * 400);
-  const proc = spawn(process.execPath, ['src/index.js'], {
-    cwd: serverRoot,
-    env: {
-      ...process.env,
-      PORT: String(port),
-      NODE_ENV: 'test',
-      SF_DB_PATH: join(dir, 'test.db'),
-      SF_DATA_DIR: dir,
-      SF_WEBSITE_SCHEDULER: 'off',
-      VIRUSTOTAL_API_KEY: '',
-      ABUSEIPDB_API_KEY: '',
-      MIROFISH_BASE_URL: '',
-      ...extraEnv,
-    },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  let output = '';
-  proc.stdout.on('data', (chunk) => { output += chunk.toString(); });
-  proc.stderr.on('data', (chunk) => { output += chunk.toString(); });
+  let lastOutput = '';
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const dir = mkdtempSync(join(tmpdir(), 'secureflow-test-'));
+    const port = 4400 + Math.floor(Math.random() * 400);
+    const proc = spawn(process.execPath, ['src/index.js'], {
+      cwd: serverRoot,
+      env: {
+        ...process.env,
+        PORT: String(port),
+        NODE_ENV: 'test',
+        SF_DB_PATH: join(dir, 'test.db'),
+        SF_DATA_DIR: dir,
+        SF_WEBSITE_SCHEDULER: 'off',
+        VIRUSTOTAL_API_KEY: '',
+        ABUSEIPDB_API_KEY: '',
+        MIROFISH_BASE_URL: '',
+        ...extraEnv,
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let output = '';
+    proc.stdout.on('data', (chunk) => { output += chunk.toString(); });
+    proc.stderr.on('data', (chunk) => { output += chunk.toString(); });
 
-  const base = `http://127.0.0.1:${port}/api`;
-  const deadline = Date.now() + 40_000;
-  while (Date.now() < deadline) {
-    try {
-      const response = await fetch(`${base}/health`);
-      if (response.ok) return { base, proc, dir, stop: () => proc.kill(), output: () => output };
-    } catch { /* not listening yet */ }
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    const base = `http://127.0.0.1:${port}/api`;
+    const deadline = Date.now() + 15_000;
+    let ready = false;
+    while (Date.now() < deadline && proc.exitCode === null) {
+      try {
+        const response = await fetch(`${base}/health`);
+        if (response.ok) { ready = true; break; }
+      } catch { /* not listening yet */ }
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+
+    if (ready) return { base, proc, dir, stop: () => proc.kill(), output: () => output };
+
+    proc.kill();
+    lastOutput = output;
+    if (!/EADDRINUSE/.test(output)) {
+      throw new Error(`Server did not start in time.\n${output}`);
+    }
   }
-  proc.kill();
-  throw new Error(`Server did not start in time.\n${output}`);
+  throw new Error(`Server could not bind a free port after 5 attempts.\n${lastOutput}`);
 }
 
 /** Tiny cookie aware client for the test suite. */

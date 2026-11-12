@@ -48,6 +48,7 @@ Start with the [project README](../README.md).
 - [FRONTEND_ARCHITECTURE.md](FRONTEND_ARCHITECTURE.md) - provider tree, routing, data flow and performance
 - [ACCESSIBILITY.md](ACCESSIBILITY.md) - landmarks, focus, audit results and gaps
 - [UI_COMPONENT_MAPPING.md](UI_COMPONENT_MAPPING.md) - Astryx to SecureFlow component map
+- [LOGIN_AND_DEMO_ACCESS.md](LOGIN_AND_DEMO_ACCESS.md) - demo login, role mapping and security decisions
 
 ## Integrations
 

@@ -74,6 +74,8 @@ In production, demo mode is off. The first start requires `SF_BOOTSTRAP_EMAIL` a
 
 All seeded records are synthetic and labelled **Demo data** in the interface.
 
+The sign-in screen offers a demo profile picker: choose Administrator, Security Analyst or Viewer, then continue with the seeded account. The button performs a real backend login; it is not a browser-only session. The same screen keeps an email and password form for a workspace account and for production. See [LOGIN_AND_DEMO_ACCESS.md](docs/LOGIN_AND_DEMO_ACCESS.md).
+
 ---
 
 ## Project layout
@@ -194,7 +196,7 @@ npm run typecheck        # TypeScript project check
 npm run build            # production bundle
 ```
 
-Verified on 11 November 2026: 91 backend tests passing, 0 failing; 13 SDK tests passing. Production bundle: 857 kB initial JavaScript (277 kB gzip) and 318 kB CSS (54.4 kB gzip), with module routes lazy loaded.
+Verified on 11 November 2026: 91 backend tests passing, 0 failing; 13 SDK tests passing. Production bundle: 858 kB initial JavaScript (277 kB gzip) and 321 kB CSS (54.4 kB gzip), with module routes lazy loaded.
 
 Coverage includes registration and login, TOTP enrolment and login step-up, recovery code single use, session rotation, CSRF token enforcement, account-based login throttling, RBAC (viewer/analyst/admin), cross-tenant isolation, detection rules and de-duplication, incident lifecycle guards, simulation execution and cancellation, simulation-to-event pipeline, demo generation and safe reset, SSRF protection (including private ranges), evidence signature and tamper detection, audit hash chain, SOAR approval enforcement, CSV formula neutralisation, production config validation, report export and the workflow approval gate. Website protection adds URL normalization, DNS verification, key lifecycle, ingestion limits, idempotency, tenant isolation, incident correlation, notification throttling, scheduler leases, retention, export, deletion and the SDK reliability suite.
 

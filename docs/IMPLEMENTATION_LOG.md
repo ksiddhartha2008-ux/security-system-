@@ -138,4 +138,14 @@ npm start
 - Migrated shared badges, search fields and page headers to Astryx primitives; the dashboard uses Astryx metric cards and gains recent detections and monitoring status.
 - Added route-level lazy loading. Every module remains reachable and was smoke tested at a 488 px viewport.
 - Added the design system documentation set and an AGENTS.md guide. Dark mode remains the only exposed mode because the legacy page CSS is dark-first.
-- Backend and SDK tests were unchanged and still pass; the frontend type check and production build pass. Initial JavaScript is 857 kB (277 kB gzip), CSS is 318 kB (54.4 kB gzip).
+- Backend and SDK tests were unchanged and still pass; the frontend type check and production build pass. Initial JavaScript is 858 kB (277 kB gzip), CSS is 321 kB (54.4 kB gzip).
+
+## 12 November 2026: reference-inspired login and module chrome
+
+- Redesigned the sign-in page around the supplied reference: brand header, demo authentication notice, seeded display name and email, role segmented control, continue action and a standard credential fallback.
+- Kept real API authentication. The demo roles map to the three seeded backend roles; no browser-only session or client-side authorization was added.
+- Added seeded names to the demo account metadata so the screen shows the actual profile.
+- Added MODULE labels to page headers and a real posture snapshot to Reports.
+- Added a real threat intelligence summary endpoint and KPI strip.
+- Migrated the incident and detection KPI strips to the shared Astryx metric card.
+- Documented the role mapping, security decisions and deliberate omissions in `docs/LOGIN_AND_DEMO_ACCESS.md`.

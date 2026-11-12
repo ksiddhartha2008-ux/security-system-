@@ -105,8 +105,8 @@ Astryx adds precompiled CSS and a component runtime:
 
 | Bundle | Before | After |
 | --- | --- | --- |
-| Initial JavaScript | 568 kB (155 kB gzip) | 857 kB (277 kB gzip) |
-| CSS | 26.6 kB (6.9 kB gzip) | 318 kB (54.4 kB gzip) |
+| Initial JavaScript | 568 kB (155 kB gzip) | 858 kB (277 kB gzip) |
+| CSS | 26.6 kB (6.9 kB gzip) | 321 kB (54.4 kB gzip) |
 
 Route-level lazy loading reduced the initial JavaScript from the 1.09 MB it reached when all pages were eager. Page chunks load on navigation. The shell and Astryx runtime remain in the initial chunk. There is no Astryx chart package in the bundle.
 

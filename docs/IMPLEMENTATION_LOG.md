@@ -129,3 +129,13 @@ npm start
 - Backend suite grew from 47 to 91 tests; the SDK suite adds 13. Type check and production build pass.
 - Detailed evidence, decisions and launch gates are in `docs/website/STATUS.md`. Gate G1 (verified email before adding a website) is blocked, so the feature stays off by default in production.
 - No production deployment was performed.
+
+## 12 November 2026: Astryx design system integration
+
+- Installed Astryx 0.7.13 core, neutral theme and StyleX runtime in the frontend, with the Astryx CLI as a development dependency.
+- Compiled a SecureFlow theme with 203 token overrides and 16 component overrides. The generated CSS is checked in and verified in CI with `npm run check:theme`.
+- Moved the application shell to AppShell, TopNav and SideNav, preserving every route, role check, count and account action.
+- Migrated shared badges, search fields and page headers to Astryx primitives; the dashboard uses Astryx metric cards and gains recent detections and monitoring status.
+- Added route-level lazy loading. Every module remains reachable and was smoke tested at a 488 px viewport.
+- Added the design system documentation set and an AGENTS.md guide. Dark mode remains the only exposed mode because the legacy page CSS is dark-first.
+- Backend and SDK tests were unchanged and still pass; the frontend type check and production build pass. Initial JavaScript is 857 kB (277 kB gzip), CSS is 318 kB (54.4 kB gzip).

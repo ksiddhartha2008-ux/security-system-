@@ -10,7 +10,7 @@ Last updated: 11 November 2026. This file reflects what was actually built, run 
 | Backend tests | 91 passing, 0 failing (`npm test`) |
 | SDK tests | 13 passing, 0 failing (`npm run test:sdk`) |
 | Type check | clean (`npm run typecheck`) |
-| Production build | success (`npm run build`), 568 kB JavaScript |
+| Production build | success (`npm run build`), 857 kB initial JavaScript and 318 kB CSS after the Astryx integration |
 | Dependency audit | 0 vulnerabilities (server and web) |
 | Manual browser verification | signing in, overview, monitoring, assets, incidents (create, transition, note), detections, threat intel, simulations (create, run to completion, history), reports, settings, website onboarding, DNS verification, key creation, ingestion, detections and incidents, 404 |
 | Deployment | not performed, by instruction |
@@ -45,7 +45,7 @@ Statuses: **Complete and verified** means the UI, API, persistence and a test or
 
 ## Verification log
 
-The commands below are the 8 November 2026 baseline. The current counts after the website protection work are 91 backend tests and 13 SDK tests, with a 568 kB production bundle; the full run is recorded in [website/verification](website/verification/).
+The commands below are the 8 November 2026 baseline. The current counts after the website protection work are 91 backend tests and 13 SDK tests, with a 568 kB production bundle before Astryx; the current bundle is 857 kB initial JavaScript and 318 kB CSS with lazy routes; the full run is recorded in [website/verification](website/verification/).
 
 ```
 $ npm test --prefix backend

@@ -90,10 +90,11 @@ All seeded records are synthetic and labelled **Demo data** in the interface.
 │   │   ├── routes/            module routers, settings, demo data, streaming
 │   │   └── services/          detection, correlation, demo, simulation, phishing, MiroFish, reports, website protection
 │   └── tests/                 91 node:test integration and unit tests
-├── frontend/                  React 19 + TypeScript + Vite + Tailwind CSS v4
+├── frontend/                  React 19 + TypeScript + Vite + Tailwind CSS v4 + Astryx 0.7
 │   └── src/
 │       ├── pages/             one page per module, public pages, detail views
 │       ├── components/        design system, charts, app shell, error boundary
+│       ├── lib/theme/         SecureFlow Astryx theme source and generated CSS
 │       └── lib/               API client, auth context, hooks, formatting
 ├── docs/                      audits, guides, API reference, security and simulation documentation
 ├── scripts/                   development verification and smoke scripts
@@ -131,6 +132,7 @@ Website events follow the same path after the API key resolves the organization 
 - **Audit**: append-only hash chain per organization with a verification endpoint, request correlation ids and fail-closed writes.
 - **Detection**: eighteen deterministic rules. Nine cover the existing telemetry (brute force, credential stuffing, API abuse, port scan, bulk transfer, ransomware behaviour, phishing interaction, authorization probing, hourly volume anomaly) and nine cover website SDK events (credential stuffing, one account brute force, success after failures, MFA failures, scanning, sensitive paths, injection bursts, repeated denials, known bad address). Each detection stores the factors, weights and observed values that produced its score.
 - **Simulation**: a seeded multi-agent engine advances rounds in the background, writes agent activity and events, then computes findings, recommendations and a deterministic risk score. A server restart marks in-flight runs failed rather than pretending they continued.
+- **Design system**: Astryx 0.7.13 supplies the shell, navigation, badges, search input and layout primitives. The SecureFlow theme extends neutral with a dark SOC palette and semantic severity colours; it is compiled to CSS and checked in CI. Existing page components stay application owned and inherit the same tokens.
 - **Streaming**: Server-Sent Events push new events and simulation rounds to the browser. The UI also polls running simulations, so a dropped stream does not hide progress.
 
 ---
@@ -187,11 +189,12 @@ Production readiness is **not** claimed. Gate G1 (verified email addresses) is b
 ```powershell
 npm test                 # 91 backend tests, isolated database per test file
 npm run test:sdk         # 13 SDK tests against a local HTTP server
+npm run check:theme      # Astryx theme output matches the source
 npm run typecheck        # TypeScript project check
 npm run build            # production bundle
 ```
 
-Verified on 11 November 2026: 91 backend tests passing, 0 failing; 13 SDK tests passing. Production bundle: 568 kB JavaScript (155 kB gzip) and 26.6 kB CSS.
+Verified on 11 November 2026: 91 backend tests passing, 0 failing; 13 SDK tests passing. Production bundle: 857 kB initial JavaScript (277 kB gzip) and 318 kB CSS (54.4 kB gzip), with module routes lazy loaded.
 
 Coverage includes registration and login, TOTP enrolment and login step-up, recovery code single use, session rotation, CSRF token enforcement, account-based login throttling, RBAC (viewer/analyst/admin), cross-tenant isolation, detection rules and de-duplication, incident lifecycle guards, simulation execution and cancellation, simulation-to-event pipeline, demo generation and safe reset, SSRF protection (including private ranges), evidence signature and tamper detection, audit hash chain, SOAR approval enforcement, CSV formula neutralisation, production config validation, report export and the workflow approval gate. Website protection adds URL normalization, DNS verification, key lifecycle, ingestion limits, idempotency, tenant isolation, incident correlation, notification throttling, scheduler leases, retention, export, deletion and the SDK reliability suite.
 

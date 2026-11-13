@@ -168,7 +168,7 @@ scripts/health-check.ps1        55 checks, 0 failures
 npm run test:a11y --prefix frontend    37 pass, 0 fail
 ```
 
-The two skipped tests are the Redis integration tests; CI runs them with `SF_REDIS_URL` set.
+The two skipped tests are the Redis integration tests; CI runs them with `SF_REDIS_URL` set. CI run 43404898224 on commit `4f2c11b` passed all three jobs (test, redis, accessibility).
 
 ## 11. Files Changed
 

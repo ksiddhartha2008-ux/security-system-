@@ -22,6 +22,7 @@ PostgreSQL: no server on this host; schema validation uses pg-mem.
 | Backend deps | `npm audit --prefix backend --omit=dev` | 0 vulnerabilities | TESTED |
 | API sweep | `scripts/health-check.ps1` | 55 checks, 0 failed | TESTED |
 | Accessibility | `npm run test:a11y --prefix frontend` | 37 passed, 0 failed | TESTED |
+| CI | run 43404898224 on `4f2c11b` | test, redis and accessibility jobs all success | TESTED |
 
 Two backend tests are skipped locally because `SF_REDIS_URL` is not set. They are not disabled: the CI `redis` job sets the URL and runs them against `redis:7.4-alpine`.
 

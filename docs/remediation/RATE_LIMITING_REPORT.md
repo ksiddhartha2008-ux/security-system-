@@ -11,6 +11,7 @@
 | Redis outage behaviour | IMPLEMENTED, TESTED with an injected failing store |
 | Multi-instance bypass check | TESTED in CI with two stores against one Redis |
 | Local verification against Redis | NOT VERIFIED, no Redis server on this host |
+| CI verification against Redis | TESTED, run 43404898224 job `redis` success |
 
 ## 1. Before
 
@@ -87,7 +88,7 @@ Identity uses `req.ip`. Express only trusts `X-Forwarded-For` when `SF_TRUST_PRO
 - two limiter instances sharing one Redis counter refuse the fourth request regardless of which instance answers
 - the Redis key expires and the counter restarts
 
-CI runs these against a real `redis:7.4-alpine` service in the `redis` job.
+CI runs these against a real `redis:7.4-alpine` service in the `redis` job. Run 43404898224 on commit `4f2c11b` passed: both integration tests executed against the service and the job concluded success.
 
 ## 7. Configuration
 

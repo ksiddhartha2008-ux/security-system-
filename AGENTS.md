@@ -55,7 +55,7 @@ npm run scan:secrets
 
 5. Use application components for domain behaviour: status and severity mapping, tables with stored factors, charts, dialogs with evidence, and any component that needs SecureFlow data. Use Astryx for design primitives and layout.
 
-6. Dark mode is the current analyst experience. The theme contains light values but the legacy application CSS is dark-first, so do not expose a light-mode switch without migrating the remaining hardcoded colours.
+6. Light, dark and system themes are supported. Every surface reads the tokens in `frontend/src/styles.css`; do not add a hardcoded colour, because it will not follow the theme and the accessibility check will fail. The preference is stored in `sf-theme` and applied before first paint by `frontend/public/theme-init.js`.
 
 7. Do not use `@astryxdesign/charts` or `@astryxdesign/lab`. Charts are application-owned SVG components; the Astryx chart packages are canary or unpublished.
 

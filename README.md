@@ -157,9 +157,10 @@ Applied in the November 2026 hardening pass. Full evidence is in [SECURITY_AUDIT
 | CSV formula injection neutralisation | Implemented, verified |
 | Production configuration validation (demo mode, HTTPS origins) | Implemented, verified |
 | Dependency audit clean (zod 4.6.7) | Verified |
+| Light, dark and system themes | Implemented, tested in both themes |
 | Organization MFA policy enforcement | Not implemented |
 | Password reset and email verification | Blocked on SMTP infrastructure |
-| Shared/distributed rate limiting | Not implemented |
+| Shared/distributed rate limiting | Implemented with Redis; multi-instance test in CI |
 | Audit atomicity with every business write, custody chaining | Partial |
 
 ## AI and Prompt Engine status
@@ -191,14 +192,14 @@ Production readiness is **not** claimed. Gate G1 (verified email addresses) is b
 ## Testing
 
 ```powershell
-npm test                 # 91 backend tests, isolated database per test file
+npm test                 # 121 backend tests, isolated database per test file
 npm run test:sdk         # 13 SDK tests against a local HTTP server
 npm run check:theme      # Astryx theme output matches the source
-npm run typecheck        # TypeScript project check
+npm run typecheck        # TypeScript project check`nnpm run test:a11y --prefix frontend  # 37 Playwright and axe checks in both themes
 npm run build            # production bundle
 ```
 
-Verified on 11 November 2026: 91 backend tests passing, 0 failing; 13 SDK tests passing. Production bundle: 858 kB initial JavaScript (277 kB gzip) and 321 kB CSS (54.4 kB gzip), with module routes lazy loaded.
+Verified on 13 November 2026: 121 backend tests, 119 passing, 2 skipped without Redis, 0 failing; 13 SDK tests passing; 37 accessibility checks passing. Production bundle: 862 kB initial JavaScript (278 kB gzip) and 324 kB CSS (55.7 kB gzip), with module routes lazy loaded.
 
 Coverage includes registration and login, TOTP enrolment and login step-up, recovery code single use, session rotation, CSRF token enforcement, account-based login throttling, RBAC (viewer/analyst/admin), cross-tenant isolation, detection rules and de-duplication, incident lifecycle guards, simulation execution and cancellation, simulation-to-event pipeline, demo generation and safe reset, SSRF protection (including private ranges), evidence signature and tamper detection, audit hash chain, SOAR approval enforcement, CSV formula neutralisation, production config validation, report export and the workflow approval gate. Website protection adds URL normalization, DNS verification, key lifecycle, ingestion limits, idempotency, tenant isolation, incident correlation, notification throttling, scheduler leases, retention, export, deletion and the SDK reliability suite.
 
@@ -239,8 +240,8 @@ npm start                # API and built client on PORT, default 4000
 - The database and evidence files live in `SF_DATA_DIR` (default `backend/data`). Mount a persistent volume in a container.
 - `Dockerfile` is a multi stage build with a non-root runtime user. `docker-compose.yml` maps port 4000 and a data volume.
 - Put a TLS terminating reverse proxy in front, set `SF_TRUST_PROXY=true` only when that proxy overwrites `X-Forwarded-For`, and keep the session cookie `Secure` in production.
-- `GET /api/health` is the container health probe and contains no tenant data.
-- Single node SQLite is the supported topology. The PostgreSQL and shared rate limiting plan is in [docs/website/SCALABILITY_PLAN.md](docs/website/SCALABILITY_PLAN.md).
+- `GET /api/health` is the liveness probe. `GET /api/health/ready` also checks the database and names the rate limit store. Neither contains tenant data.
+- Single node SQLite is the supported runtime. Shared rate limiting is available with `SF_REDIS_URL`. PostgreSQL schema and data migration tooling exists, but application runtime support is not implemented; see [docs/remediation/DATABASE_MIGRATION_REPORT.md](docs/remediation/DATABASE_MIGRATION_REPORT.md).
 
 No deployment was performed as part of this repository work. See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full procedure.
 

@@ -93,7 +93,9 @@ export default function ForensicsPage() {
       <Drawer open={Boolean(selected)} onClose={() => setSelected(null)} title={detail.data?.filename ?? 'Evidence'} subtitle={detail.data?.caseRef}
         footer={detail.data ? (
           <div className="row" style={{ marginLeft: 'auto' }}>
-            <Button size="sm" onClick={() => download(`/forensics/${detail.data!.id}/download`, detail.data!.filename).catch((err) => toast.push('error', 'Download failed', err.message))}>Download</Button>
+            {permissions.canWrite && (
+              <Button size="sm" onClick={() => download(`/forensics/${detail.data!.id}/download`, detail.data!.filename).catch((err) => toast.push('error', 'Download failed', err.message))}>Download</Button>
+            )}
             {permissions.canWrite && <Button size="sm" variant="primary" onClick={verify} loading={verifying} icon={<ShieldCheck size={13} aria-hidden="true" />}>Verify hash</Button>}
           </div>
         ) : undefined}>

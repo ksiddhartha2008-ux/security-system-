@@ -320,7 +320,7 @@ function seedIncidents(users, assets) {
       ['resolved', 'closed'].includes(r.status) ? daysAgo(Math.max(0, 6 - index), 16) : null, detected, nowIso(),
     );
     const timeline = [
-      { type: 'created', message: `Incident opened from a ${r.severity} detection.` },
+      { type: 'created', message: 'Incident opened by the on-call analyst after triage.' },
       { type: 'assignment', message: `Assigned to ${r.assignee === 'analyst' ? 'Marcus Vale' : 'Priya Raman'}.` },
     ];
     if (['investigating', 'contained', 'resolved', 'closed'].includes(r.status)) timeline.push({ type: 'note', message: 'Initial triage complete. Evidence collected from endpoint and network telemetry.' });

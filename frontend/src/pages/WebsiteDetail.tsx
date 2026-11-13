@@ -385,7 +385,7 @@ function Overview({ site, onVerify, busy }: { site: WebsiteDetail; onVerify: () 
           {site.connection.reason && <p className="tiny faint" style={{ marginTop: 10 }}>{site.connection.reason}</p>}
           {site.stats.events24h === 0 && (site.keysActive ?? 0) > 0 && (
             <div className="notice" style={{ marginTop: 12 }}>
-              No event has arrived yet. Check that the key is installed on this exact site, that outbound HTTPS is allowed, and that the endpoint is correct.
+              No event in the last 24 hours. Check that the key is installed on this exact site, that outbound HTTPS is allowed, and that the endpoint is correct.
             </div>
           )}
         </Card>

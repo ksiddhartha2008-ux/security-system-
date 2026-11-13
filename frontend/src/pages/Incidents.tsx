@@ -4,7 +4,7 @@ import { ArrowLeft, Plus, Siren } from 'lucide-react';
 import { PageHeader } from '../components/layout';
 import { MetricCard } from '../components/design';
 import {
-  Badge, Button, Card, EmptyState, ErrorState, Field, KeyValue, Modal, Pagination, SearchInput,
+  Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, Field, KeyValue, Modal, Pagination, SearchInput,
   SeverityBadge, StatusBadge, TableSkeleton, Tabs, useToast, OriginBadge,
 } from '../components/ui';
 import { useApi, useDebounced } from '../lib/hooks';
@@ -185,6 +185,8 @@ export function IncidentDetailPage() {
   const users = useApi<UserRow[]>('/settings/users');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const [transitioning, setTransitioning] = useState(false);
 
   if (incident.loading) return <Card><TableSkeleton rows={8} cols={3} /></Card>;
   if (incident.error) return <Card><ErrorState message={incident.error} onRetry={incident.refresh} /></Card>;
@@ -199,6 +201,11 @@ export function IncidentDetailPage() {
     } catch (err) {
       toast.push('error', 'Transition rejected', err instanceof ApiError ? err.message : undefined);
     }
+  };
+
+  const requestTransition = (status: string) => {
+    if (status === 'resolved' || status === 'closed') setPendingStatus(status);
+    else transition(status);
   };
 
   const addNote = async () => {
@@ -246,7 +253,7 @@ export function IncidentDetailPage() {
         </div>
         <div className="page-actions">
           {permissions.canWrite && data.allowedTransitions.map((next) => (
-            <Button key={next} size="sm" variant={next === 'resolved' || next === 'closed' ? 'primary' : 'default'} onClick={() => transition(next)}>
+            <Button key={next} size="sm" variant={next === 'resolved' || next === 'closed' ? 'primary' : 'default'} onClick={() => requestTransition(next)}>
               Move to {next}
             </Button>
           ))}
@@ -350,6 +357,24 @@ export function IncidentDetailPage() {
           </Card>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={pendingStatus !== null}
+        title={`Move this incident to ${pendingStatus ?? ''}?`}
+        body={pendingStatus === 'closed'
+          ? 'Closing records the incident as finished. Add a timeline note first if the closure needs an explanation.'
+          : 'Resolving records the incident as handled. The timeline keeps every earlier action.'}
+        confirmLabel={pendingStatus ? `Move to ${pendingStatus}` : 'Confirm'}
+        loading={transitioning}
+        onClose={() => setPendingStatus(null)}
+        onConfirm={async () => {
+          if (!pendingStatus) return;
+          setTransitioning(true);
+          await transition(pendingStatus);
+          setTransitioning(false);
+          setPendingStatus(null);
+        }}
+      />
     </>
   );
 }

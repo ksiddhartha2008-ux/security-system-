@@ -165,7 +165,10 @@ router.get('/:id/events', asyncHandler(async (req, res) => {
   const { limit, page, offset } = pageParams(req, { maxLimit: 200, defaultLimit: 25 });
   const where = ['org_id = ?', 'website_site_id = ?'];
   const params = [orgId, req.params.id];
-  if (req.query.type) { where.push('event_type = ?'); params.push(String(req.query.type)); }
+  if (req.query.type) {
+    where.push("(json_extract(raw, '$.type') = ? OR event_type = ?)");
+    params.push(String(req.query.type), String(req.query.type));
+  }
   if (req.query.q) {
     where.push('(src_ip LIKE ? OR user_email LIKE ? OR title LIKE ?)');
     const like = `%${String(req.query.q).slice(0, 80)}%`;

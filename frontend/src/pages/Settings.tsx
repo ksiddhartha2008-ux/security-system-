@@ -176,7 +176,7 @@ function IntegrationsTab({ canAdmin }: { canAdmin: boolean }) {
             </div>
             {integration.detail && <p className="tiny faint" style={{ marginTop: 8 }}>{integration.detail}</p>}
             <div className="row" style={{ marginTop: 12, gap: 8 }}>
-              <Button size="sm" onClick={() => test(integration.key)} loading={testing === integration.key}>Test configuration</Button>
+              <Button size="sm" onClick={() => test(integration.key)} loading={testing === integration.key} disabled={!canAdmin}>Test configuration</Button>
               {canAdmin && integration.key !== 'mirofish' && (
                 <Button size="sm" variant="ghost" onClick={() => toggle(integration)}>{integration.status === 'disabled' ? 'Enable' : 'Disable'}</Button>
               )}

@@ -440,6 +440,15 @@ test('host mismatch, private addresses and query strings are handled as specifie
   assert.equal(stored.path, '/account', 'query string and fragment are stripped');
   assert.equal(stored.ipClass, 'private');
 
+  // The website pages filter by the SDK event name, which is stored in the raw payload
+  // while event_type holds the normalised class. Both spellings must match.
+  const byRawType = await admin.get(`/v1/websites/${siteId}/events?type=auth.login_failed&limit=20`);
+  assert.equal(byRawType.status, 200, byRawType.text);
+  assert.ok(byRawType.body.meta.total > 0, 'filtering by the SDK event name returns stored rows');
+  assert.ok(byRawType.body.data.every((row) => row.type === 'auth.login_failed'));
+  const noMatch = await admin.get(`/v1/websites/${siteId}/events?type=app.error`);
+  assert.equal(noMatch.body.meta.total, 0, 'a type that was not ingested returns no rows');
+
   const sql = await ingest(key, envelope([event({
     request: { host, method: 'GET', path: "/search' OR 1=1--", status: 200 },
   })]));

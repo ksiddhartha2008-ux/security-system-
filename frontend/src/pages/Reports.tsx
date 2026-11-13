@@ -57,7 +57,7 @@ export default function ReportsPage() {
   return (
     <>
       <PageHeader title="Reports and analytics" subtitle="Reports are generated on demand from stored records. Export as Markdown, CSV or JSON."
-        actions={<Button variant="primary" icon={<Plus size={14} aria-hidden="true" />} onClick={() => setGenerateOpen(true)}>Generate report</Button>} />
+        actions={permissions.canWrite ? <Button variant="primary" icon={<Plus size={14} aria-hidden="true" />} onClick={() => setGenerateOpen(true)}>Generate report</Button> : undefined} />
 
       <Heading level={2} className="card-title" style={{ marginBottom: 10 }}>Posture snapshot</Heading>
       <div className="grid grid-4" style={{ marginBottom: 16 }}>
@@ -179,11 +179,21 @@ function GenerateModal({ open, preset, onClose, onCreated }: { open: boolean; pr
     if (open) setType(preset);
   }, [open, preset]);
 
+  const options = types.data ?? [];
+  // The select must always point at a real option: if the stored value is not in the
+  // loaded list yet, fall back to the preset or the first type the API returned.
+  const selectedType = options.some((item) => item.key === type)
+    ? type
+    : options.some((item) => item.key === preset)
+      ? preset
+      : options[0]?.key ?? '';
+
   const generate = async () => {
+    if (!selectedType) { setError('Report types are still loading. Try again in a moment.'); return; }
     setBusy(true); setError(null);
     try {
       const report = await api.post<{ id: string }>('/reports/generate', {
-        type,
+        type: selectedType,
         from: from ? new Date(`${from}T00:00:00Z`).toISOString() : undefined,
         to: to ? new Date(`${to}T23:59:59Z`).toISOString() : undefined,
       });
@@ -195,11 +205,11 @@ function GenerateModal({ open, preset, onClose, onCreated }: { open: boolean; pr
 
   return (
     <Modal open={open} onClose={onClose} title="Generate a report" subtitle="Built from the records in this workspace at the moment you generate it."
-      footer={<><Button variant="ghost" onClick={onClose} type="button">Cancel</Button><Button variant="primary" onClick={generate} loading={busy} type="button">Generate</Button></>}>
+      footer={<><Button variant="ghost" onClick={onClose} type="button">Cancel</Button><Button variant="primary" onClick={generate} loading={busy} type="button" disabled={!selectedType}>Generate</Button></>}>
       {error && <div className="error-box" role="alert">{error}</div>}
       <Field label="Report type" htmlFor="r-type">
-        <select id="r-type" className="select" value={type} onChange={(e) => setType(e.target.value)}>
-          {(types.data ?? []).map((item) => <option key={item.key} value={item.key}>{item.name}</option>)}
+        <select id="r-type" className="select" value={selectedType} onChange={(e) => setType(e.target.value)}>
+          {options.map((item) => <option key={item.key} value={item.key}>{item.name}</option>)}
         </select>
       </Field>
       <div className="grid grid-2">

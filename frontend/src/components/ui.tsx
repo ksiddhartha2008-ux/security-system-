@@ -1,6 +1,6 @@
 import {
-  createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState,
-  type ReactNode, type ButtonHTMLAttributes,
+  Children, cloneElement, createContext, isValidElement, useCallback, useContext, useEffect, useId, useMemo, useRef, useState,
+  type ReactElement, type ReactNode, type ButtonHTMLAttributes,
 } from 'react';
 import { AlertTriangle, Check, ChevronLeft, ChevronRight, Copy, Inbox, Loader2, Search, X } from 'lucide-react';
 import type { Tone } from '../lib/format';
@@ -122,12 +122,19 @@ export function Button({ variant = 'default', size = 'md', loading, icon, childr
 export function Field({ label, htmlFor, hint, error, children, required }: {
   label: string; htmlFor?: string; hint?: string; error?: string; children: ReactNode; required?: boolean;
 }) {
+  const errorId = useId();
+  const only = Children.count(children) === 1 ? Children.only(children) : null;
+  const control = error && isValidElement<{ 'aria-describedby'?: string; 'aria-invalid'?: boolean }>(only)
+    ? cloneElement(only as ReactElement<{ 'aria-describedby'?: string; 'aria-invalid'?: boolean }>, {
+      'aria-invalid': true, 'aria-describedby': errorId,
+    })
+    : children;
   return (
     <div className="field">
       <label className="label" htmlFor={htmlFor}>{label}{required && <span style={{ color: '#ff9f43' }}> *</span>}</label>
-      {children}
+      {control}
       {hint && !error && <span className="hint">{hint}</span>}
-      {error && <span className="err">{error}</span>}
+      {error && <span className="err" id={errorId} role="alert">{error}</span>}
     </div>
   );
 }

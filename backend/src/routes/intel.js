@@ -5,6 +5,7 @@ import { asyncHandler, badRequest, conflict, created, notFound, ok, pageParams, 
 import { requireAuth, requireRole } from '../lib/auth.js';
 import { audit } from '../lib/audit.js';
 import { rateLimit } from '../lib/ratelimit.js';
+import { enrich } from '../services/reputation.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -147,45 +148,17 @@ router.post('/lookup', rateLimit({ windowMs: 60_000, max: 30, keyPrefix: 'intel-
 
   const external = [];
   let score = local ? local.confidence : 0;
-  const vtKey = process.env.VIRUSTOTAL_API_KEY;
-  if (vtKey && (type === 'hash' || type === 'url' || type === 'domain')) {
-    try {
-      const path = type === 'hash'
-        ? `https://www.virustotal.com/api/v3/files/${encodeURIComponent(value)}`
-        : type === 'url'
-          ? `https://www.virustotal.com/api/v3/urls/${Buffer.from(value).toString('base64url')}`
-          : `https://www.virustotal.com/api/v3/domains/${encodeURIComponent(value)}`;
-      const response = await fetch(path, { headers: { 'x-apikey': vtKey }, signal: AbortSignal.timeout(8000) });
-      if (response.ok) {
-        const data = await response.json();
-        const stats = data?.data?.attributes?.last_analysis_stats ?? {};
-        external.push({ provider: 'VirusTotal', malicious: stats.malicious ?? 0, suspicious: stats.suspicious ?? 0, harmless: stats.harmless ?? 0, undetected: stats.undetected ?? 0 });
-        score = Math.max(score, Math.min(100, (stats.malicious ?? 0) * 12 + (stats.suspicious ?? 0) * 5));
-      } else if (response.status === 404) {
-        external.push({ provider: 'VirusTotal', note: 'No record for this indicator' });
-      } else {
-        external.push({ provider: 'VirusTotal', error: `HTTP ${response.status}` });
-      }
-    } catch (err) {
-      external.push({ provider: 'VirusTotal', error: err.message });
+  const enriched = await enrich({ type, value });
+  for (const check of enriched.checks) {
+    external.push(check);
+    if (check.malicious !== undefined) {
+      score = Math.max(score, Math.min(100, (check.malicious ?? 0) * 12 + (check.suspicious ?? 0) * 5));
+    }
+    if (check.abuseConfidenceScore !== undefined) {
+      score = Math.max(score, check.abuseConfidenceScore);
     }
   }
-  if (process.env.ABUSEIPDB_API_KEY && type === 'ip') {
-    try {
-      const response = await fetch(`https://api.abuseipdb.com/api/v2/check?ipAddress=${encodeURIComponent(value)}&maxAgeInDays=90`, {
-        headers: { Key: process.env.ABUSEIPDB_API_KEY, Accept: 'application/json' }, signal: AbortSignal.timeout(8000),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        external.push({ provider: 'AbuseIPDB', abuseConfidenceScore: data?.data?.abuseConfidenceScore ?? 0, totalReports: data?.data?.totalReports ?? 0, countryCode: data?.data?.countryCode ?? null });
-        score = Math.max(score, data?.data?.abuseConfidenceScore ?? 0);
-      } else {
-        external.push({ provider: 'AbuseIPDB', error: `HTTP ${response.status}` });
-      }
-    } catch (err) {
-      external.push({ provider: 'AbuseIPDB', error: err.message });
-    }
-  }
+  const providersConfigured = enriched.providers.length > 0;
 
   const verdict = score >= 70 ? 'malicious' : score >= 40 ? 'suspicious' : local ? 'known' : 'unknown';
   const result = {
@@ -198,8 +171,8 @@ router.post('/lookup', rateLimit({ windowMs: 60_000, max: 30, keyPrefix: 'intel-
       description: local.description, status: local.status, lastSeenAt: local.last_seen_at,
     } : null,
     external,
-    providersConfigured: Boolean(vtKey) || Boolean(process.env.ABUSEIPDB_API_KEY),
-    note: !vtKey && !process.env.ABUSEIPDB_API_KEY
+    providersConfigured,
+    note: !providersConfigured
       ? 'No external reputation provider is configured. The verdict is based on workspace indicators only.'
       : null,
     lookedUpAt: nowIso(),

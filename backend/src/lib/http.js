@@ -73,9 +73,14 @@ export function errorHandler(err, req, res, _next) {
     return res.status(400).json({ error: { code: 'validation_failed', message: 'Request validation failed', details: formatZod(err), request_id: requestId } });
   }
   if (err instanceof ApiError) {
-    if (err.status === 429) res.setHeader('Retry-After', '60');
+    if (err.status === 429 && !res.getHeader('Retry-After')) res.setHeader('Retry-After', '60');
     return res.status(err.status).json({
       error: { code: err.code, message: err.message, details: err.details, request_id: requestId },
+    });
+  }
+  if (err?.code === 'rate_limit_unavailable') {
+    return res.status(503).json({
+      error: { code: 'rate_limit_unavailable', message: err.message, request_id: requestId },
     });
   }
   if (err?.type === 'entity.too.large') {

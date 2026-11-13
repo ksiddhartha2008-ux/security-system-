@@ -23,6 +23,11 @@ coverage/
 **/.venv/
 **/venv/
 frontend/tsconfig.tsbuildinfo
+frontend/test-results/
+frontend/playwright-report/
+frontend/e2e/.auth/
+frontend/e2e/a11y-raw.json
+backups/
 *.tgz
 .DS_Store
 Thumbs.db

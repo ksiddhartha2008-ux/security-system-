@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { all, get, run, newId, nowIso, parseJson, transaction } from '../db.js';
 import { asyncHandler, badRequest, conflict, created, ok, unauthorized, validate, tooMany } from '../lib/http.js';
-import { hashPasswordAsync, verifyPasswordAsync, createSession, destroySession, requireAuth, parseCookies, hashToken, SESSION_COOKIE, setMfaCookie, clearMfaCookie } from '../lib/auth.js';
+import { hashPasswordAsync, hashPassword, verifyPasswordAsync, createSession, destroySession, requireAuth, parseCookies, hashToken, SESSION_COOKIE, setMfaCookie, clearMfaCookie } from '../lib/auth.js';
 import { audit } from '../lib/audit.js';
 import { rateLimit } from '../lib/ratelimit.js';
 import { DEMO_ACCOUNTS, isDemoMode } from '../lib/demo.js';
@@ -27,6 +27,9 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Enter your password').max(200),
 });
 
+/** A real scrypt hash for an unusable password, used to keep unknown email timing flat. */
+const DUMMY_PASSWORD_HASH = hashPassword(randomBytes(24).toString('hex'));
+
 function publicUser(user, orgName) {
   return {
     id: user.id,
@@ -46,7 +49,7 @@ router.get('/demo-accounts', asyncHandler(async (_req, res) => {
   return ok(res, isDemoMode() ? DEMO_ACCOUNTS : []);
 }));
 
-router.post('/register', rateLimit({ windowMs: 60 * 60 * 1000, max: 6, keyPrefix: 'register', message: 'Too many accounts created from this address. Try again later.' }), asyncHandler(async (req, res) => {
+router.post('/register', rateLimit({ windowMs: 60 * 60 * 1000, max: 6, keyPrefix: 'register', failMode: 'closed', message: 'Too many accounts created from this address. Try again later.' }), asyncHandler(async (req, res) => {
   const body = validate(registerSchema, req.body);
   if (get('SELECT id FROM users WHERE email = ?', body.email)) {
     throw conflict('An account with this email already exists');
@@ -76,7 +79,7 @@ router.post('/register', rateLimit({ windowMs: 60 * 60 * 1000, max: 6, keyPrefix
   return created(res, { user: publicUser(user, body.organizationName) });
 }));
 
-router.post('/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 12, keyPrefix: 'login' }), asyncHandler(async (req, res) => {
+router.post('/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 12, keyPrefix: 'login', failMode: 'closed' }), asyncHandler(async (req, res) => {
   const body = validate(loginSchema, req.body);
   const user = get('SELECT * FROM users WHERE email = ?', body.email);
   const ip = req.ip ?? null;
@@ -97,7 +100,9 @@ router.post('/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 12, keyPrefix: 
     throw tooMany('Too many failed sign-in attempts for this account. Try again in 15 minutes.');
   }
 
-  if (!user || !await verifyPasswordAsync(body.password, user.password_hash)) {
+  // Always spend the same scrypt work, even for an unknown email, so a
+  // response time cannot be used to enumerate accounts.
+  if (!user || !await verifyPasswordAsync(body.password, user.password_hash ?? DUMMY_PASSWORD_HASH)) {
     record(0);
     // Same message and status for unknown email and wrong password.
     throw unauthorized('Email or password is incorrect');
@@ -177,7 +182,7 @@ router.patch('/me', requireAuth, asyncHandler(async (req, res) => {
  * confirmed, never the password itself. When MFA is enabled a TOTP code is
  * required as well, so a stolen cookie alone cannot unlock key management.
  */
-router.post('/step-up', requireAuth, rateLimit({ windowMs: 10 * 60 * 1000, max: 10, keyPrefix: 'step-up' }), asyncHandler(async (req, res) => {
+router.post('/step-up', requireAuth, rateLimit({ windowMs: 10 * 60 * 1000, max: 10, keyPrefix: 'step-up', failMode: 'closed' }), asyncHandler(async (req, res) => {
   const body = validate(z.object({
     password: z.string().min(1, 'Enter your password').max(200),
     code: z.string().trim().min(6).max(24).optional(),
@@ -221,7 +226,7 @@ function mfaChallenge(req) {
   return get('SELECT * FROM mfa_challenges WHERE id = ?', hashToken(token));
 }
 
-router.post('/mfa/verify', rateLimit({ windowMs: 10 * 60 * 1000, max: 20, keyPrefix: 'mfa-verify' }), asyncHandler(async (req, res) => {
+router.post('/mfa/verify', rateLimit({ windowMs: 10 * 60 * 1000, max: 20, keyPrefix: 'mfa-verify', failMode: 'closed' }), asyncHandler(async (req, res) => {
   const body = validate(z.object({ code: z.string().trim().min(6).max(24) }), req.body);
   const challenge = mfaChallenge(req);
   if (!challenge) throw unauthorized('Your verification session expired. Sign in again.');

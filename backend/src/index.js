@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { migrate, db, get, nowIso } from './db.js';
 import { attachUser, checkOrigin, requireAuth, requireCsrf, SESSION_COOKIE } from './lib/auth.js';
 import { errorHandler, notFoundHandler } from './lib/http.js';
-import { rateLimit } from './lib/ratelimit.js';
+import { rateLimit, setRateLimitStore } from './lib/ratelimit.js';
+import { createRateLimitStore } from './lib/ratelimitStore.js';
 import { bus } from './lib/events.js';
 import { seed } from './seed.js';
 import { isDemoMode } from './lib/demo.js';
@@ -81,6 +82,10 @@ if (recovered) console.log(`[startup] marked ${recovered} interrupted simulation
 if (process.env.SF_TRUST_PROXY === 'true') app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
+const rateLimitStore = createRateLimitStore();
+setRateLimitStore(rateLimitStore);
+console.log(`[secureflow] rate limit store: ${rateLimitStore.kind}${process.env.SF_REDIS_URL ? '' : ' (single process)'}`);
+
 app.use((req, res, next) => {
   req.requestId = crypto.randomUUID();
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -88,6 +93,11 @@ app.use((req, res, next) => {
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
   res.setHeader('X-Request-Id', req.requestId);
   next();
 });
@@ -102,10 +112,29 @@ app.use(attachUser);
 app.use(checkOrigin);
 app.use(requireCsrf);
 app.use('/api', rateLimit({ windowMs: 60_000, max: 1200, keyPrefix: 'api' }));
+app.use('/api', (_req, res, next) => {
+  // Tenant data and session state must not sit in a shared or browser cache.
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
 
 /** Lightweight liveness probe. Contains no tenant data. */
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'secureflow-api', time: nowIso(), version: '1.0.0' });
+});
+
+/** Readiness probe: the API can serve requests only if its database answers. */
+app.get('/api/health/ready', (req, res) => {
+  try {
+    get('SELECT 1 AS ok');
+    return res.json({
+      status: 'ok',
+      checks: { database: 'ok', rateLimitStore: rateLimitStore.kind },
+      time: nowIso(),
+    });
+  } catch (err) {
+    return res.status(503).json({ status: 'degraded', checks: { database: 'error' }, time: nowIso() });
+  }
 });
 
 app.use('/api/auth', authRoutes);
@@ -321,6 +350,7 @@ function shutdown(signal) {
   console.log(`[secureflow] ${signal} received, closing server`);
   server.close(() => {
     try { db.close(); } catch { /* already closed */ }
+    rateLimitStore.close?.().catch?.(() => {});
     process.exit(0);
   });
   setTimeout(() => process.exit(0), 4000).unref();

@@ -11,3 +11,8 @@ scripts
 *.log
 .env
 .env.*
+backend/tests
+frontend/e2e
+frontend/test-results
+frontend/playwright-report
+frontend/playwright.config.ts

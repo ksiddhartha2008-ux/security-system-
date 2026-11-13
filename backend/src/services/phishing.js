@@ -4,6 +4,7 @@ import http from 'node:http';
 import https from 'node:https';
 import { all, run, newId, nowIso } from '../db.js';
 import { badRequest } from '../lib/http.js';
+import { enrich, providerNote } from './reputation.js';
 
 /* ------------------------------------------------------------------ *
  * Phishing URL scanner with SSRF protections.
@@ -223,57 +224,12 @@ async function fetchOnce(url, address) {
 }
 
 async function reputationFor(url, addresses) {
-  const result = { providers: [], checks: [] };
-  const vtKey = process.env.VIRUSTOTAL_API_KEY;
-  if (vtKey) {
-    try {
-      const id = Buffer.from(url.href).toString('base64url');
-      const res = await fetch(`https://www.virustotal.com/api/v3/urls/${id}`, {
-        headers: { 'x-apikey': vtKey }, signal: AbortSignal.timeout(8000),
-      });
-      if (res.ok) {
-        const body = await res.json();
-        const stats = body?.data?.attributes?.last_analysis_stats ?? {};
-        result.providers.push('VirusTotal');
-        result.checks.push({ provider: 'VirusTotal', malicious: stats.malicious ?? 0, suspicious: stats.suspicious ?? 0, harmless: stats.harmless ?? 0, undetected: stats.undetected ?? 0 });
-      } else if (res.status === 404) {
-        result.providers.push('VirusTotal');
-        result.checks.push({ provider: 'VirusTotal', note: 'URL is not in the VirusTotal dataset yet' });
-      } else {
-        result.providers.push('VirusTotal');
-        result.checks.push({ provider: 'VirusTotal', error: `Provider returned HTTP ${res.status}` });
-      }
-    } catch (err) {
-      result.providers.push('VirusTotal');
-      result.checks.push({ provider: 'VirusTotal', error: `Lookup failed: ${err.message}` });
-    }
-  }
-  const abuseKey = process.env.ABUSEIPDB_API_KEY;
-  const ip = addresses.find((a) => net.isIPv4(a));
-  if (abuseKey && ip) {
-    try {
-      const res = await fetch(`https://api.abuseipdb.com/api/v2/check?ipAddress=${encodeURIComponent(ip)}&maxAgeInDays=90`, {
-        headers: { Key: abuseKey, Accept: 'application/json' }, signal: AbortSignal.timeout(8000),
-      });
-      if (res.ok) {
-        const body = await res.json();
-        result.providers.push('AbuseIPDB');
-        result.checks.push({ provider: 'AbuseIPDB', ipAddress: ip, abuseConfidenceScore: body?.data?.abuseConfidenceScore ?? 0, totalReports: body?.data?.totalReports ?? 0 });
-      } else {
-        result.providers.push('AbuseIPDB');
-        result.checks.push({ provider: 'AbuseIPDB', error: `Provider returned HTTP ${res.status}` });
-      }
-    } catch (err) {
-      result.providers.push('AbuseIPDB');
-      result.checks.push({ provider: 'AbuseIPDB', error: `Lookup failed: ${err.message}` });
-    }
-  }
-  if (!result.providers.length) {
-    result.note = 'No reputation provider configured. Set VIRUSTOTAL_API_KEY or ABUSEIPDB_API_KEY to enrich scans.';
-  }
+  const ip = addresses.find((address) => net.isIPv4(address));
+  const { providers, checks } = await enrich({ type: 'url', value: url.href, ip });
+  const result = { providers, checks };
+  if (!providers.length) result.note = providerNote;
   return result;
 }
-
 export async function scanUrl({ url: input, orgId, userId }) {
   const url = normalizeUrl(input);
   const resolved = new Map();

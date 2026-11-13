@@ -6,6 +6,7 @@ import { requireAuth, requireRole } from '../lib/auth.js';
 import { audit } from '../lib/audit.js';
 import { verifyAuditChain } from '../lib/audit.js';
 import { hashPasswordAsync } from '../lib/auth.js';
+import { providerHealth } from '../services/reputation.js';
 import { mirofishStatus } from '../services/mirofish.js';
 
 const router = Router();
@@ -116,6 +117,7 @@ router.get('/integrations', asyncHandler(async (req, res) => {
   const rows = all('SELECT * FROM integration_configs WHERE org_id = ?', req.user.orgId);
   const byKey = Object.fromEntries(rows.map((r) => [r.key, r]));
   const miro = await mirofishStatus();
+  const providers = Object.fromEntries(providerHealth().map((p) => [p.key, p]));
   const data = INTEGRATION_CATALOG.map((item) => {
     const row = byKey[item.key];
     const envPresent = item.env.some((key) => Boolean(process.env[key]));
@@ -131,10 +133,21 @@ router.get('/integrations', asyncHandler(async (req, res) => {
       status = process.env.API_ANYTHING_ENABLED === 'true' ? 'configured' : 'disabled';
       detail = 'Development time tool. Not part of the application runtime.';
     }
+    const provider = providers[item.key];
+    if (provider) {
+      status = provider.status === 'REAL' ? 'connected' : provider.status === 'ERROR' ? 'error' : 'unconfigured';
+      detail = provider.status === 'UNAVAILABLE'
+        ? 'Real connector implemented. No API key is configured, so lookups stay local.'
+        : provider.status === 'ERROR'
+          ? `Real connector. The last call failed: ${provider.lastError}`
+          : `Real connector. Last successful call ${provider.lastOkAt}.`;
+    }
     return {
       key: item.key, name: item.name, category: item.category, description: item.description,
       status, envVars: item.env, configured: envPresent || Boolean(row && row.status !== 'unconfigured'),
       detail, lastSyncAt: row?.last_sync_at ?? null,
+      providerStatus: provider?.status ?? null, verified: provider?.verified ?? false,
+      lastOkAt: provider?.lastOkAt ?? null,
       config: parseJson(row?.config ?? '{}', {}),
     };
   });

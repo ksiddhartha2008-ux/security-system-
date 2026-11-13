@@ -3,10 +3,17 @@ services:
     build: .
     ports:
       - "4000:4000"
+    depends_on:
+      redis:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 4000
       SF_DATA_DIR: /data
+      # Shared counters so two API instances cannot be bypassed by switching.
+      # Leave SF_REDIS_URL empty to run the single process memory store.
+      SF_REDIS_URL: ${SF_REDIS_URL:-redis://redis:6379}
+      SF_RATE_LIMIT_FAIL_MODE: ${SF_RATE_LIMIT_FAIL_MODE:-local}
       # Demo mode is off in production. Set SF_DEMO_MODE=true only for a
       # throwaway demo deployment with synthetic data.
       SF_DEMO_MODE: ${SF_DEMO_MODE:-}
@@ -23,6 +30,16 @@ services:
     volumes:
       - secureflow-data:/data
     restart: unless-stopped
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
 volumes:
   secureflow-data:

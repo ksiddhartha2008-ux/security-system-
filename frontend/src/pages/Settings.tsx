@@ -243,7 +243,7 @@ function HealthTab() {
           {health.data.checks.map((check) => (
             <div key={check.name} className="row" style={{ gap: 10, alignItems: 'flex-start' }}>
               <span style={{ marginTop: 2 }}>
-                {check.status === 'ok' ? <ShieldCheck size={14} color="#3ddc97" aria-hidden="true" /> : check.status === 'unconfigured' ? <PlugZap size={14} color="#6b7f92" aria-hidden="true" /> : <Activity size={14} color="#ff6b6b" aria-hidden="true" />}
+                {check.status === 'ok' ? <ShieldCheck size={14} color="var(--color-mint)" aria-hidden="true" /> : check.status === 'unconfigured' ? <PlugZap size={14} color="var(--color-faint)" aria-hidden="true" /> : <Activity size={14} color="var(--color-red)" aria-hidden="true" />}
               </span>
               <div style={{ flex: 1 }}>
                 <p className="small strong">{check.name}</p>
@@ -323,7 +323,7 @@ function AccountTab() {
       </Card>
       <Card title="Workspace membership" className="">
         <div className="row" style={{ gap: 10 }}>
-          <Building2 size={16} aria-hidden="true" color="#7defbb" />
+          <Building2 size={16} aria-hidden="true" color="var(--color-mint-bright)" />
           <div>
             <p className="small strong">{user?.orgName}</p>
             <p className="tiny faint">Role based access is enforced on every API request.</p>

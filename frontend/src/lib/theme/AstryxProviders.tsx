@@ -3,6 +3,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { Theme } from '@astryxdesign/core/theme';
 import { LinkProvider } from '@astryxdesign/core/Link';
 import { secureflowTheme } from './secureflow.js';
+import { useThemeMode } from './ThemeMode';
 
 type AdapterProps = AnchorHTMLAttributes<HTMLAnchorElement> & { to?: string; href?: string };
 
@@ -27,8 +28,9 @@ const RouterLinkAdapter = forwardRef<HTMLAnchorElement, AdapterProps>(function R
  * the legacy application CSS keeps its own tokens in styles.css.
  */
 export function AstryxProviders({ children }: { children: ReactNode }) {
+  const { resolved } = useThemeMode();
   return (
-    <Theme theme={secureflowTheme} mode="dark">
+    <Theme theme={secureflowTheme} mode={resolved}>
       <LinkProvider component={RouterLinkAdapter}>{children}</LinkProvider>
     </Theme>
   );

@@ -81,9 +81,9 @@ export default function OverviewPage() {
             <TrendChart
               data={trends.data ?? []}
               series={[
-                { key: 'events', label: 'All events', color: '#3ddc97' },
-                { key: 'highSeverity', label: 'High and critical', color: '#ff9f43' },
-                { key: 'detections', label: 'Detections', color: '#58a6ff' },
+                { key: 'events', label: 'All events', color: 'var(--color-mint)' },
+                { key: 'highSeverity', label: 'High and critical', color: 'var(--color-orange)' },
+                { key: 'detections', label: 'Detections', color: 'var(--color-info-text)' },
               ]}
               height={224}
             />
@@ -96,11 +96,11 @@ export default function OverviewPage() {
             centerValue={formatNumber(totalSev)}
             centerLabel="EVENTS · 7D"
             segments={[
-              { label: 'critical', value: sev.critical ?? 0, color: '#ff6b6b' },
-              { label: 'high', value: sev.high ?? 0, color: '#ff9f43' },
-              { label: 'medium', value: sev.medium ?? 0, color: '#f5c451' },
-              { label: 'low', value: sev.low ?? 0, color: '#58a6ff' },
-              { label: 'info', value: sev.info ?? 0, color: '#4a5b6c' },
+              { label: 'critical', value: sev.critical ?? 0, color: 'var(--color-red)' },
+              { label: 'high', value: sev.high ?? 0, color: 'var(--color-orange)' },
+              { label: 'medium', value: sev.medium ?? 0, color: 'var(--color-amber)' },
+              { label: 'low', value: sev.low ?? 0, color: 'var(--color-info-text)' },
+              { label: 'info', value: sev.info ?? 0, color: 'var(--color-neutral-text)' },
             ]}
           />
           <div className="divider" style={{ margin: '14px 0 12px' }} />
@@ -123,11 +123,11 @@ export default function OverviewPage() {
           actions={<Link to="/incidents" className="btn btn-sm btn-ghost">All incidents <ArrowUpRight size={13} aria-hidden="true" /></Link>}
           bodyClass="">
           {summary.loading ? <TableSkeleton rows={4} cols={4} /> : (summary.data?.openIncidents.length ?? 0) === 0 ? (
-            <div className="empty"><CheckCircle2 size={22} color="#3ddc97" aria-hidden="true" /><p className="empty-title" style={{ marginTop: 8 }}>Queue is clear</p><p className="empty-body">No incident is waiting for triage.</p></div>
+            <div className="empty"><CheckCircle2 size={22} color="var(--color-mint)" aria-hidden="true" /><p className="empty-title" style={{ marginTop: 8 }}>Queue is clear</p><p className="empty-body">No incident is waiting for triage.</p></div>
           ) : (
             <div>
               {summary.data?.openIncidents.map((incident) => (
-                <Link key={incident.id} to={`/incidents/${incident.id}`} className="row" style={{ padding: '12px 16px', borderBottom: '1px solid #16222d', gap: 12 }}>
+                <Link key={incident.id} to={`/incidents/${incident.id}`} className="row" style={{ padding: '12px 16px', borderBottom: '1px solid var(--color-callout)', gap: 12 }}>
                   <SeverityBadge severity={incident.severity} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <p className="truncate-cell" style={{ fontWeight: 550, fontSize: 13 }}>{incident.title}</p>
@@ -149,7 +149,7 @@ export default function OverviewPage() {
                   <p className="tiny faint mono">{asset.hostname} · {asset.criticality}</p>
                 </div>
                 <div style={{ width: 90 }}>
-                  <div className="bar-track"><div className="bar-fill" style={{ width: `${asset.risk_score}%`, background: asset.risk_score >= 70 ? '#ff6b6b' : asset.risk_score >= 40 ? '#f5c451' : '#3ddc97' }} /></div>
+                  <div className="bar-track"><div className="bar-fill" style={{ width: `${asset.risk_score}%`, background: asset.risk_score >= 70 ? 'var(--color-red)' : asset.risk_score >= 40 ? 'var(--color-amber)' : 'var(--color-mint)' }} /></div>
                 </div>
                 <RiskBadge score={asset.risk_score} />
               </div>
@@ -247,7 +247,7 @@ export default function OverviewPage() {
         </Card>
 
         <Card title="Signal sources" subtitle="Share of events in the last 7 days">
-          <RankBars items={(summary.data?.topSources ?? []).map((s) => ({ label: s.source, value: s.c }))} color="#58a6ff" />
+          <RankBars items={(summary.data?.topSources ?? []).map((s) => ({ label: s.source, value: s.c }))} color="var(--color-info-text)" />
           <div className="divider" style={{ margin: '16px 0 14px' }} />
           <div className="stack" style={{ gap: 9 }}>
             <div className="row-between">
@@ -256,7 +256,7 @@ export default function OverviewPage() {
             </div>
             <div className="row-between">
               <span className="small muted row" style={{ gap: 6 }}><Radar size={13} aria-hidden="true" /> Critical CVEs open</span>
-              <span className="strong" style={{ color: '#ffb0b0' }}>{formatNumber(k.criticalVulns)}</span>
+              <span className="strong" style={{ color: 'var(--color-danger-text-2)' }}>{formatNumber(k.criticalVulns)}</span>
             </div>
             <div className="row-between">
               <span className="small muted row" style={{ gap: 6 }}><Activity size={13} aria-hidden="true" /> Mean time to resolve</span>

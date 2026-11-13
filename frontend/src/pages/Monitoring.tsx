@@ -66,7 +66,7 @@ export default function MonitoringPage() {
         subtitle="Normalised telemetry from identity, endpoint, email, network and application sources. Newest first."
         actions={<>
           <span className={`chip`} title={connected ? 'Server sent events connected' : 'Falling back to manual refresh'}>
-            <Radio size={12} aria-hidden="true" color={connected ? '#3ddc97' : '#6b7f92'} />
+            <Radio size={12} aria-hidden="true" color={connected ? 'var(--color-mint)' : 'var(--color-faint)'} />
             {connected ? 'Streaming' : 'Reconnecting'}
           </span>
           <Button icon={<Download size={14} aria-hidden="true" />} onClick={() => events.refresh()}>Refresh</Button>

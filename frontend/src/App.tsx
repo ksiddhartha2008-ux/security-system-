@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider } from './lib/auth';
 import { AstryxProviders } from './lib/theme/AstryxProviders';
+import { ThemeModeProvider } from './lib/theme/ThemeMode';
 import { useToasts } from './lib/hooks';
 import { ToastContext, ToastViewport } from './components/ui';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
@@ -57,7 +58,8 @@ export default function App() {
     <ToastContext.Provider value={{ push: toasts.push }}>
       <AppErrorBoundary>
         <BrowserRouter>
-          <AstryxProviders>
+          <ThemeModeProvider>
+            <AstryxProviders>
             <ScrollToTop />
             <AuthProvider>
               <Suspense fallback={<RouteFallback />}>
@@ -99,7 +101,8 @@ export default function App() {
                 </Routes>
               </Suspense>
             </AuthProvider>
-          </AstryxProviders>
+            </AstryxProviders>
+          </ThemeModeProvider>
         </BrowserRouter>
       </AppErrorBoundary>
       <ToastViewport toasts={toasts.toasts} onDismiss={toasts.dismiss} />

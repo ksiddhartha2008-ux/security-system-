@@ -191,7 +191,7 @@ export default function AssetsPage() {
             <div>
               <p className="label" style={{ marginBottom: 6 }}>Network flows ({detail.data.network.length})</p>
               {detail.data.network.length === 0 ? <p className="small faint">No flow records for this asset.</p> : detail.data.network.map((n) => (
-                <div key={n.id} className="row mono tiny" style={{ padding: '4px 0', gap: 8, color: '#94a6b8' }}>
+                <div key={n.id} className="row mono tiny" style={{ padding: '4px 0', gap: 8, color: 'var(--color-muted)' }}>
                   <span style={{ flex: 1 }}>{n.src_ip} → {n.dest_ip}:{n.dest_port}</span>
                   <span>{Math.round(n.bytes_out / 1024)} KB</span>
                   <StatusBadge status={n.verdict} />

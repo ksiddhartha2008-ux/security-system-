@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Activity, Blocks, BrainCircuit, ChevronDown, Database, FileText, Fingerprint,
   FlaskConical, Globe2, LayoutDashboard, LogOut, Network, Radar, Server,
-  Settings, ShieldAlert, ShieldCheck, Siren, Users, Search,
+  Settings, ShieldAlert, ShieldCheck, Siren, Users, Search, Sun, Moon, Monitor,
 } from 'lucide-react';
 import { AppShell } from '@astryxdesign/core/AppShell';
 import { TopNav, TopNavHeading } from '@astryxdesign/core/TopNav';
@@ -14,6 +14,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { useAuth } from '../lib/auth';
 import { useApi, useEventStream } from '../lib/hooks';
 import { initials, ROLE_LABEL } from '../lib/format';
+import { useThemeMode, type ThemeMode } from '../lib/theme/ThemeMode';
 
 const NAV = [
   {
@@ -177,7 +178,7 @@ export function AppShellLayout() {
                   onClick={() => setUserOpen((value) => !value)}
                   aria-haspopup="menu"
                   aria-expanded={userOpen}
-                  aria-label={`Account menu for ${user?.name}`}
+                  title="Account menu"
                   type="button"
                 >
                   <span className="avatar" aria-hidden="true">{initials(user?.name)}</span>
@@ -186,6 +187,7 @@ export function AppShellLayout() {
                     <span className="faint">{ROLE_LABEL[user?.role ?? ''] ?? user?.role}</span>
                   </span>
                   <ChevronDown size={13} aria-hidden="true" />
+                  <span className="sr-only">account menu</span>
                 </button>
                 {userOpen && (
                   <div role="menu" style={{
@@ -196,6 +198,7 @@ export function AppShellLayout() {
                       <p style={{ fontSize: 12.5, fontWeight: 600 }}>{user?.name}</p>
                       <p className="tiny faint">{user?.email}</p>
                     </div>
+                    <ThemeControl />
                     <Link to="/settings" role="menuitem" className="nav-item" style={{ margin: 0 }}>
                       <Settings size={14} aria-hidden="true" /> Settings
                     </Link>
@@ -319,5 +322,43 @@ function NavigateToLogin({ from }: { from: string }) {
   useEffect(() => {
     navigate(`/login?next=${encodeURIComponent(from)}`, { replace: true });
   }, [navigate, from]);
-  return <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}><span className="muted">Redirecting to sign in…</span></div>;
+  return <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}><span className="muted">Redirecting to sign in...</span></div>;
+}
+
+const THEME_OPTIONS: { key: ThemeMode; label: string; Icon: typeof Sun }[] = [
+  { key: 'light', label: 'Light', Icon: Sun },
+  { key: 'dark', label: 'Dark', Icon: Moon },
+  { key: 'system', label: 'System', Icon: Monitor },
+];
+
+/** Three way appearance control. The choice is stored per browser; System follows the OS. */
+function ThemeControl() {
+  const { mode, setMode } = useThemeMode();
+  return (
+    <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-border)', marginBottom: 4 }}>
+      <p className="tiny faint" id="theme-label" style={{ marginBottom: 6 }}>Appearance</p>
+      <div role="group" aria-labelledby="theme-label" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
+        {THEME_OPTIONS.map(({ key, label, Icon }) => {
+          const active = mode === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setMode(key)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                padding: '6px 4px', borderRadius: 6, cursor: 'pointer', fontSize: 11,
+                border: `1px solid ${active ? 'var(--color-border-emphasized)' : 'transparent'}`,
+                background: active ? 'var(--color-background-surface)' : 'transparent',
+                color: active ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+              }}
+            >
+              <Icon size={12} aria-hidden="true" />{label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }

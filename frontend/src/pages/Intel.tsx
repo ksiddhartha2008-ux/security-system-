@@ -116,7 +116,7 @@ export default function IntelPage() {
                   {result.external.map((provider, i) => (
                     <div key={`${provider.provider}-${i}`} className="row small" style={{ gap: 8 }}>
                       <Badge tone="neutral">{provider.provider}</Badge>
-                      {provider.error ? <span style={{ color: '#ffb3b3' }}>{provider.error}</span> : provider.note ? <span className="muted">{provider.note}</span> : (
+                      {provider.error ? <span style={{ color: 'var(--color-danger-text)' }}>{provider.error}</span> : provider.note ? <span className="muted">{provider.note}</span> : (
                         <span className="muted">
                           {provider.malicious !== undefined ? `${provider.malicious} malicious · ${provider.suspicious} suspicious · ${provider.harmless} harmless` : ''}
                           {provider.abuseConfidenceScore !== undefined ? `abuse confidence ${provider.abuseConfidenceScore}% · ${provider.totalReports} reports` : ''}
@@ -250,7 +250,7 @@ function AddIocModal({ open, onClose, onCreated }: { open: boolean; onClose: () 
         <input id="ioc-value" className="input mono" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder={form.type === 'sha256' ? '64 hexadecimal characters' : '203.0.113.44'} />
       </Field>
       <Field label={`Confidence: ${form.confidence}`} htmlFor="ioc-conf">
-        <input id="ioc-conf" type="range" min={0} max={100} value={form.confidence} onChange={(e) => setForm({ ...form, confidence: Number(e.target.value) })} style={{ width: '100%', accentColor: '#3ddc97' }} />
+        <input id="ioc-conf" type="range" min={0} max={100} value={form.confidence} onChange={(e) => setForm({ ...form, confidence: Number(e.target.value) })} style={{ width: '100%', accentColor: 'var(--color-mint)' }} />
       </Field>
       <Field label="Context" htmlFor="ioc-desc">
         <textarea id="ioc-desc" className="textarea" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Where it was seen and why it matters." />

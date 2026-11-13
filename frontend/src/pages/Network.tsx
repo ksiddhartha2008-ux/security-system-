@@ -24,7 +24,7 @@ type Summary = {
   topPorts: { dest_port: number; c: number }[];
 };
 
-const PROTOCOL_COLORS: Record<string, string> = { TCP: '#3ddc97', UDP: '#58a6ff', TLS: '#7defbb', DNS: '#f5c451', HTTP: '#ff9f43', ICMP: '#8b9bab' };
+const PROTOCOL_COLORS: Record<string, string> = { TCP: 'var(--color-mint)', UDP: 'var(--color-info-text)', TLS: 'var(--color-mint-bright)', DNS: 'var(--color-amber)', HTTP: 'var(--color-orange)', ICMP: 'var(--color-muted)' };
 
 export default function NetworkPage() {
   const { permissions } = useAuth();
@@ -57,13 +57,13 @@ export default function NetworkPage() {
       <div className="grid grid-3" style={{ marginBottom: 14 }}>
         <Card title="Protocols" subtitle="Share of recorded flows">
           <Donut size={150} centerValue={formatNumber(summary.data?.protocols.reduce((a, b) => a + b.c, 0))} centerLabel="FLOWS"
-            segments={(summary.data?.protocols ?? []).map((p) => ({ label: p.protocol, value: p.c, color: PROTOCOL_COLORS[p.protocol] ?? '#8b9bab' }))} />
+            segments={(summary.data?.protocols ?? []).map((p) => ({ label: p.protocol, value: p.c, color: PROTOCOL_COLORS[p.protocol] ?? 'var(--color-muted)' }))} />
         </Card>
         <Card title="Top sources by volume" subtitle="Bytes out">
-          <RankBars items={(summary.data?.topSources ?? []).slice(0, 6).map((s) => ({ label: s.src_ip, value: s.bytes, hint: formatBytes(s.bytes) }))} color="#3ddc97" />
+          <RankBars items={(summary.data?.topSources ?? []).slice(0, 6).map((s) => ({ label: s.src_ip, value: s.bytes, hint: formatBytes(s.bytes) }))} color="var(--color-mint)" />
         </Card>
         <Card title="Destination ports" subtitle="Most requested services">
-          <RankBars items={(summary.data?.topPorts ?? []).slice(0, 6).map((p) => ({ label: `port ${p.dest_port}`, value: p.c }))} color="#58a6ff" />
+          <RankBars items={(summary.data?.topPorts ?? []).slice(0, 6).map((p) => ({ label: `port ${p.dest_port}`, value: p.c }))} color="var(--color-info-text)" />
         </Card>
       </div>
 

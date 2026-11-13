@@ -10,6 +10,7 @@
     "astryx": "astryx",
     "theme:build": "cd src/lib/theme && astryx theme build secureflowTheme.ts --out secureflow.css",
     "check:theme": "cd src/lib/theme && astryx theme build secureflowTheme.ts --out secureflow.css --check",
+    "test:a11y": "playwright test --project=chromium",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -23,6 +24,8 @@
   },
   "devDependencies": {
     "@astryxdesign/cli": "0.7.13",
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.65.0",
     "@tailwindcss/vite": "^4.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

@@ -130,7 +130,7 @@ export default function ReportsPage() {
             {detail.data.summary.tables.map((table) => (
               <div key={table.title}>
                 <p className="label" style={{ marginBottom: 6 }}>{table.title}</p>
-                <div className="table-wrap" style={{ border: '1px solid #1e2b38', borderRadius: 8 }}>
+                <div className="table-wrap" style={{ border: '1px solid var(--color-line)', borderRadius: 8 }}>
                   <table className="data">
                     <thead><tr>{table.columns.map((column) => <th key={column.key}>{column.label}</th>)}</tr></thead>
                     <tbody>

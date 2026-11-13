@@ -155,7 +155,7 @@ export default function DetectionsPage() {
           {rules.loading ? <TableSkeleton rows={6} cols={4} /> : rules.error ? <ErrorState message={rules.error} onRetry={rules.refresh} /> : (
             <div className="stack" style={{ gap: 10 }}>
               {(rules.data ?? []).map((rule) => (
-                <div key={rule.id} className="row" style={{ gap: 12, padding: '10px 12px', border: '1px solid #1e2b38', borderRadius: 9, alignItems: 'flex-start' }}>
+                <div key={rule.id} className="row" style={{ gap: 12, padding: '10px 12px', border: '1px solid var(--color-line)', borderRadius: 9, alignItems: 'flex-start' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
                       <span style={{ fontWeight: 600, fontSize: 13 }}>{rule.name}</span>
@@ -195,7 +195,7 @@ export default function DetectionsPage() {
               <RiskBadge score={detail.data.riskScore} />
               <span className="tiny faint">confidence {detail.data.confidence}%</span>
             </div>
-            <p className="small" style={{ color: '#c3d2df' }}>{detail.data.description}</p>
+            <p className="small" style={{ color: 'var(--color-ink-soft)' }}>{detail.data.description}</p>
             <KeyValue items={[
               { label: 'Rule', value: detail.data.ruleName ?? 'historical replay' },
               { label: 'Detected', value: formatDate(detail.data.detectedAt) },
@@ -210,7 +210,7 @@ export default function DetectionsPage() {
                 {(detail.data.explanation.factors ?? []).map((factor) => (
                   <div key={factor.label}>
                     <div className="row-between tiny"><span>{factor.label}</span><span className="faint">{factor.weight}</span></div>
-                    <div className="bar-track" style={{ marginTop: 3 }}><div className="bar-fill" style={{ width: `${Math.min(100, factor.weight * 2)}%`, background: '#58a6ff' }} /></div>
+                    <div className="bar-track" style={{ marginTop: 3 }}><div className="bar-fill" style={{ width: `${Math.min(100, factor.weight * 2)}%`, background: 'var(--color-info-text)' }} /></div>
                     <p className="tiny faint" style={{ marginTop: 2 }}>{factor.detail}</p>
                   </div>
                 ))}

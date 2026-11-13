@@ -20,7 +20,7 @@ export class AppErrorBoundary extends Component<Props, State> {
     return (
       <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24 }}>
         <div className="card" style={{ maxWidth: 560, padding: 24 }}>
-          <p className="mono" style={{ color: '#3ddc97' }}>UI error</p>
+          <p className="mono" style={{ color: 'var(--color-mint)' }}>UI error</p>
           <h1 style={{ fontSize: 20, marginTop: 6 }}>This view could not be rendered</h1>
           <p className="small muted" style={{ marginTop: 8 }}>
             The error was logged to the browser console. Reload the page, or return to the overview.

@@ -46,7 +46,7 @@ export function InvestigationsPage() {
                 <tbody>
                   {investigations.data?.data.map((inv) => (
                     <tr key={inv.id}>
-                      <td className="mono tiny"><Link to={`/investigations/${inv.id}`} style={{ color: '#7defbb' }}>{inv.ref}</Link></td>
+                      <td className="mono tiny"><Link to={`/investigations/${inv.id}`} style={{ color: 'var(--color-mint-bright)' }}>{inv.ref}</Link></td>
                       <td>
                         <Link to={`/investigations/${inv.id}`} style={{ fontWeight: 550 }}>{inv.title}</Link>
                         <p className="tiny faint truncate-cell" style={{ maxWidth: 420 }}>{inv.hypothesis}</p>
@@ -193,7 +193,7 @@ export function InvestigationDetailPage() {
       <div className="grid" style={{ gridTemplateColumns: '1.45fr 1fr' }}>
         <div className="stack">
           <Card title="Hypothesis" subtitle="The claim under test">
-            <p className="small" style={{ color: '#c3d2df' }}>{data.hypothesis || 'No hypothesis recorded.'}</p>
+            <p className="small" style={{ color: 'var(--color-ink-soft)' }}>{data.hypothesis || 'No hypothesis recorded.'}</p>
           </Card>
 
           <Card title="Correlated timeline" subtitle="High severity telemetry and analyst notes, oldest first">
@@ -224,9 +224,9 @@ export function InvestigationDetailPage() {
             {data.notes.length === 0 ? <p className="small faint">No notes yet.</p> : (
               <div className="stack" style={{ gap: 10 }}>
                 {data.notes.map((entry) => (
-                  <div key={entry.id} style={{ borderLeft: '2px solid #223242', paddingLeft: 10 }}>
+                  <div key={entry.id} style={{ borderLeft: '2px solid var(--color-timeline-dot)', paddingLeft: 10 }}>
                     <p className="tiny faint">{entry.author ?? 'Analyst'} · {formatDate(entry.createdAt)}</p>
-                    <p className="small" style={{ color: '#c3d2df', whiteSpace: 'pre-wrap' }}>{entry.body}</p>
+                    <p className="small" style={{ color: 'var(--color-ink-soft)', whiteSpace: 'pre-wrap' }}>{entry.body}</p>
                   </div>
                 ))}
               </div>

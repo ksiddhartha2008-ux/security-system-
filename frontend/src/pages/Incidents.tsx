@@ -78,7 +78,7 @@ export function IncidentsPage() {
                 <tbody>
                   {incidents.data?.data.map((incident) => (
                     <tr key={incident.id}>
-                      <td className="mono tiny"><Link to={`/incidents/${incident.id}`} style={{ color: '#7defbb' }}>{incident.ref}</Link></td>
+                      <td className="mono tiny"><Link to={`/incidents/${incident.id}`} style={{ color: 'var(--color-mint-bright)' }}>{incident.ref}</Link></td>
                       <td>
                         <Link to={`/incidents/${incident.id}`} style={{ fontWeight: 550 }} className="truncate-cell" >{incident.title}</Link>
                         <p className="tiny faint">{incident.description.slice(0, 90)}{incident.description.length > 90 ? '…' : ''}</p>
@@ -263,7 +263,7 @@ export function IncidentDetailPage() {
       <div className="grid" style={{ gridTemplateColumns: '1.5fr 1fr' }}>
         <div className="stack">
           <Card title="What happened" subtitle="Recorded description">
-            <p className="small" style={{ color: '#c3d2df', whiteSpace: 'pre-wrap' }}>{data.description || 'No description recorded.'}</p>
+            <p className="small" style={{ color: 'var(--color-ink-soft)', whiteSpace: 'pre-wrap' }}>{data.description || 'No description recorded.'}</p>
             <div className="divider" style={{ margin: '14px 0' }} />
             <KeyValue items={[
               { label: 'Reference', value: <span className="mono">{data.ref}</span> },

@@ -105,8 +105,8 @@ export default function PhishingPage() {
                   <div className="stack" style={{ gap: 3, marginTop: 4 }}>
                     {result.redirectChain.map((hop, index) => (
                       <p key={`${hop.url}-${index}`} className="mono tiny" style={{ wordBreak: 'break-all' }}>
-                        {hop.status ? <span style={{ color: '#3ddc97' }}>{hop.status} </span> : null}{hop.url}
-                        {hop.error ? <span style={{ color: '#ffb3b3' }}> · {hop.error}</span> : null}
+                        {hop.status ? <span style={{ color: 'var(--color-mint)' }}>{hop.status} </span> : null}{hop.url}
+                        {hop.error ? <span style={{ color: 'var(--color-danger-text)' }}> · {hop.error}</span> : null}
                       </p>
                     ))}
                   </div>
@@ -118,7 +118,7 @@ export default function PhishingPage() {
                   <div className="stack" style={{ gap: 5, marginTop: 4 }}>
                     {result.reputation.checks.map((check, index) => (
                       <p key={`${check.provider}-${index}`} className="small muted">
-                        <strong style={{ color: '#e8eef5' }}>{check.provider}</strong>{' '}
+                        <strong style={{ color: 'var(--color-ink-strong)' }}>{check.provider}</strong>{' '}
                         {check.error ?? check.note ?? `${check.malicious} malicious · ${check.suspicious} suspicious`}
                         {check.abuseConfidenceScore !== undefined ? ` · abuse confidence ${check.abuseConfidenceScore}%` : ''}
                       </p>
@@ -141,7 +141,7 @@ export default function PhishingPage() {
           </ul>
           <div className="divider" style={{ margin: '14px 0' }} />
           <div className="row" style={{ gap: 8 }}>
-            <ShieldAlert size={15} aria-hidden="true" color="#f5c451" />
+            <ShieldAlert size={15} aria-hidden="true" color="var(--color-amber)" />
             <p className="tiny faint">Reports are stored in this workspace with the indicators that produced them.</p>
           </div>
         </Card>

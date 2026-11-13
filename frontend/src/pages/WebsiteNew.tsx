@@ -123,7 +123,7 @@ export default function WebsiteNewPage() {
                 )}
                 <div className="tiny muted">Registrable domain: <span className="mono">{preview.registrable_domain}</span></div>
                 {preview.homograph_warning && (
-                  <div className="tiny" style={{ color: '#ffc78f' }}>
+                  <div className="tiny" style={{ color: 'var(--color-warning-text)' }}>
                     <AlertTriangle size={12} aria-hidden="true" style={{ display: 'inline', marginRight: 4 }} />
                     This name uses mixed alphabets or an international form that looks like another name. Check the spelling carefully before you continue.
                   </div>

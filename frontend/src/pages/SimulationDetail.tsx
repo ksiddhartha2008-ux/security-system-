@@ -159,14 +159,14 @@ export default function SimulationDetailPage() {
       <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', marginBottom: 14 }}>
         <Card title="Findings" subtitle="Generated from this run only">
           {sim.report ? (
-            <ul className="small" style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 8, color: '#c3d2df' }}>
+            <ul className="small" style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 8, color: 'var(--color-ink-soft)' }}>
               {sim.report.findings.map((finding) => <li key={finding}>{finding}</li>)}
             </ul>
           ) : <p className="small faint">Findings appear after the run completes.</p>}
         </Card>
         <Card title="Recommendations" subtitle="Controls to test next">
           {sim.report ? (
-            <ul className="small" style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 8, color: '#c3d2df' }}>
+            <ul className="small" style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 8, color: 'var(--color-ink-soft)' }}>
               {sim.report.recommendations.map((rec) => <li key={rec}>{rec}</li>)}
             </ul>
           ) : <p className="small faint">Recommendations appear after the run completes.</p>}
@@ -215,7 +215,7 @@ export default function SimulationDetailPage() {
 
       {sim.report && (
         <Card title="Simulation report" subtitle={`Generated ${formatDate(sim.report.createdAt)}`} className="" >
-          <p className="small" style={{ color: '#c3d2df', lineHeight: 1.7 }}>{sim.report.narrative}</p>
+          <p className="small" style={{ color: 'var(--color-ink-soft)', lineHeight: 1.7 }}>{sim.report.narrative}</p>
           <div className="row" style={{ marginTop: 12, gap: 8, flexWrap: 'wrap' }}>
             <Button size="sm" onClick={() => download(`/simulations/${sim.id}/report/download`, `${sim.ref}-report.md`).catch((err) => toast.push('error', 'Download failed', err.message))} icon={<Download size={13} aria-hidden="true" />}>Download Markdown</Button>
             <Link to="/reports" className="btn btn-sm">Include in a report</Link>

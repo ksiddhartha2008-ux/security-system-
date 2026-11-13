@@ -108,7 +108,7 @@ export function LandingPage() {
                 { ref: 'INC-2026-1004', title: 'Payroll phishing campaign reported by staff', severity: 'high', status: 'investigating' },
                 { ref: 'INC-2026-1003', title: 'API enumeration of customer identifiers', severity: 'medium', status: 'open' },
               ].map((row) => (
-                <div key={row.ref} className="row" style={{ padding: '11px 16px', borderBottom: '1px solid #16222d', gap: 10 }}>
+                <div key={row.ref} className="row" style={{ padding: '11px 16px', borderBottom: '1px solid var(--color-callout)', gap: 10 }}>
                   <span className={`badge badge-${row.severity}`}><span className="dot" />{row.severity}</span>
                   <div style={{ minWidth: 0 }}>
                     <p style={{ fontSize: 12.8, fontWeight: 550 }} className="truncate-cell">{row.title}</p>
@@ -131,7 +131,7 @@ export function LandingPage() {
               return (
                 <article className="card feature" key={feature.title}>
                   <div className="row" style={{ gap: 9, marginBottom: 8 }}>
-                    <span style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(61,220,151,0.09)', display: 'grid', placeItems: 'center', color: '#7defbb' }}>
+                    <span style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(61,220,151,0.09)', display: 'grid', placeItems: 'center', color: 'var(--color-mint-bright)' }}>
                       <Icon size={15} aria-hidden="true" />
                     </span>
                     <h3>{feature.title}</h3>
@@ -152,7 +152,7 @@ export function LandingPage() {
               { n: '03', title: 'Rehearse', body: 'Run credential stuffing, API abuse, phishing, insider and ransomware scenarios on synthetic data, then export the findings.' },
             ].map((step) => (
               <div className="card" key={step.n} style={{ padding: 18 }}>
-                <p className="mono" style={{ color: '#3ddc97' }}>{step.n}</p>
+                <p className="mono" style={{ color: 'var(--color-mint)' }}>{step.n}</p>
                 <h3 style={{ marginTop: 6, fontSize: 15 }}>{step.title}</h3>
                 <p className="small muted" style={{ marginTop: 6 }}>{step.body}</p>
               </div>
@@ -204,8 +204,8 @@ function AuthAside() {
           ].map((item) => {
             const Icon = item.icon;
             return (
-              <li key={item.text} className="row" style={{ gap: 10, color: '#b9c8d6', fontSize: 13 }}>
-                <span style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(61,220,151,0.1)', display: 'grid', placeItems: 'center', color: '#7defbb' }}>
+              <li key={item.text} className="row" style={{ gap: 10, color: 'var(--color-ink-soft)', fontSize: 13 }}>
+                <span style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(61,220,151,0.1)', display: 'grid', placeItems: 'center', color: 'var(--color-mint-bright)' }}>
                   <Icon size={14} aria-hidden="true" />
                 </span>
                 {item.text}
@@ -227,6 +227,12 @@ const ROLE_COPY: Record<string, { label: string; body: string }> = {
   Viewer: { label: 'Viewer', body: 'Read-only access across every module.' },
 };
 
+/** Only same-origin absolute paths may be used as a post-login destination. */
+function safeNext(value: string | null): string {
+  if (!value || !value.startsWith('/') || value.startsWith('//')) return '/overview';
+  return value;
+}
+
 export function LoginPage() {
   useTitle('Sign in');
   const { login, user, refresh } = useAuth();
@@ -240,7 +246,7 @@ export function LoginPage() {
   const [mfaStep, setMfaStep] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const next = params.get('next') ?? '/overview';
+  const next = safeNext(params.get('next'));
   const demoAccounts = useApi<DemoAccount[]>('/auth/demo-accounts');
   const accounts = demoAccounts.data ?? [];
   const selected = accounts.find((account) => account.email === selectedEmail) ?? accounts[0];
@@ -499,7 +505,7 @@ export function SignupPage() {
             By creating an account you accept the <Link to="/terms" style={{ textDecoration: 'underline' }}>terms</Link> and{' '}
             <Link to="/privacy" style={{ textDecoration: 'underline' }}>privacy notice</Link>.
           </p>
-          <p className="small muted">Already have an account? <Link to="/login" style={{ color: '#7defbb' }}>Sign in</Link></p>
+          <p className="small muted">Already have an account? <Link to="/login" style={{ color: 'var(--color-mint-bright)' }}>Sign in</Link></p>
         </div>
       </div>
     </div>
@@ -516,9 +522,9 @@ export function PrivacyPage() {
       <main className="public-main" style={{ maxWidth: 820 }}>
         <h1 className="page-title" style={{ fontSize: 30 }}>Privacy notice</h1>
         <p className="small faint" style={{ marginTop: 6 }}>Last updated {new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-        <div className="stack" style={{ marginTop: 24, fontSize: 13.5, lineHeight: 1.65, color: '#c3d2df' }}>
+        <div className="stack" style={{ marginTop: 24, fontSize: 13.5, lineHeight: 1.65, color: 'var(--color-ink-soft)' }}>
           <section>
-            <h2 style={{ fontSize: 16, color: '#e8eef5' }}>What this deployment stores</h2>
+            <h2 style={{ fontSize: 16, color: 'var(--color-ink-strong)' }}>What this deployment stores</h2>
             <p style={{ marginTop: 6 }}>
               Account records (name, email, role, organization) are stored in a local SQLite database next to the application.
               Passwords are stored as scrypt hashes, never in plain text. Security events, assets, incidents, investigations,
@@ -527,14 +533,14 @@ export function PrivacyPage() {
             </p>
           </section>
           <section>
-            <h2 style={{ fontSize: 16, color: '#e8eef5' }}>Cookies</h2>
+            <h2 style={{ fontSize: 16, color: 'var(--color-ink-strong)' }}>Cookies</h2>
             <p style={{ marginTop: 6 }}>
               One cookie is set: <code className="mono">sf_session</code>. It is HttpOnly, SameSite=Lax, and used only to keep you
               signed in. No analytics, advertising or third-party cookies are set by this application.
             </p>
           </section>
           <section>
-            <h2 style={{ fontSize: 16, color: '#e8eef5' }}>Data that can leave the platform</h2>
+            <h2 style={{ fontSize: 16, color: 'var(--color-ink-strong)' }}>Data that can leave the platform</h2>
             <p style={{ marginTop: 6 }}>
               If a VirusTotal or AbuseIPDB API key is configured by the operator, indicators you look up (IP addresses, domains,
               URLs or file hashes) are sent to that provider. If no key is configured, lookups stay local and the interface says so.
@@ -543,7 +549,7 @@ export function PrivacyPage() {
             </p>
           </section>
           <section>
-            <h2 style={{ fontSize: 16, color: '#e8eef5' }}>Retention and deletion</h2>
+            <h2 style={{ fontSize: 16, color: 'var(--color-ink-strong)' }}>Retention and deletion</h2>
             <p style={{ marginTop: 6 }}>
               The workspace settings include a retention target in days. Retention is a configuration value in this build and is not
               enforced by an automatic deletion job, so records remain until an operator removes them. Account deletion and bulk export
@@ -552,7 +558,7 @@ export function PrivacyPage() {
             </p>
           </section>
           <section>
-            <h2 style={{ fontSize: 16, color: '#e8eef5' }}>Contact</h2>
+            <h2 style={{ fontSize: 16, color: 'var(--color-ink-strong)' }}>Contact</h2>
             <p style={{ marginTop: 6 }}>
               This deployment does not have a verified contact address configured. The operator of this instance is responsible for
               privacy requests. No placeholder contact details are shown.
@@ -577,9 +583,9 @@ export function TermsPage() {
       <main className="public-main" style={{ maxWidth: 820 }}>
         <h1 className="page-title" style={{ fontSize: 30 }}>Terms of use</h1>
         <p className="small faint" style={{ marginTop: 6 }}>Last updated {new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-        <div className="stack" style={{ marginTop: 24, fontSize: 13.5, lineHeight: 1.65, color: '#c3d2df' }}>
+        <div className="stack" style={{ marginTop: 24, fontSize: 13.5, lineHeight: 1.65, color: 'var(--color-ink-soft)' }}>
           <section>
-            <h2 style={{ fontSize: 16, color: '#e8eef5' }}>What this software is</h2>
+            <h2 style={{ fontSize: 16, color: 'var(--color-ink-strong)' }}>What this software is</h2>
             <p style={{ marginTop: 6 }}>
               SecureFlow AI is a security operations workspace. It records events, computes deterministic detections, manages incidents,
               stores evidence and runs synthetic attack simulations. Detection scores and simulation outcomes are advisory. They are not a
@@ -587,7 +593,7 @@ export function TermsPage() {
             </p>
           </section>
           <section>
-            <h2 style={{ fontSize: 16, color: '#e8eef5' }}>Acceptable use</h2>
+            <h2 style={{ fontSize: 16, color: 'var(--color-ink-strong)' }}>Acceptable use</h2>
             <p style={{ marginTop: 6 }}>
               Use the platform only on systems and data you are authorised to handle. Do not use the URL scanner to probe networks you do
               not control; it refuses loopback, private, link local and reserved addresses, but that control is not a substitute for
@@ -595,14 +601,14 @@ export function TermsPage() {
             </p>
           </section>
           <section>
-            <h2 style={{ fontSize: 16, color: '#e8eef5' }}>Simulations</h2>
+            <h2 style={{ fontSize: 16, color: 'var(--color-ink-strong)' }}>Simulations</h2>
             <p style={{ marginTop: 6 }}>
               Simulations run entirely on synthetic data inside the application. They do not attack real systems, and their results must
               not be presented as real detections or predictions. Every simulation report carries this label.
             </p>
           </section>
           <section>
-            <h2 style={{ fontSize: 16, color: '#e8eef5' }}>Availability and liability</h2>
+            <h2 style={{ fontSize: 16, color: 'var(--color-ink-strong)' }}>Availability and liability</h2>
             <p style={{ marginTop: 6 }}>
               This is a self-hosted build provided as is, without warranty. The operator is responsible for backups, access control,
               patching and lawful operation. To the extent permitted by law, the authors are not liable for loss arising from use of the
@@ -610,7 +616,7 @@ export function TermsPage() {
             </p>
           </section>
           <section>
-            <h2 style={{ fontSize: 16, color: '#e8eef5' }}>Third party components</h2>
+            <h2 style={{ fontSize: 16, color: 'var(--color-ink-strong)' }}>Third party components</h2>
             <p style={{ marginTop: 6 }}>
               Optional integrations with MiroFish (AGPL-3.0) and API Anything (MIT) remain under their own licenses and are documented in
               the project repository. No third party code is presented as part of this application's own license.
@@ -633,7 +639,7 @@ export function NotFoundPage() {
     <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24 }}>
       <div className="card" style={{ maxWidth: 460, padding: 28, textAlign: 'center' }}>
         <div className="empty-icon" style={{ margin: '0 auto 12px' }}><Layers size={18} aria-hidden="true" /></div>
-        <p className="mono" style={{ color: '#3ddc97' }}>404</p>
+        <p className="mono" style={{ color: 'var(--color-mint)' }}>404</p>
         <h1 style={{ fontSize: 20, marginTop: 6 }}>That page does not exist</h1>
         <p className="small muted" style={{ marginTop: 8 }}>
           The link may be out of date. The workspace has every module reachable from the sidebar.

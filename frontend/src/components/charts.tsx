@@ -50,8 +50,8 @@ export function TrendChart({ data, series, height = 210, valueSuffix = '' }: {
         {gridLines.map((g) => (
           <g key={g}>
             <line x1={padding.left} x2={width - padding.right} y1={padding.top + innerH * g} y2={padding.top + innerH * g}
-              stroke="#1b2836" strokeWidth="1" strokeDasharray={g === 1 ? '0' : '3 4'} />
-            <text x={padding.left - 6} y={padding.top + innerH * g + 3} textAnchor="end" fontSize="9" fill="#6b7f92">
+              stroke="var(--color-chart-grid)" strokeWidth="1" strokeDasharray={g === 1 ? '0' : '3 4'} />
+            <text x={padding.left - 6} y={padding.top + innerH * g + 3} textAnchor="end" fontSize="9" fill="var(--color-faint)">
               {Math.round(max * (1 - g))}
             </text>
           </g>
@@ -65,14 +65,14 @@ export function TrendChart({ data, series, height = 210, valueSuffix = '' }: {
             <g key={s.key}>
               <defs>
                 <linearGradient id={`${id}-${s.key}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={s.color} stopOpacity="0.26" />
-                  <stop offset="100%" stopColor={s.color} stopOpacity="0.01" />
+                  <stop offset="0%" style={{ stopColor: s.color }} stopOpacity="0.26" />
+                  <stop offset="100%" style={{ stopColor: s.color }} stopOpacity="0.01" />
                 </linearGradient>
               </defs>
               <path d={area} fill={`url(#${id}-${s.key})`} />
-              <path d={line} fill="none" stroke={s.color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+              <path d={line} fill="none" style={{ stroke: s.color }} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
               {points.length <= 20 && points.map(([px, py], i) => (
-                <circle key={i} cx={px} cy={py} r="2.4" fill="#0b131b" stroke={s.color} strokeWidth="1.6" />
+                <circle key={i} cx={px} cy={py} r="2.4" style={{ fill: "var(--color-chart-point)", stroke: s.color }} strokeWidth="1.6" />
               ))}
             </g>
           );
@@ -81,7 +81,7 @@ export function TrendChart({ data, series, height = 210, valueSuffix = '' }: {
           const step = Math.max(1, Math.ceil(data.length / 7));
           if (i % step !== 0 && i !== data.length - 1) return null;
           return (
-            <text key={i} x={x(i)} y={height - 6} textAnchor="middle" fontSize="9" fill="#6b7f92">
+            <text key={i} x={x(i)} y={height - 6} textAnchor="middle" fontSize="9" fill="var(--color-faint)">
               {String(row.day ?? row.label ?? '').slice(5)}
             </text>
           );
@@ -92,7 +92,7 @@ export function TrendChart({ data, series, height = 210, valueSuffix = '' }: {
   );
 }
 
-export function BarChart({ data, color = '#3ddc97', height = 190, format }: {
+export function BarChart({ data, color = 'var(--color-mint)', height = 190, format }: {
   data: { label: string; value: number }[];
   color?: string;
   height?: number;
@@ -113,11 +113,11 @@ export function BarChart({ data, color = '#3ddc97', height = 190, format }: {
         const barHeight = Math.max(2, (d.value / max) * innerH);
         return (
           <g key={`${d.label}-${i}`}>
-            <rect x={cx - barWidth / 2} y={padding.top + innerH - barHeight} width={barWidth} height={barHeight} rx="3" fill={color} opacity={0.9} />
-            <text x={cx} y={padding.top + innerH - barHeight - 5} textAnchor="middle" fontSize="9.5" fill="#94a6b8">
+            <rect x={cx - barWidth / 2} y={padding.top + innerH - barHeight} width={barWidth} height={barHeight} rx="3" style={{ fill: color }} opacity={0.9} />
+            <text x={cx} y={padding.top + innerH - barHeight - 5} textAnchor="middle" fontSize="9.5" fill="var(--color-muted)">
               {format ? format(d.value) : d.value}
             </text>
-            <text x={cx} y={height - 8} textAnchor="middle" fontSize="9" fill="#6b7f92">{d.label}</text>
+            <text x={cx} y={height - 8} textAnchor="middle" fontSize="9" fill="var(--color-faint)">{d.label}</text>
           </g>
         );
       })}
@@ -138,19 +138,19 @@ export function Donut({ segments, centerValue, centerLabel, size = 168 }: {
   return (
     <div className="row" style={{ gap: 16, flexWrap: 'wrap' }}>
       <svg width={size} height={size} viewBox="0 0 140 140" role="img" aria-label={segments.map((s) => `${s.label}: ${s.value}`).join(', ')}>
-        <circle cx="70" cy="70" r={radius} fill="none" stroke="#16222d" strokeWidth="14" />
+        <circle cx="70" cy="70" r={radius} fill="none" stroke="var(--color-callout)" strokeWidth="14" />
         {segments.filter((s) => s.value > 0).map((s) => {
           const length = (s.value / total) * circumference;
           const dash = `${length} ${circumference - length}`;
           const el = (
-            <circle key={s.label} cx="70" cy="70" r={radius} fill="none" stroke={s.color} strokeWidth="14"
+            <circle key={s.label} cx="70" cy="70" r={radius} fill="none" style={{ stroke: s.color }} strokeWidth="14"
               strokeDasharray={dash} strokeDashoffset={-offset} transform="rotate(-90 70 70)" strokeLinecap="butt" />
           );
           offset += length;
           return el;
         })}
-        <text x="70" y="68" textAnchor="middle" fontSize="20" fontWeight="650" fill="#e8eef5">{centerValue}</text>
-        <text x="70" y="84" textAnchor="middle" fontSize="9" fill="#6b7f92">{centerLabel}</text>
+        <text x="70" y="68" textAnchor="middle" fontSize="20" fontWeight="650" fill="var(--color-ink-strong)">{centerValue}</text>
+        <text x="70" y="84" textAnchor="middle" fontSize="9" fill="var(--color-faint)">{centerLabel}</text>
       </svg>
       <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 7, flex: 1, minWidth: 140 }}>
         {segments.map((s) => (
@@ -165,7 +165,7 @@ export function Donut({ segments, centerValue, centerLabel, size = 168 }: {
   );
 }
 
-export function RankBars({ items, color = '#58a6ff', maxValue }: {
+export function RankBars({ items, color = 'var(--color-info-text)', maxValue }: {
   items: { label: string; value: number; hint?: string }[];
   color?: string;
   maxValue?: number;
@@ -179,7 +179,7 @@ export function RankBars({ items, color = '#58a6ff', maxValue }: {
           <div className="bar-track" aria-hidden="true">
             <div className="bar-fill" style={{ width: `${Math.min(100, (item.value / max) * 100)}%`, background: color }} />
           </div>
-          <span className="right mono" style={{ color: '#94a6b8' }}>{item.hint ?? item.value}</span>
+          <span className="right mono" style={{ color: 'var(--color-muted)' }}>{item.hint ?? item.value}</span>
         </div>
       ))}
       {items.length === 0 && <p className="small faint">No data in this window.</p>}
@@ -187,7 +187,7 @@ export function RankBars({ items, color = '#58a6ff', maxValue }: {
   );
 }
 
-export function Sparkline({ values, color = '#3ddc97', width = 86, height = 26 }: { values: number[]; color?: string; width?: number; height?: number }) {
+export function Sparkline({ values, color = 'var(--color-mint)', width = 86, height = 26 }: { values: number[]; color?: string; width?: number; height?: number }) {
   if (!values.length) return null;
   const max = Math.max(...values, 1);
   const min = Math.min(...values, 0);
@@ -199,7 +199,7 @@ export function Sparkline({ values, color = '#3ddc97', width = 86, height = 26 }
   }).join(' ');
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden="true" style={{ overflow: 'visible' }}>
-      <polyline points={points} fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+      <polyline points={points} fill="none" style={{ stroke: color }} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
     </svg>
   );
 }
@@ -209,14 +209,14 @@ export function RiskGauge({ score, size = 132 }: { score?: number | null; size?:
   const radius = 48;
   const circumference = Math.PI * radius;
   const dash = (value / 100) * circumference;
-  const color = value >= 85 ? '#ff6b6b' : value >= 70 ? '#ff9f43' : value >= 40 ? '#f5c451' : '#3ddc97';
+  const color = value >= 85 ? 'var(--color-red)' : value >= 70 ? 'var(--color-orange)' : value >= 40 ? 'var(--color-amber)' : 'var(--color-mint)';
   return (
     <svg width={size} height={size * 0.62} viewBox="0 0 120 74" role="img" aria-label={`Risk score ${score ?? 0} out of 100`}>
-      <path d="M12 62 A48 48 0 0 1 108 62" fill="none" stroke="#16222d" strokeWidth="9" strokeLinecap="round" />
-      <path d="M12 62 A48 48 0 0 1 108 62" fill="none" stroke={color} strokeWidth="9" strokeLinecap="round"
+      <path d="M12 62 A48 48 0 0 1 108 62" fill="none" stroke="var(--color-callout)" strokeWidth="9" strokeLinecap="round" />
+      <path d="M12 62 A48 48 0 0 1 108 62" fill="none" style={{ stroke: color }} strokeWidth="9" strokeLinecap="round"
         strokeDasharray={`${dash} ${circumference}`} />
-      <text x="60" y="56" textAnchor="middle" fontSize="22" fontWeight="650" fill="#e8eef5">{score ?? '—'}</text>
-      <text x="60" y="68" textAnchor="middle" fontSize="8" fill="#6b7f92">RISK / 100</text>
+      <text x="60" y="56" textAnchor="middle" fontSize="22" fontWeight="650" fill="var(--color-ink-strong)">{score ?? '—'}</text>
+      <text x="60" y="68" textAnchor="middle" fontSize="8" fill="var(--color-faint)">RISK / 100</text>
     </svg>
   );
 }

@@ -131,7 +131,7 @@ export function Field({ label, htmlFor, hint, error, children, required }: {
     : children;
   return (
     <div className="field">
-      <label className="label" htmlFor={htmlFor}>{label}{required && <span style={{ color: '#ff9f43' }}> *</span>}</label>
+      <label className="label" htmlFor={htmlFor}>{label}{required && <span style={{ color: 'var(--color-orange)' }}> *</span>}</label>
       {control}
       {hint && !error && <span className="hint">{hint}</span>}
       {error && <span className="err" id={errorId} role="alert">{error}</span>}
@@ -185,7 +185,7 @@ export function EmptyState({ title, body, action, icon }: { title: string; body?
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div className="empty" role="alert">
-      <div className="empty-icon" style={{ color: '#ff9f8f' }}><AlertTriangle size={18} aria-hidden="true" /></div>
+      <div className="empty-icon" style={{ color: 'var(--color-danger-text-2)' }}><AlertTriangle size={18} aria-hidden="true" /></div>
       <p className="empty-title">Could not load this view</p>
       <p className="empty-body">{message}</p>
       {onRetry && <div style={{ marginTop: 12 }}><Button onClick={onRetry} size="sm">Try again</Button></div>}
@@ -351,7 +351,7 @@ export function ToastViewport({ toasts, onDismiss }: { toasts: ToastItem[]; onDi
       {toasts.map((toast) => (
         <div key={toast.id} className={`toast ${toast.kind === 'error' ? 'error' : toast.kind === 'warn' ? 'warn' : ''}`} role="status">
           <div style={{ marginTop: 1 }}>
-            {toast.kind === 'success' ? <Check size={14} color="#3ddc97" aria-hidden="true" /> : <AlertTriangle size={14} color={toast.kind === 'error' ? '#ff6b6b' : '#f5c451'} aria-hidden="true" />}
+            {toast.kind === 'success' ? <Check size={14} color="var(--color-mint)" aria-hidden="true" /> : <AlertTriangle size={14} color={toast.kind === 'error' ? 'var(--color-red)' : 'var(--color-amber)'} aria-hidden="true" />}
           </div>
           <div style={{ flex: 1 }}>
             <div className="toast-title">{toast.title}</div>

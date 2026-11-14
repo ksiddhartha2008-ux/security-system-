@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { evaluateTxtRecords, classifyDnsError, createTxtResolver } from '../src/lib/dnsTxt.js';
+import { evaluateTxtRecords, classifyDnsError, createTxtResolver, withTimeout } from '../src/lib/dnsTxt.js';
 
 const expected = 'secureflow-site-verification=token';
 
@@ -53,4 +53,39 @@ test('the file resolver is deterministic and reports missing names as ENODATA', 
   assert.deepEqual(await resolver.resolveTxt('_secureflow-challenge.split.example.test'), [['secureflow-site-', 'verification=token']]);
   await assert.rejects(() => resolver.resolveTxt('_secureflow-challenge.missing.example.test'), (error) => error.code === 'ENODATA');
   await assert.rejects(() => resolver.resolveTxt('_secureflow-challenge.timeout.example.test'), (error) => error.code === 'ETIMEOUT');
+});
+
+test('a lookup that rejects after the timeout does not crash the process', async () => {
+  const unhandled = [];
+  const onUnhandled = (reason) => unhandled.push(reason);
+  process.on('unhandledRejection', onUnhandled);
+  try {
+    const late = new Promise((_, reject) => setTimeout(() => {
+      const error = new Error('late ENOTFOUND');
+      error.code = 'ENOTFOUND';
+      reject(error);
+    }, 80));
+    await assert.rejects(withTimeout(late, 20), /timed out/);
+    await new Promise((resolve) => setTimeout(resolve, 140));
+    assert.deepEqual(unhandled, []);
+  } finally {
+    process.off('unhandledRejection', onUnhandled);
+  }
+});
+
+test('the real resolver fails a missing name without an unhandled rejection', async () => {
+  const unhandled = [];
+  const onUnhandled = (reason) => unhandled.push(reason);
+  process.on('unhandledRejection', onUnhandled);
+  try {
+    const resolver = createTxtResolver({ fakeFile: '', timeoutMs: 2500 });
+    await assert.rejects(
+      resolver.resolveTxt('_secureflow-challenge.missing.example.invalid'),
+      (error) => ['ENOTFOUND', 'ENODATA', 'ETIMEOUT', 'ESERVFAIL'].includes(error.code),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    assert.deepEqual(unhandled, []);
+  } finally {
+    process.off('unhandledRejection', onUnhandled);
+  }
 });

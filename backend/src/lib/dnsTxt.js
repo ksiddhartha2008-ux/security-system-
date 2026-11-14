@@ -71,23 +71,33 @@ export function createTxtResolver({ fakeFile = process.env.SF_DNS_FAKE_FILE, tim
   return {
     kind: 'dns',
     async resolveTxt(name) {
-      const attempt = new Promise((resolve, reject) => {
-        resolver.resolveTxt(name, (error, records) => {
-          if (error) reject(error);
-          else resolve(records);
-        });
-      });
-      const timeout = new Promise((_, reject) => {
-        const timer = setTimeout(() => {
-          const error = new Error('dns lookup timed out');
-          error.code = 'ETIMEOUT';
-          reject(error);
-        }, timeoutMs);
-        timer.unref?.();
-      });
-      return Promise.race([attempt, timeout]);
+      // `node:dns/promises` Resolver returns a promise. Passing a callback here
+      // would leave the returned promise unobserved, so a failed lookup would
+      // surface as an unhandled rejection and stop the process.
+      return withTimeout(resolver.resolveTxt(name), timeoutMs);
     },
   };
+}
+
+/**
+ * Race a promise against a timer without leaking the loser.
+ *
+ * Node treats a rejection that nobody observes as fatal. When the timeout wins,
+ * the DNS attempt may reject later; attaching a no-op catch keeps that rejection
+ * handled so a slow lookup cannot crash the API process.
+ */
+export function withTimeout(promise, timeoutMs, message = 'dns lookup timed out') {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      const error = new Error(message);
+      error.code = 'ETIMEOUT';
+      reject(error);
+    }, timeoutMs);
+    timer.unref?.();
+  });
+  promise.catch(() => {});
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 function normalizeFakeRecords(value) {

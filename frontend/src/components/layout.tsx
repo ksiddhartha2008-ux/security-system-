@@ -14,6 +14,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { useAuth } from '../lib/auth';
 import { useApi, useEventStream } from '../lib/hooks';
 import { initials, ROLE_LABEL } from '../lib/format';
+import { CyberFluidBackground } from './CyberFluidBackground';
 import { useThemeMode, type ThemeMode } from '../lib/theme/ThemeMode';
 
 const NAV = [
@@ -258,8 +259,11 @@ export function AppShellLayout() {
         </SideNav>
       )}
     >
-      <div className="page">
-        <Outlet />
+      <div className="content-shell">
+        <CyberFluidBackground />
+        <div className="page">
+          <Outlet />
+        </div>
       </div>
     </AppShell>
   );

@@ -3,7 +3,7 @@ import { Activity, Building2, KeyRound, PlugZap, ScrollText, ShieldCheck } from 
 import { PageHeader } from '../components/layout';
 import {
   Badge, Button, Card, EmptyState, ErrorState, Field, KeyValue, Pagination, StatusBadge,
-  TableSkeleton, Tabs, useToast, InlineNotice, CopyButton,
+  TableSkeleton, Tabs, TabPanel, useToast, InlineNotice, CopyButton,
 } from '../components/ui';
 import { useApi } from '../lib/hooks';
 import { api, ApiError } from '../lib/api';
@@ -31,7 +31,7 @@ export default function SettingsPage() {
   return (
     <>
       <PageHeader title="Settings" subtitle="Workspace configuration, integration status, the audit trail and system health." />
-      <Tabs active={tab} onChange={setTab} tabs={[
+      <Tabs active={tab} onChange={setTab} id="settings" label="Settings sections" tabs={[
         { key: 'organization', label: 'Organization' },
         { key: 'integrations', label: 'Integrations' },
         { key: 'audit', label: 'Audit log' },
@@ -40,12 +40,14 @@ export default function SettingsPage() {
         { key: 'account', label: 'Your account' },
       ]} />
 
-      {tab === 'organization' && <OrganizationTab canAdmin={permissions.canAdmin} />}
-      {tab === 'integrations' && <IntegrationsTab canAdmin={permissions.canAdmin} />}
-      {tab === 'audit' && <AuditTab canAdmin={permissions.canAdmin} />}
-      {tab === 'health' && <HealthTab />}
-      {tab === 'security' && <SecurityTab />}
-      {tab === 'account' && <AccountTab />}
+      <TabPanel id="settings" active={tab}>
+        {tab === 'organization' && <OrganizationTab canAdmin={permissions.canAdmin} />}
+        {tab === 'integrations' && <IntegrationsTab canAdmin={permissions.canAdmin} />}
+        {tab === 'audit' && <AuditTab canAdmin={permissions.canAdmin} />}
+        {tab === 'health' && <HealthTab />}
+        {tab === 'security' && <SecurityTab />}
+        {tab === 'account' && <AccountTab />}
+      </TabPanel>
       <p className="tiny faint" style={{ marginTop: 18 }}>
         Signed in as {user?.email} · workspace {organization?.name} · {formatDate(new Date().toISOString())}
       </p>
@@ -441,7 +443,7 @@ function SecurityTab() {
             <div>
               <p className="label">Secret</p>
               <div className="row" style={{ gap: 8 }}>
-                <code className="code-block" style={{ flex: 1 }}>{setup.secret}</code>
+                <code className="code-block" tabIndex={0} style={{ flex: 1 }}>{setup.secret}</code>
                 <CopyButton value={setup.secret} label="Copy" />
               </div>
             </div>

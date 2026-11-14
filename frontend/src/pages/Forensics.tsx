@@ -113,7 +113,7 @@ export default function ForensicsPage() {
             ]} />
             <div>
               <p className="label">SHA-256</p>
-              <pre className="code-block">{detail.data.sha256}</pre>
+              <pre className="code-block" tabIndex={0}>{detail.data.sha256}</pre>
             </div>
             {!detail.data.filePresent && <InlineNotice tone="error">The stored file is missing from disk. The hash record remains, but integrity cannot be verified.</InlineNotice>}
             <div>

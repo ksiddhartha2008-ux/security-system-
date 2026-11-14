@@ -1,5 +1,5 @@
 import {
-  Children, cloneElement, createContext, isValidElement, useCallback, useContext, useEffect, useId, useMemo, useRef, useState,
+  Children, cloneElement, createContext, isValidElement, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState,
   type ReactElement, type ReactNode, type ButtonHTMLAttributes,
 } from 'react';
 import { AlertTriangle, Check, ChevronLeft, ChevronRight, Copy, Inbox, Loader2, Search, X } from 'lucide-react';
@@ -218,21 +218,100 @@ export function Progress({ value, label }: { value: number; label?: string }) {
   );
 }
 
-export function Tabs<T extends string>({ tabs, active, onChange }: { tabs: { key: T; label: string; count?: number }[]; active: T; onChange: (key: T) => void }) {
+export function Tabs<T extends string>({ tabs, active, onChange, id, label }: {
+  tabs: { key: T; label: string; count?: number }[];
+  active: T;
+  onChange: (key: T) => void;
+  /** When set, tabs and the matching TabPanel share ids for aria-controls. */
+  id?: string;
+  label?: string;
+}) {
+  const generated = useId().replace(/:/g, '');
+  const baseId = id ?? `tabs-${generated}`;
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const buttons = useRef(new Map<T, HTMLButtonElement>());
+  const [pill, setPill] = useState({ left: 0, top: 0, width: 0, height: 0, ready: false });
+  const [animated, setAnimated] = useState(false);
+
+  const measure = useCallback(() => {
+    const button = buttons.current.get(active);
+    if (!button) return;
+    setPill({ left: button.offsetLeft, top: button.offsetTop, width: button.offsetWidth, height: button.offsetHeight, ready: true });
+  }, [active]);
+
+  useLayoutEffect(() => { measure(); }, [measure, tabs.length]);
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return undefined;
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    for (const button of buttons.current.values()) observer.observe(button);
+    const onResize = () => measure();
+    window.addEventListener('resize', onResize);
+    const raf = requestAnimationFrame(() => setAnimated(true));
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', onResize);
+      cancelAnimationFrame(raf);
+    };
+  }, [measure]);
+
+  const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const keys = tabs.map((tab) => tab.key);
+    const current = keys.indexOf(active);
+    let next = current;
+    if (event.key === 'ArrowRight') next = (current + 1) % keys.length;
+    else if (event.key === 'ArrowLeft') next = (current - 1 + keys.length) % keys.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = keys.length - 1;
+    else return;
+    event.preventDefault();
+    const key = keys[next];
+    onChange(key);
+    requestAnimationFrame(() => buttons.current.get(key)?.focus());
+  };
+
   return (
-    <div className="tabs" role="tablist">
-      {tabs.map((tab) => (
-        <button
-          key={tab.key}
-          role="tab"
-          aria-selected={active === tab.key}
-          className={`tab ${active === tab.key ? 'active' : ''}`}
-          onClick={() => onChange(tab.key)}
-          type="button"
-        >
-          {tab.label}{tab.count !== undefined ? ` (${tab.count})` : ''}
-        </button>
-      ))}
+    <div className="tabs" role="tablist" aria-label={label} ref={listRef} onKeyDown={onKeyDown}>
+      {pill.ready && (
+        <span
+          className={`tab-pill${animated ? ' is-animating' : ''}`}
+          aria-hidden="true"
+          style={{ left: pill.left, top: pill.top, width: pill.width, height: pill.height }}
+        />
+      )}
+      {tabs.map((tab) => {
+        const selected = active === tab.key;
+        return (
+          <button
+            key={tab.key}
+            ref={(node) => {
+              if (node) buttons.current.set(tab.key, node);
+              else buttons.current.delete(tab.key);
+            }}
+            role="tab"
+            id={id ? `${baseId}-tab-${tab.key}` : undefined}
+            aria-selected={selected}
+            aria-controls={id ? `${baseId}-panel` : undefined}
+            tabIndex={selected ? 0 : -1}
+            className={`tab ${selected ? 'active' : ''}`}
+            onClick={() => onChange(tab.key)}
+            type="button"
+          >
+            {tab.label}{tab.count !== undefined ? ` (${tab.count})` : ''}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Animated panel for a single tab strip. Remounts on tab change to replay the transition. */
+export function TabPanel({ id, active, children }: { id: string; active: string; children: ReactNode }) {
+  return (
+    <div key={active} id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-tab-${active}`} className="tab-panel">
+      {children}
     </div>
   );
 }

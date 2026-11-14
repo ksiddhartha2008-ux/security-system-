@@ -105,7 +105,7 @@ export default function DetectionsPage() {
       {tab === 'queue' ? (
         <Card bodyClass="">
           <div style={{ padding: '0 16px' }}>
-            <Tabs active={status} onChange={(key) => { setStatus(key); setPage(1); }} tabs={[
+            <Tabs active={status} onChange={(key) => { setStatus(key); setPage(1); }} label="Detection status" tabs={[
               { key: 'open', label: 'Open', count: summary.data?.status.open ?? 0 },
               { key: 'confirmed', label: 'Confirmed', count: summary.data?.status.confirmed ?? 0 },
               { key: 'false_positive', label: 'False positive', count: summary.data?.status.false_positive ?? 0 },
@@ -220,7 +220,7 @@ export default function DetectionsPage() {
 
             <div>
               <p className="label">Observed values</p>
-              <pre className="code-block">{JSON.stringify(detail.data.explanation.observed ?? {}, null, 2)}</pre>
+              <pre className="code-block" tabIndex={0}>{JSON.stringify(detail.data.explanation.observed ?? {}, null, 2)}</pre>
             </div>
 
             {detail.data.event && (

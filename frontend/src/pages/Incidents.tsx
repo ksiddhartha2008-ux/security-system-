@@ -56,6 +56,7 @@ export function IncidentsPage() {
           <Tabs
             active={tab}
             onChange={(key) => { setTab(key); setPage(1); }}
+            label="Incident status"
             tabs={[{ key: 'all', label: 'All', count: total }, ...STATUSES.map((s) => ({ key: s, label: s[0].toUpperCase() + s.slice(1), count: counts[s] ?? 0 }))]}
           />
         </div>

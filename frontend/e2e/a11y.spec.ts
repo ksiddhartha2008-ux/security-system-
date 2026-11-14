@@ -76,6 +76,47 @@ test.describe('accessibility', () => {
     await expect(dialog).toBeHidden();
   });
 
+  test('the website detail tabs are accessible in both themes', async ({ page, request }) => {
+    const response = await request.get('/api/v1/websites');
+    const body = await response.json();
+    let id = body?.data?.[0]?.id;
+    if (!id) {
+      const state = await request.storageState();
+      const csrf = state.cookies.find((cookie) => cookie.name === 'sf_csrf')?.value;
+      const created = await request.post('/api/v1/websites', {
+        data: { url: `https://a11y-${Date.now()}.example.test/` },
+        headers: csrf ? { 'x-csrf-token': csrf } : {},
+      });
+      if (created.ok()) id = (await created.json())?.data?.site?.id;
+    }
+    test.skip(!id, 'no website could be created for the detail scan');
+    for (const theme of ['dark', 'light'] as const) {
+      await page.goto(`/websites/${id}`);
+      await page.evaluate((value) => window.localStorage.setItem('sf-theme', value), theme);
+      await page.reload();
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      await page.waitForLoadState('networkidle');
+      await scan(page, `website-detail-${theme}`);
+    }
+  });
+
+  test('the active tab pill moves and arrow keys change the tab', async ({ page }) => {
+    await page.goto('/settings');
+    const pill = page.locator('.tab-pill');
+    await expect(pill).toBeVisible();
+    const before = await pill.boundingBox();
+    await page.getByRole('tab', { name: 'Integrations' }).click();
+    await expect(page.getByRole('tab', { name: 'Integrations' })).toHaveAttribute('aria-selected', 'true');
+    await page.waitForTimeout(420);
+    const after = await pill.boundingBox();
+    expect(after?.x ?? 0).toBeGreaterThan(before?.x ?? 0);
+    await expect(page.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', /settings-tab-integrations/);
+    await page.getByRole('tab', { name: 'Integrations' }).focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('tab', { name: 'Audit log' })).toBeFocused();
+    await expect(page.getByRole('tab', { name: 'Audit log' })).toHaveAttribute('aria-selected', 'true');
+  });
+
   test('the theme choice survives a reload without a flash of the other theme', async ({ page }) => {
     await page.goto('/settings');
     await page.getByRole('button', { name: /account menu/i }).click();

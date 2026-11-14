@@ -171,7 +171,7 @@ export default function MonitoringPage() {
             {detail.data.description && <p className="small muted">{detail.data.description}</p>}
             <div>
               <p className="label" style={{ marginBottom: 6 }}>Raw payload</p>
-              <pre className="code-block">{JSON.stringify(detail.data.raw, null, 2)}</pre>
+              <pre className="code-block" tabIndex={0}>{JSON.stringify(detail.data.raw, null, 2)}</pre>
             </div>
             <div>
               <p className="label" style={{ marginBottom: 6 }}>Detections from this event ({detail.data.detections.length})</p>

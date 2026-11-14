@@ -7,7 +7,7 @@ import {
 import { PageHeader } from '../components/layout';
 import {
   Badge, Button, Card, Checkbox, ConfirmDialog, CopyButton, ErrorState, Field, InlineNotice,
-  KeyValue, Modal, Pagination, RiskBadge, StatusBadge, TableSkeleton, Tabs, useToast,
+  KeyValue, Modal, Pagination, RiskBadge, StatusBadge, TableSkeleton, Tabs, TabPanel, useToast,
 } from '../components/ui';
 import { RecentAuthDialog, isRecentAuthError } from '../components/RecentAuth';
 import { api, download, ApiError } from '../lib/api';
@@ -213,33 +213,35 @@ export default function WebsiteDetailPage() {
         </div>
       )}
 
-      <Tabs tabs={tabs} active={tab} onChange={setTab} />
+      <Tabs tabs={tabs} active={tab} onChange={setTab} id="website" label="Website sections" />
 
-      {tab === 'overview' && <Overview site={site} onVerify={verifyNow} busy={busy} />}
-      {tab === 'events' && <EventsTab siteId={id} />}
-      {tab === 'detections' && <DetectionsTab siteId={id} />}
-      {tab === 'incidents' && <IncidentsTab siteId={id} />}
-      {tab === 'keys' && (
-        <KeysTab
-          siteId={id}
-          site={site}
-          canAdmin={permissions.canAdmin}
-          version={keysVersion}
-          onAdd={() => { setKeyLabel('production'); setKeyModal(true); }}
-          onRevoke={(row) => setRevokeTarget(row)}
-        />
-      )}
-      {tab === 'verification' && (
-        <VerificationTab site={site} onVerify={verifyNow} onRestart={restart} busy={busy} message={verifyMessage} />
-      )}
-      {tab === 'settings' && (
-        <SettingsTab
-          site={site}
-          onSaved={detail.refresh}
-          onDelete={() => { setDeleteText(''); setDeleteOpen(true); }}
-          onDeleteData={() => { setDataDeleteText(''); setDataDeleteOpen(true); }}
-        />
-      )}
+      <TabPanel id="website" active={tab}>
+        {tab === 'overview' && <Overview site={site} onVerify={verifyNow} busy={busy} />}
+        {tab === 'events' && <EventsTab siteId={id} />}
+        {tab === 'detections' && <DetectionsTab siteId={id} />}
+        {tab === 'incidents' && <IncidentsTab siteId={id} />}
+        {tab === 'keys' && (
+          <KeysTab
+            siteId={id}
+            site={site}
+            canAdmin={permissions.canAdmin}
+            version={keysVersion}
+            onAdd={() => { setKeyLabel('production'); setKeyModal(true); }}
+            onRevoke={(row) => setRevokeTarget(row)}
+          />
+        )}
+        {tab === 'verification' && (
+          <VerificationTab site={site} onVerify={verifyNow} onRestart={restart} busy={busy} message={verifyMessage} />
+        )}
+        {tab === 'settings' && (
+          <SettingsTab
+            site={site}
+            onSaved={detail.refresh}
+            onDelete={() => { setDeleteText(''); setDeleteOpen(true); }}
+            onDeleteData={() => { setDataDeleteText(''); setDataDeleteOpen(true); }}
+          />
+        )}
+      </TabPanel>
 
       <Modal
         open={keyModal}
@@ -283,7 +285,7 @@ export default function WebsiteDetailPage() {
           <Lock size={14} aria-hidden="true" style={{ display: 'inline', marginRight: 6 }} />
           Anyone with this key can send events for this website, and only this website. The key is not written to browser storage or logs.
         </div>
-        <pre className="code-block" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{createdKey?.apiKey}</pre>
+        <pre className="code-block" tabIndex={0} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{createdKey?.apiKey}</pre>
         <div className="row" style={{ gap: 8 }}>
           <CopyButton value={createdKey?.apiKey ?? ''} label="Copy key" />
           <span className="tiny faint">key id <span className="mono">{createdKey?.keyId}</span></span>
@@ -415,7 +417,7 @@ function Overview({ site, onVerify, busy }: { site: WebsiteDetail; onVerify: () 
           actions={<CopyButton value={site.installSnippet} label="Copy example" />}
           className="website-snippet"
         >
-          <pre className="code-block">{site.installSnippet}</pre>
+          <pre className="code-block" tabIndex={0}>{site.installSnippet}</pre>
           <p className="tiny faint" style={{ marginTop: 10 }}>
             Set SECUREFLOW_API_KEY in the environment. Set SECUREFLOW_ACTOR_PEPPER to a value you keep; changing it breaks pseudonym continuity.
             Other languages can post to the same endpoint with the documented HTTP API in docs/website/HTTP_API.md.

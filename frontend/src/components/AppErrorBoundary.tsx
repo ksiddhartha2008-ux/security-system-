@@ -25,7 +25,7 @@ export class AppErrorBoundary extends Component<Props, State> {
           <p className="small muted" style={{ marginTop: 8 }}>
             The error was logged to the browser console. Reload the page, or return to the overview.
           </p>
-          <pre className="code-block" style={{ marginTop: 12 }}>{this.state.error.message}</pre>
+          <pre className="code-block" tabIndex={0} style={{ marginTop: 12 }}>{this.state.error.message}</pre>
           <div className="row" style={{ marginTop: 14, gap: 8 }}>
             <button className="btn btn-primary" type="button" onClick={() => window.location.assign('/overview')}>Back to overview</button>
             <button className="btn" type="button" onClick={() => window.location.reload()}>Reload</button>

@@ -155,7 +155,7 @@ export default function ReportsPage() {
             )}
             <div>
               <p className="label">Markdown source</p>
-              <pre className="code-block" style={{ maxHeight: 260 }}>{detail.data.bodyMd}</pre>
+              <pre className="code-block" tabIndex={0} style={{ maxHeight: 260 }}>{detail.data.bodyMd}</pre>
             </div>
           </>
         )}

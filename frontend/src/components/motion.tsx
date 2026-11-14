@@ -1,4 +1,4 @@
-import { createElement, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { createElement, useEffect, useRef, useState, type CSSProperties, type PointerEventHandler, type ReactNode } from 'react';
 import { formatMetric, useInView, useReducedMotion, type RevealDirection } from '../lib/motion';
 
 type Tag = 'div' | 'section' | 'article' | 'li';
@@ -15,6 +15,8 @@ export function ScrollReveal({
   style,
   id,
   ariaLabel,
+  onPointerMove,
+  onPointerLeave,
 }: {
   children: ReactNode;
   as?: Tag;
@@ -27,6 +29,8 @@ export function ScrollReveal({
   style?: CSSProperties;
   id?: string;
   ariaLabel?: string;
+  onPointerMove?: PointerEventHandler<HTMLElement>;
+  onPointerLeave?: PointerEventHandler<HTMLElement>;
 }) {
   const reduced = useReducedMotion();
   const { ref, inView } = useInView<HTMLElement>({ once });
@@ -46,6 +50,8 @@ export function ScrollReveal({
       className: `reveal${hover ? ' reveal-hover' : ''}${visible ? ' is-visible' : ''}${className ? ` ${className}` : ''}`,
       'data-reveal': direction,
       style: revealedStyle,
+      onPointerMove,
+      onPointerLeave,
     },
     children,
   );

@@ -76,6 +76,25 @@ test.describe('accessibility', () => {
     await expect(dialog).toBeHidden();
   });
 
+  test('the public landing page has no serious violations in both themes', async ({ page }) => {
+    for (const theme of ['dark', 'light'] as const) {
+      await page.goto('/');
+      await page.evaluate((value) => window.localStorage.setItem('sf-theme', value), theme);
+      await page.reload();
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      await page.waitForLoadState('networkidle');
+      await scan(page, `landing-${theme}`);
+    }
+  });
+
+  test('the landing navigation opens at mobile width', async ({ page }) => {
+    await page.setViewportSize({ width: 488, height: 800 });
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Open navigation' }).click();
+    await expect(page.locator('#lp-mobile-nav')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Close navigation' })).toHaveAttribute('aria-expanded', 'true');
+  });
+
   test('the website detail tabs are accessible in both themes', async ({ page, request }) => {
     const response = await request.get('/api/v1/websites');
     const body = await response.json();

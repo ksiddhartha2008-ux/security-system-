@@ -2,12 +2,16 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Activity, ArrowRight, Check, FileSearch, Fingerprint, FlaskConical, Gauge, Info, KeyRound,
-  Layers, LockKeyhole, ShieldCheck, Siren, Sparkles,
+  Layers, Menu, ShieldCheck, Siren, X,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { useApi } from '../lib/hooks';
 import { api, ApiError } from '../lib/api';
 import { Badge } from '../components/ui';
+import { ThemeSwitch } from '../components/ThemeSwitch';
+import { PublicShader } from '../components/PublicShader';
+import { AnimatedMetric, ScrollReveal } from '../components/motion';
+import './landing.css';
 
 export function useTitle(title: string) {
   useEffect(() => {
@@ -59,121 +63,321 @@ function PublicFooter() {
 }
 
 const CAPABILITIES = [
-  { icon: Activity, title: 'Event pipeline', body: 'Normalise authentication, endpoint, email and network telemetry into one searchable stream.' },
-  { icon: Gauge, title: 'Deterministic detection', body: 'Threshold rules score every detection and store the factors behind the number.' },
-  { icon: Siren, title: 'Incident response', body: 'Move an incident from open to contained to resolved, with an immutable timeline.' },
-  { icon: FileSearch, title: 'Investigation workspace', body: 'Correlate assets, indicators and analyst notes against high severity telemetry.' },
-  { icon: Fingerprint, title: 'Evidence integrity', body: 'Seal artefacts with SHA-256 and record every custody action.' },
-  { icon: FlaskConical, title: 'Threat simulation lab', body: 'Rehearse five attack scenarios against synthetic data and read the resulting risk score.' },
+  { icon: Activity, title: 'Live monitoring', tag: 'Visibility layer', body: 'Normalise authentication, endpoint, email and network telemetry into one searchable stream.' },
+  { icon: Gauge, title: 'Explainable detection', tag: 'Detection layer', body: 'Threshold rules score every detection and store the factors behind the number.' },
+  { icon: Siren, title: 'Incident response', tag: 'Response workflow', body: 'Move an incident from open to contained to resolved, with an immutable timeline.' },
+  { icon: FileSearch, title: 'Investigation workspace', tag: 'Context layer', body: 'Correlate assets, indicators and analyst notes against high severity telemetry.' },
+  { icon: Fingerprint, title: 'Evidence integrity', tag: 'Investigation layer', body: 'Seal artefacts with SHA-256 and record every custody action.' },
+  { icon: FlaskConical, title: 'Threat simulation lab', tag: 'Synthetic rehearsal', body: 'Rehearse five attack scenarios against synthetic data and read the resulting risk score.' },
 ];
+
+const LANDING_STATS = [
+  { value: 15, label: 'Platform modules' },
+  { value: 3, label: 'Workspace roles' },
+  { value: 5, label: 'Simulation scenarios' },
+  { value: 41, label: 'Database tables' },
+];
+
+const LANDING_LINKS = [
+  { href: '#platform', label: 'Platform' },
+  { href: '#workflow', label: 'How it works' },
+  { href: '#security', label: 'Security' },
+  { href: '#status', label: 'Status' },
+];
+
+function LandingWave() {
+  return (
+    <div className="lp-wave" aria-hidden="true">
+      <div className="lp-wave-track">
+        {[0, 1].map((copy) => (
+          <svg key={copy} viewBox="0 0 600 70" preserveAspectRatio="none">
+            <path d="M0 35 Q75 0 150 35 T300 35 T450 35 T600 35" fill="none" style={{ stroke: 'var(--color-blue)' }} strokeOpacity="0.55" strokeWidth="2" />
+            <path d="M0 48 Q75 14 150 48 T300 48 T450 48 T600 48" fill="none" style={{ stroke: 'var(--color-violet)' }} strokeOpacity="0.4" strokeWidth="1.5" />
+          </svg>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LandingNav() {
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+  return (
+    <header className="lp-topbar" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}>
+      <div className="lp-wrap lp-nav">
+        <Link to="/" className="lp-brand">
+          <span className="lp-brand-mark" aria-hidden="true">SF</span>
+          <span>SecureFlow <span style={{ color: 'var(--color-blue)' }}>AI</span></span>
+          <span className="sr-only">SecureFlow AI home</span>
+        </Link>
+
+        <nav className="lp-links" aria-label="Landing navigation">
+          {LANDING_LINKS.map((link) => <a key={link.href} href={link.href}>{link.label}</a>)}
+        </nav>
+
+        <div className="lp-nav-actions">
+          <div className="lp-theme"><ThemeSwitch /></div>
+          {user ? (
+            <Link to="/overview" className="btn btn-primary btn-sm">Open workspace</Link>
+          ) : (
+            <>
+              <Link to="/login" className="btn btn-sm">Sign in</Link>
+              <Link to="/login" className="btn btn-primary btn-sm">Open demo</Link>
+            </>
+          )}
+          <button
+            type="button"
+            className="lp-menu-btn"
+            aria-expanded={open}
+            aria-controls="lp-mobile-nav"
+            aria-label={open ? 'Close navigation' : 'Open navigation'}
+            onClick={() => setOpen((value) => !value)}
+          >
+            {open ? <X size={16} aria-hidden="true" /> : <Menu size={16} aria-hidden="true" />}
+          </button>
+        </div>
+      </div>
+
+      {open && (
+        <div className="lp-mobile" id="lp-mobile-nav">
+          <nav aria-label="Landing navigation mobile">
+            {LANDING_LINKS.map((link) => (
+              <a key={link.href} href={link.href} onClick={close}>{link.label}</a>
+            ))}
+            <Link to="/login" onClick={close}>Sign in</Link>
+          </nav>
+          <div>
+            <p className="tiny faint" style={{ marginBottom: 6 }}>Appearance</p>
+            <ThemeSwitch />
+          </div>
+        </div>
+      )}
+    </header>
+  );
+}
 
 export function LandingPage() {
   useTitle('Intelligent cybersecurity operations');
   const { user } = useAuth();
+  const primary = user ? '/overview' : '/login';
+
+  const spotlight = (event: React.PointerEvent<HTMLElement>) => {
+    if (event.pointerType !== 'mouse') return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    event.currentTarget.style.setProperty('--mx', `${event.clientX - rect.left}px`);
+    event.currentTarget.style.setProperty('--my', `${event.clientY - rect.top}px`);
+  };
+
   return (
-    <div className="public-shell">
-      <PublicNav />
-      <main className="public-main">
-        <section className="hero">
-          <div>
-            <span className="chip"><Sparkles size={12} aria-hidden="true" /> Security operations for small teams</span>
-            <h1 style={{ marginTop: 16 }}>See the signal. Work the incident. Rehearse the attack.</h1>
-            <p>
-              SecureFlow AI is one workspace for monitoring, detection, incident response and threat simulation.
-              It is built for teams that need a defensible process more than another dashboard.
+    <div className="public-shell lp-shell">
+      <LandingNav />
+      <main>
+        <section className="lp-hero">
+          <PublicShader />
+          <div className="lp-orbit" aria-hidden="true" />
+          <div className="lp-wrap lp-hero-content">
+            <span className="lp-eyebrow"><span className="lp-pulse" aria-hidden="true" /> Intelligent security operations</span>
+            <h1>See the signal.<br /><span className="lp-gradient">Stop the threat.</span></h1>
+            <p className="lp-lead">
+              One command center for monitoring, detection, investigation and response.
+              SecureFlow AI turns scattered signals into a security workflow your team can explain and audit.
             </p>
-            <div className="hero-actions">
-              <Link to={user ? '/overview' : '/login'} className="btn btn-primary btn-lg">
-                Open the demo workspace <ArrowRight size={15} aria-hidden="true" />
+            <div className="lp-actions">
+              <Link to={primary} className="btn btn-primary">
+                {user ? 'Open the workspace' : 'Open the demo workspace'} <ArrowRight size={15} aria-hidden="true" />
               </Link>
-              <a href="#capabilities" className="btn btn-lg">See what is inside</a>
+              <a href="#platform" className="btn">See what is inside</a>
             </div>
-            <p className="hero-note">
-              The demo workspace ships with synthetic events, assets and incidents. It contacts no production system.
-            </p>
+            <p className="lp-micro">Unified visibility · Explainable detection · Human-approved response</p>
           </div>
 
-          <div className="card" style={{ overflow: 'hidden' }}>
-            <div className="card-head">
-              <div>
-                <p className="card-title">Incident queue</p>
-                <p className="card-sub">Live view from the demo workspace</p>
-              </div>
-              <span className="badge badge-mint" style={{ marginLeft: 'auto' }}><span className="dot" />Demo data</span>
-            </div>
-            <div style={{ padding: '8px 0' }}>
-              {[
-                { ref: 'INC-2026-1001', title: 'Ransomware behaviour on finance workstation', severity: 'critical', status: 'investigating' },
-                { ref: 'INC-2026-1002', title: 'Credential stuffing against the sign-in service', severity: 'high', status: 'contained' },
-                { ref: 'INC-2026-1004', title: 'Payroll phishing campaign reported by staff', severity: 'high', status: 'investigating' },
-                { ref: 'INC-2026-1003', title: 'API enumeration of customer identifiers', severity: 'medium', status: 'open' },
-              ].map((row) => (
-                <div key={row.ref} className="row" style={{ padding: '11px 16px', borderBottom: '1px solid var(--color-callout)', gap: 10 }}>
-                  <span className={`badge badge-${row.severity}`}><span className="dot" />{row.severity}</span>
-                  <div style={{ minWidth: 0 }}>
-                    <p style={{ fontSize: 12.8, fontWeight: 550 }} className="truncate-cell">{row.title}</p>
-                    <p className="tiny faint">{row.ref} · {row.status}</p>
+          <div className="lp-wrap lp-preview-wrap">
+            <div className="lp-preview">
+              <div className="lp-preview-inner">
+                <div className="lp-preview-top">
+                  <div className="lp-preview-brand">
+                    <span style={{ color: 'var(--color-blue)' }} aria-hidden="true">⬡</span> SecureFlow command center
+                  </div>
+                  <div className="lp-preview-live">● Illustrative preview</div>
+                </div>
+                <div className="lp-preview-tiles">
+                  {[
+                    { label: 'Monitoring', value: 'Streaming', note: 'Continuously' },
+                    { label: 'Detection', value: 'Explainable', note: 'Stored factors' },
+                    { label: 'Response', value: 'Approval gated', note: 'Server side' },
+                    { label: 'Evidence', value: 'Hash sealed', note: 'SHA-256' },
+                  ].map((tile) => (
+                    <div className="lp-tile" key={tile.label}>
+                      <small>{tile.label}</small>
+                      <strong>{tile.value}</strong>
+                      <em>{tile.note}</em>
+                    </div>
+                  ))}
+                </div>
+                <div className="lp-preview-lower">
+                  <div className="lp-panel">
+                    <h4>Signal path</h4>
+                    <div className="lp-path">
+                      {['Collect and normalise', 'Detect and score', 'Investigate with context', 'Respond with approval'].map((step) => (
+                        <span className="lp-path-step" key={step}><i aria-hidden="true" />{step}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="lp-panel">
+                    <h4>Sample signals</h4>
+                    <div className="lp-signal"><span>Failed sign-in burst</span><b>HIGH</b></div>
+                    <div className="lp-signal"><span>New site key created</span><b>REVIEW</b></div>
+                    <div className="lp-signal"><span>Endpoint isolated</span><b className="ok">CONTAINED</b></div>
                   </div>
                 </div>
-              ))}
-            </div>
-            <div className="card-foot row tiny faint">
-              <LockKeyhole size={12} aria-hidden="true" /> Sample rows, not production incidents
-            </div>
-          </div>
-        </section>
-
-        <section id="capabilities">
-          <h2 className="section-title">Fifteen modules, one application</h2>
-          <div className="feature-grid">
-            {CAPABILITIES.map((feature) => {
-              const Icon = feature.icon;
-              return (
-                <article className="card feature" key={feature.title}>
-                  <div className="row" style={{ gap: 9, marginBottom: 8 }}>
-                    <span style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(61,220,151,0.09)', display: 'grid', placeItems: 'center', color: 'var(--color-mint-bright)' }}>
-                      <Icon size={15} aria-hidden="true" />
-                    </span>
-                    <h3>{feature.title}</h3>
-                  </div>
-                  <p>{feature.body}</p>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-
-        <section id="workflow">
-          <h2 className="section-title">A process you can audit</h2>
-          <div className="grid grid-3">
-            {[
-              { n: '01', title: 'Collect', body: 'Events arrive through the API from identity, endpoint, email, network and scanner sources. Every record is scoped to your organization.' },
-              { n: '02', title: 'Decide', body: 'Rules produce explainable detections. Analysts confirm, dismiss or promote them into incidents with a full timeline.' },
-              { n: '03', title: 'Rehearse', body: 'Run credential stuffing, API abuse, phishing, insider and ransomware scenarios on synthetic data, then export the findings.' },
-            ].map((step) => (
-              <div className="card" key={step.n} style={{ padding: 18 }}>
-                <p className="mono" style={{ color: 'var(--color-mint)' }}>{step.n}</p>
-                <h3 style={{ marginTop: 6, fontSize: 15 }}>{step.title}</h3>
-                <p className="small muted" style={{ marginTop: 6 }}>{step.body}</p>
               </div>
+            </div>
+            <p className="lp-preview-note">Illustrative interface with sample labels. No live customer data.</p>
+          </div>
+        </section>
+
+        <LandingWave />
+
+        <section id="platform" className="lp-section">
+          <div className="lp-wrap">
+            <ScrollReveal className="lp-section-head">
+              <span className="lp-kicker">The platform</span>
+              <h2>From noisy signals to <span className="lp-gradient">decisive action.</span></h2>
+              <p className="lp-section-copy">
+                Fifteen connected modules cover visibility, detection, investigation and response.
+                Each one reads and writes the same workspace data, so context follows the incident.
+              </p>
+            </ScrollReveal>
+            <div className="lp-features">
+              {CAPABILITIES.map((feature, index) => {
+                const Icon = feature.icon;
+                return (
+                  <ScrollReveal
+                    as="article"
+                    className="lp-feature"
+                    delay={index * 55}
+                    key={feature.title}
+                    onPointerMove={spotlight}
+                  >
+                    <div className="lp-feature-icon"><Icon size={19} aria-hidden="true" /></div>
+                    <h3>{feature.title}</h3>
+                    <p>{feature.body}</p>
+                    <span className="lp-tag">{feature.tag}</span>
+                  </ScrollReveal>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <div className="lp-band">
+          <div className="lp-wrap lp-stats">
+            {LANDING_STATS.map((stat) => (
+              <ScrollReveal className="lp-stat" key={stat.label}>
+                <strong><AnimatedMetric value={stat.value} /></strong>
+                <span>{stat.label}</span>
+              </ScrollReveal>
             ))}
           </div>
+        </div>
+
+        <section id="workflow" className="lp-section">
+          <div className="lp-wrap">
+            <ScrollReveal className="lp-section-head">
+              <span className="lp-kicker">How it works</span>
+              <h2>A connected path from <span className="lp-gradient">event to outcome.</span></h2>
+              <p className="lp-section-copy">
+                The workflow keeps evidence, decisions and response activity connected instead of
+                spread across disconnected tools.
+              </p>
+            </ScrollReveal>
+            <ol className="lp-steps">
+              {[
+                { title: 'Collect and normalise', body: 'Receive security events from configured sources, validate them and normalise the data for analysis.' },
+                { title: 'Detect and prioritise', body: 'Apply deterministic rules, correlate related signals and calculate risk so attention goes to what matters.' },
+                { title: 'Investigate with context', body: 'Review incident details, assets, intelligence and evidence in one workspace with one timeline.' },
+                { title: 'Respond and record', body: 'Coordinate authorised response, keep the audit trail and report the outcome without losing history.' },
+              ].map((step, index) => (
+                <ScrollReveal as="li" className="lp-step" delay={index * 55} key={step.title}>
+                  <span className="lp-step-n" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+                  <h3>{step.title}</h3>
+                  <p>{step.body}</p>
+                </ScrollReveal>
+              ))}
+            </ol>
+          </div>
         </section>
 
-        <section style={{ marginTop: 46 }} className="card">
-          <div className="card-body row" style={{ gap: 18, flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 260 }}>
-              <h2 style={{ fontSize: 19, fontWeight: 620 }}>Start with the demo workspace</h2>
-              <p className="small muted" style={{ marginTop: 6 }}>
-                Sign in with a seeded account to explore every module. Data is synthetic and clearly labelled.
+        <LandingWave />
+
+        <section id="security" className="lp-section">
+          <div className="lp-wrap lp-split">
+            <ScrollReveal>
+              <span className="lp-kicker">Built for accountable security</span>
+              <h2>Intelligence with <span className="lp-gradient">human control.</span></h2>
+              <p className="lp-section-copy">
+                Security decisions need more than a glowing status. SecureFlow AI is built around
+                explainable signals, scoped access and approval-aware response.
               </p>
-              <ul className="small muted" style={{ margin: '12px 0 0', paddingLeft: 18, display: 'grid', gap: 5 }}>
-                <li>Three roles: admin, security analyst and viewer</li>
-                <li>Real backend: every button calls an endpoint</li>
-                <li>Simulation engine with five scenarios</li>
+              <ul className="lp-bullets">
+                {[
+                  ['Explainable detection', 'every score shows the stored factors behind it.'],
+                  ['Human-approved response', 'sensitive actions stay subject to server-side authorisation.'],
+                  ['Traceable operations', 'the audit chain records security-relevant activity per workspace.'],
+                  ['Tenant-aware design', 'the organisation comes from the session, never from the request body.'],
+                ].map(([title, body]) => (
+                  <li key={title}><span className="lp-check" aria-hidden="true">✓</span><span><b>{title}:</b> {body}</span></li>
+                ))}
               </ul>
-            </div>
-            <Link to="/login" className="btn btn-primary btn-lg">Sign in <ArrowRight size={15} aria-hidden="true" /></Link>
+              <a href="#status" className="btn">Read the honest status</a>
+            </ScrollReveal>
+
+            <ScrollReveal className="lp-radar-card" delay={80}>
+              <div className="lp-radar-head"><span>Security posture map</span><b>● Signal active</b></div>
+              <div className="lp-radar" aria-hidden="true">
+                <div className="lp-radar-center">
+                  <strong>AUDIT</strong>
+                  <span>Traceable by design</span>
+                </div>
+              </div>
+              <div className="lp-radar-head"><span>Detection context</span><b style={{ color: 'var(--color-blue)' }}>Monitoring view</b></div>
+            </ScrollReveal>
+          </div>
+        </section>
+
+        <section id="status" className="lp-section" style={{ paddingTop: 20 }}>
+          <div className="lp-wrap">
+            <ScrollReveal className="lp-section-head">
+              <span className="lp-kicker">Honest status</span>
+              <h2>What is real today</h2>
+            </ScrollReveal>
+            <ScrollReveal className="lp-status">
+              <Info size={18} className="lp-status-icon" aria-hidden="true" />
+              <p>
+                <b>This deployment runs on controlled sample data.</b> Automated response actions are
+                simulations, not firewall or endpoint changes. It has not had an independent penetration
+                test and is not verified as production ready. The repository documents each limitation.
+              </p>
+            </ScrollReveal>
+          </div>
+        </section>
+
+        <section className="lp-cta" id="contact">
+          <div className="lp-wrap">
+            <ScrollReveal className="lp-cta-box">
+              <span className="lp-eyebrow"><span className="lp-pulse" aria-hidden="true" /> Make every signal count</span>
+              <h2>Bring your security picture <span className="lp-gradient">into focus.</span></h2>
+              <p>Explore the seeded demo workspace and follow one event from ingestion to incident, evidence and report.</p>
+              <div className="lp-actions" style={{ marginBottom: 0 }}>
+                <Link to={primary} className="btn btn-primary">
+                  {user ? 'Open the workspace' : 'Open the demo workspace'} <ArrowRight size={15} aria-hidden="true" />
+                </Link>
+                {!user && <Link to="/signup" className="btn">Create a workspace</Link>}
+              </div>
+              <p className="lp-micro" style={{ marginTop: 14 }}>Demo records are synthetic and labelled throughout the product.</p>
+            </ScrollReveal>
           </div>
         </section>
       </main>

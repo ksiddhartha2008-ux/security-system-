@@ -21,6 +21,8 @@
   --color-orange: #ffa35c;
   --color-red: #ff6b6e;
   --color-blue: #61b3ff;
+  --color-violet: #a56bff;
+  --color-pink: #ff5dc8;
   --radius-card: 12px;
 }
 
@@ -101,6 +103,8 @@ html[data-theme="light"] {
   --color-orange: #b45309;
   --color-red: #c0242b;
   --color-blue: #1257b8;
+  --color-violet: #6d35c9;
+  --color-pink: #a61a64;
 
   --color-on-mint: #ffffff;
   --color-mint-hover: #06653f;
@@ -345,6 +349,20 @@ h1.page-title { font-size: 22px; line-height: 1.25; }
 }
 
 .animated-metric { font-variant-numeric: tabular-nums; }
+
+.theme-switch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; }
+.theme-switch button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 6px 4px; border-radius: 6px; border: 1px solid transparent;
+  background: transparent; color: var(--color-text-secondary); font-size: 11px; cursor: pointer;
+  transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+.theme-switch button:hover { color: var(--color-text-primary); }
+.theme-switch button[aria-pressed="true"] {
+  border-color: var(--color-border-emphasized);
+  background: var(--color-background-surface);
+  color: var(--color-text-primary);
+}
 
 .user-menu { animation: menu-in 140ms var(--motion-ease) both; transform-origin: top right; }
 @keyframes menu-in {

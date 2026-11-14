@@ -381,6 +381,13 @@ h1.page-title { font-size: 22px; line-height: 1.25; }
   .chart-area { animation: chart-fade 520ms ease-out both; }
   .chart-arc { animation: chart-fade 520ms ease-out both; }
   .bar-fill { transform-origin: left center; animation: bar-in 520ms var(--motion-ease) both; }
+
+  .timeline-item { animation: row-in 260ms var(--motion-ease) both; }
+  .timeline-item:nth-child(2) { animation-delay: 30ms; }
+  .timeline-item:nth-child(3) { animation-delay: 60ms; }
+  .timeline-item:nth-child(4) { animation-delay: 90ms; }
+  .timeline-item:nth-child(5) { animation-delay: 120ms; }
+  .timeline-item:nth-child(n + 6) { animation: none; }
 }
 
 @keyframes metric-in {

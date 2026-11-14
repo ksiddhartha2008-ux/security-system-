@@ -44,6 +44,7 @@ No animation dependency was added. The bundle grew by about 5 kB of JavaScript f
 - First ten rows fade and rise with an 18 ms stagger.
 - Rows from eleven onward have no animation, so a large table never creates hundreds of animations.
 - Rows use opacity and translation only, keeping valid table markup.
+- Incident, investigation and forensic timelines animate the first five entries with a 30 ms stagger.
 
 ### Charts and cards
 

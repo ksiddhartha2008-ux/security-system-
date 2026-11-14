@@ -70,8 +70,8 @@ export default function AutomationPage() {
       <div className="grid grid-2" style={{ marginTop: 14 }}>
         {workflows.loading && <Card><TableSkeleton rows={4} cols={2} /></Card>}
         {workflows.error && <Card><ErrorState message={workflows.error} onRetry={workflows.refresh} /></Card>}
-        {(workflows.data ?? []).map((workflow) => (
-          <Card key={workflow.id} title={workflow.name} subtitle={`${titleCase(workflow.triggerType)} · ${workflow.executionCount ?? 0} executions`}
+        {(workflows.data ?? []).map((workflow, index) => (
+          <Card key={workflow.id} reveal revealDelay={index * 45} title={workflow.name} subtitle={`${titleCase(workflow.triggerType)} · ${workflow.executionCount ?? 0} executions`}
             actions={<>
               <Badge tone={workflow.enabled ? 'mint' : 'neutral'}>{workflow.enabled ? 'enabled' : 'disabled'}</Badge>
               {workflow.requiresApproval && <Badge tone="amber">approval</Badge>}

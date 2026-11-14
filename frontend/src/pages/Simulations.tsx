@@ -52,8 +52,8 @@ export default function SimulationsPage() {
       <div className="feature-grid">
         {scenarios.loading && Array.from({ length: 3 }).map((_, i) => <Card key={i}><TableSkeleton rows={3} cols={1} /></Card>)}
         {scenarios.error && <Card><ErrorState message={scenarios.error} onRetry={scenarios.refresh} /></Card>}
-        {(scenarios.data ?? []).map((scenario) => (
-          <Card key={scenario.key} title={scenario.name} subtitle={`${titleCase(scenario.category)} · ${scenario.defaultRounds} rounds · ${scenario.agents.length} agents`}
+        {(scenarios.data ?? []).map((scenario, index) => (
+          <Card key={scenario.key} reveal revealDelay={index * 45} title={scenario.name} subtitle={`${titleCase(scenario.category)} · ${scenario.defaultRounds} rounds · ${scenario.agents.length} agents`}
             actions={<Badge tone="mint">synthetic</Badge>}>
             <p className="small muted">{scenario.summary}</p>
             <div className="row wrap" style={{ gap: 4, marginTop: 10 }}>

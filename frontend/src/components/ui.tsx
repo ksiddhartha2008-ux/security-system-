@@ -6,6 +6,7 @@ import { AlertTriangle, Check, ChevronLeft, ChevronRight, Copy, Inbox, Loader2, 
 import type { Tone } from '../lib/format';
 import { Badge as AstryxBadge } from '@astryxdesign/core/Badge';
 import { TextInput } from '@astryxdesign/core/TextInput';
+import { ScrollReveal } from './motion';
 
 /* ------------------------------- badges ------------------------------- */
 
@@ -63,12 +64,12 @@ export function RoleBadge({ role }: { role: string }) {
 
 /* ------------------------------- layout ------------------------------- */
 
-export function Card({ title, subtitle, actions, children, footer, className = '', bodyClass = 'card-body' }: {
+export function Card({ title, subtitle, actions, children, footer, className = '', bodyClass = 'card-body', reveal = false, revealDelay = 0 }: {
   title?: ReactNode; subtitle?: ReactNode; actions?: ReactNode; children: ReactNode; footer?: ReactNode;
-  className?: string; bodyClass?: string;
+  className?: string; bodyClass?: string; reveal?: boolean; revealDelay?: number;
 }) {
-  return (
-    <section className={`card ${className}`}>
+  const inner = (
+    <>
       {(title || actions) && (
         <header className="card-head">
           <div style={{ minWidth: 0 }}>
@@ -80,8 +81,12 @@ export function Card({ title, subtitle, actions, children, footer, className = '
       )}
       <div className={bodyClass}>{children}</div>
       {footer && <div className="card-foot">{footer}</div>}
-    </section>
+    </>
   );
+  if (reveal) {
+    return <ScrollReveal as="section" className={`card ${className}`} delay={revealDelay}>{inner}</ScrollReveal>;
+  }
+  return <section className={`card ${className}`}>{inner}</section>;
 }
 
 export function KeyValue({ items }: { items: { label: string; value: ReactNode }[] }) {

@@ -11,6 +11,7 @@
     "theme:build": "cd src/lib/theme && astryx theme build secureflowTheme.ts --out secureflow.css",
     "check:theme": "cd src/lib/theme && astryx theme build secureflowTheme.ts --out secureflow.css --check",
     "test:a11y": "playwright test --project=chromium",
+    "test:motion": "node --experimental-strip-types --test e2e/motion.unit.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {

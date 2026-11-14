@@ -62,12 +62,12 @@ export default function OverviewPage() {
         <div className="grid grid-4">{Array.from({ length: 4 }).map((_, i) => <div className="card kpi" key={i}><div className="skeleton" style={{ height: 12, width: '50%' }} /><div className="skeleton" style={{ height: 26, width: '35%', marginTop: 12 }} /></div>)}</div>
       ) : (
         <div className="grid grid-4">
-          <MetricCard label="Security events · 24h" value={formatNumber(k.events24h)} icon={<Activity size={12} aria-hidden="true" />}
+          <MetricCard label="Security events · 24h" value={k.events24h ?? 0} icon={<Activity size={12} aria-hidden="true" />}
             foot={<><span style={{ color: 'var(--color-error)' }}>{formatNumber(k.criticalEvents)} critical</span> · {formatNumber(k.highSeverityEvents)} high or critical of {formatNumber(k.eventsTotal)} total</>}
             spark={<Sparkline values={(trends.data ?? []).slice(-14).map((t) => t.events)} />} />
-          <MetricCard label="Open incidents" value={formatNumber(k.incidentsOpen)} icon={<Siren size={12} aria-hidden="true" />}
+          <MetricCard label="Open incidents" value={k.incidentsOpen ?? 0} icon={<Siren size={12} aria-hidden="true" />}
             foot={<>{formatNumber(k.criticalIncidents)} critical · {formatNumber(k.incidents7d)} opened this week</>} />
-          <MetricCard label="Open detections" value={formatNumber(k.detectionsOpen)} icon={<Radar size={12} aria-hidden="true" />}
+          <MetricCard label="Open detections" value={k.detectionsOpen ?? 0} icon={<Radar size={12} aria-hidden="true" />}
             foot={<><span style={{ color: 'var(--color-warning)' }}>{formatNumber(k.detectionsHighRisk)} at risk ≥ 70</span> awaiting triage</>} />
           <MetricCard label="Assets at risk" value={`${formatNumber(k.assetsAtRisk)} / ${formatNumber(k.assetsTotal)}`} icon={<Server size={12} aria-hidden="true" />}
             foot={<>Mean risk {k.avgAssetRisk ?? 0}/100 · {formatNumber(k.criticalAssets)} critical assets</>} />
@@ -119,7 +119,7 @@ export default function OverviewPage() {
       </div>
 
       <div className="grid grid-2" style={{ marginTop: 14, gridTemplateColumns: '1.25fr 1fr' }}>
-        <Card title="Incidents needing a decision" subtitle="Highest severity first"
+        <Card title="Incidents needing a decision" subtitle="Highest severity first" reveal
           actions={<Link to="/incidents" className="btn btn-sm btn-ghost">All incidents <ArrowUpRight size={13} aria-hidden="true" /></Link>}
           bodyClass="">
           {summary.loading ? <TableSkeleton rows={4} cols={4} /> : (summary.data?.openIncidents.length ?? 0) === 0 ? (
@@ -140,7 +140,7 @@ export default function OverviewPage() {
           )}
         </Card>
 
-        <Card title="Asset risk" subtitle="Highest scoring assets" actions={<Link to="/assets" className="btn btn-sm btn-ghost">Inventory <ArrowUpRight size={13} aria-hidden="true" /></Link>}>
+        <Card title="Asset risk" subtitle="Highest scoring assets" reveal revealDelay={40} actions={<Link to="/assets" className="btn btn-sm btn-ghost">Inventory <ArrowUpRight size={13} aria-hidden="true" /></Link>}>
           <div className="stack" style={{ gap: 12 }}>
             {(summary.data?.topAssets ?? []).map((asset) => (
               <div key={asset.id} className="row" style={{ gap: 12 }}>
@@ -170,7 +170,7 @@ export default function OverviewPage() {
       </div>
 
       <div className="grid grid-2" style={{ marginTop: 14, gridTemplateColumns: '1.4fr 1fr' }}>
-        <Card title="Recent detections" subtitle="Newest rule matches, with the stored risk score" bodyClass=""
+        <Card title="Recent detections" subtitle="Newest rule matches, with the stored risk score" bodyClass="" reveal revealDelay={80}
           actions={<Link to="/detections" className="btn btn-sm btn-ghost">Detection queue <ArrowUpRight size={13} aria-hidden="true" /></Link>}>
           {detections.loading ? <TableSkeleton rows={4} cols={3} /> : detections.error ? (
             <ErrorState message={detections.error} onRetry={detections.refresh} />
@@ -196,7 +196,7 @@ export default function OverviewPage() {
           )}
         </Card>
 
-        <Card title="Monitoring status" subtitle="Connection and newest signal">
+        <Card title="Monitoring status" subtitle="Connection and newest signal" reveal>
           <div className="stack" style={{ gap: 12 }}>
             <div className="row-between">
               <span className="small muted">Event stream</span>
@@ -222,7 +222,7 @@ export default function OverviewPage() {
       </div>
 
       <div className="grid grid-2" style={{ marginTop: 14, gridTemplateColumns: '1.4fr 1fr' }}>
-        <Card title="Recent telemetry" subtitle="Newest events across every source" bodyClass="" actions={<Link to="/monitoring" className="btn btn-sm btn-ghost">Monitoring <ArrowUpRight size={13} aria-hidden="true" /></Link>}>
+        <Card title="Recent telemetry" subtitle="Newest events across every source" bodyClass="" reveal revealDelay={40} actions={<Link to="/monitoring" className="btn btn-sm btn-ghost">Monitoring <ArrowUpRight size={13} aria-hidden="true" /></Link>}>
           {summary.loading ? <TableSkeleton rows={6} cols={4} /> : (
             <div className="table-wrap">
               <table className="data">

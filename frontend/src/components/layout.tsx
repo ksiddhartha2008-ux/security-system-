@@ -15,6 +15,7 @@ import { useAuth } from '../lib/auth';
 import { useApi, useEventStream } from '../lib/hooks';
 import { initials, ROLE_LABEL } from '../lib/format';
 import { CyberFluidBackground } from './CyberFluidBackground';
+import { PageTransition } from './motion';
 import { useThemeMode, type ThemeMode } from '../lib/theme/ThemeMode';
 
 const NAV = [
@@ -191,7 +192,7 @@ export function AppShellLayout() {
                   <span className="sr-only">account menu</span>
                 </button>
                 {userOpen && (
-                  <div role="menu" style={{
+                  <div role="menu" className="user-menu" style={{
                     position: 'absolute', right: 0, top: 42, width: 232, background: 'var(--color-background-popover)',
                     border: '1px solid var(--color-border-emphasized)', borderRadius: 10, boxShadow: 'var(--shadow-2)', padding: 6, zIndex: 40,
                   }}>
@@ -262,7 +263,9 @@ export function AppShellLayout() {
       <div className="content-shell">
         <CyberFluidBackground />
         <div className="page">
-          <Outlet />
+          <PageTransition routeKey={location.pathname}>
+            <Outlet />
+          </PageTransition>
         </div>
       </div>
     </AppShell>

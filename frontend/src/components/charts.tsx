@@ -69,8 +69,8 @@ export function TrendChart({ data, series, height = 210, valueSuffix = '' }: {
                   <stop offset="100%" style={{ stopColor: s.color }} stopOpacity="0.01" />
                 </linearGradient>
               </defs>
-              <path d={area} fill={`url(#${id}-${s.key})`} />
-              <path d={line} fill="none" style={{ stroke: s.color }} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+              <path d={area} className="chart-area" fill={`url(#${id}-${s.key})`} />
+              <path d={line} className="chart-line" pathLength={1} fill="none" style={{ stroke: s.color }} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
               {points.length <= 20 && points.map(([px, py], i) => (
                 <circle key={i} cx={px} cy={py} r="2.4" style={{ fill: "var(--color-chart-point)", stroke: s.color }} strokeWidth="1.6" />
               ))}
@@ -143,7 +143,7 @@ export function Donut({ segments, centerValue, centerLabel, size = 168 }: {
           const length = (s.value / total) * circumference;
           const dash = `${length} ${circumference - length}`;
           const el = (
-            <circle key={s.label} cx="70" cy="70" r={radius} fill="none" style={{ stroke: s.color }} strokeWidth="14"
+            <circle key={s.label} cx="70" cy="70" r={radius} className="chart-arc" fill="none" style={{ stroke: s.color }} strokeWidth="14"
               strokeDasharray={dash} strokeDashoffset={-offset} transform="rotate(-90 70 70)" strokeLinecap="butt" />
           );
           offset += length;
@@ -199,7 +199,7 @@ export function Sparkline({ values, color = 'var(--color-mint)', width = 86, hei
   }).join(' ');
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden="true" style={{ overflow: 'visible' }}>
-      <polyline points={points} fill="none" style={{ stroke: color }} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+      <polyline points={points} className="chart-line" pathLength={1} fill="none" style={{ stroke: color }} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
     </svg>
   );
 }

@@ -49,6 +49,18 @@ const EMPTY_FEATURES = {
   trishield: { enabled: false, network: false, endpoint: false, ipShield: false, response: false, apply: false, autoApply: false },
 };
 
+/**
+ * A server from an older build may not send every feature flag. Merge the
+ * response onto the defaults so a missing field can never crash the shell.
+ */
+function normalizeFeatures(input?: Partial<AuthState['features']>): AuthState['features'] {
+  return {
+    ...EMPTY_FEATURES,
+    ...(input ?? {}),
+    trishield: { ...EMPTY_FEATURES.trishield, ...(input?.trishield ?? {}) },
+  };
+}
+
 const AuthContext = createContext<AuthState>({
   user: null,
   organization: null,
@@ -70,11 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const load = useCallback(async () => {
     try {
-      const data = await api.get<{ user: User; organization: Organization; permissions: AuthState['permissions']; features?: AuthState['features'] }>('/auth/me');
+      const data = await api.get<{ user: User; organization: Organization; permissions: AuthState['permissions']; features?: Partial<AuthState['features']> }>('/auth/me');
       setUser(data.user);
       setOrganization(data.organization);
       setPermissions(data.permissions);
-      setFeatures(data.features ?? EMPTY_FEATURES);
+      setFeatures(normalizeFeatures(data.features));
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setUser(null);

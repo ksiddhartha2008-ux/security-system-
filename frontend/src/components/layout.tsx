@@ -124,7 +124,7 @@ export function AppShellLayout() {
 
   const nav = NAV.map((group) => ({
     ...group,
-    items: group.items.filter((item) => (item.to !== '/websites' || features.websiteProtection) && (item.to !== '/trishield' || features.trishield.enabled)),
+    items: group.items.filter((item) => (item.to !== '/websites' || features.websiteProtection) && (item.to !== '/trishield' || features.trishield?.enabled === true)),
   }));
 
   const handleLogout = async () => {

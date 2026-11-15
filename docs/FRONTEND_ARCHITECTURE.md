@@ -114,4 +114,15 @@ npm --prefix frontend run check:theme
 npm test                  # backend and integration tests
 ```
 
-There is no frontend unit-test runner configured in this repository. UI checks are manual browser passes plus the DOM accessibility audit in `docs/ACCESSIBILITY.md`; backend integration tests cover the APIs the pages consume.
+There is no frontend unit-test runner. UI behaviour is covered by Playwright in `frontend/e2e`: the accessibility suite (every route in light and dark), the motion suite, a shell health suite that fails on any console or page error across all top level routes, and a resilience suite for version skew between an older API and a newer client.
+
+## Runtime resilience
+
+- `/auth/me` is the single source of feature flags. The client merges the response onto defaults, so a server from an older build that omits a flag degrades one entry instead of throwing during layout render.
+- The navigation filters each optional route behind its flag explicitly. A missing flag hides the entry; it never blanks the shell.
+- The TriShield route still explains that the feature is off when the flag is absent, instead of firing requests at an unmounted API.
+- `e2e/health.spec.ts` loads all seventeen top level routes and fails on any `pageerror`, any `console.error`, or the error boundary text.
+- `e2e/resilience.spec.ts` removes `features.trishield` from the `/auth/me` response and asserts the shell and the route both still render.
+
+When the API is updated, restart it before reloading a freshly built client. The health and resilience suites exist because a stale process serving an older `/auth/me` is a realistic failure, not a hypothetical one.
+

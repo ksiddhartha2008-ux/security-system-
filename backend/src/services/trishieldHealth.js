@@ -153,7 +153,7 @@ function definitionFor(key) {
 function latestChecks(orgId, integration, limit = 5) {
   return all(
     `SELECT state, ok, latency_ms, detail, version, checked_at FROM trishield_health_checks
-      WHERE org_id = ? AND integration = ? ORDER BY checked_at DESC LIMIT ?`,
+      WHERE org_id = ? AND integration = ? ORDER BY checked_at DESC, rowid DESC LIMIT ?`,
     orgId, integration, limit,
   );
 }
@@ -161,7 +161,7 @@ function latestChecks(orgId, integration, limit = 5) {
 function lastOf(orgId, integration, ok) {
   return get(
     `SELECT checked_at, detail FROM trishield_health_checks
-      WHERE org_id = ? AND integration = ? AND ok = ? ORDER BY checked_at DESC LIMIT 1`,
+      WHERE org_id = ? AND integration = ? AND ok = ? ORDER BY checked_at DESC, rowid DESC LIMIT 1`,
     orgId, integration, ok ? 1 : 0,
   ) ?? null;
 }
@@ -316,7 +316,7 @@ export function recordHealthCheck(orgId, integration, result) {
   // Keep the history bounded per integration.
   run(
     `DELETE FROM trishield_health_checks WHERE org_id = ? AND integration = ? AND id NOT IN (
-       SELECT id FROM trishield_health_checks WHERE org_id = ? AND integration = ? ORDER BY checked_at DESC LIMIT 200
+       SELECT id FROM trishield_health_checks WHERE org_id = ? AND integration = ? ORDER BY checked_at DESC, rowid DESC LIMIT 200
      )`,
     orgId, integration, orgId, integration,
   );

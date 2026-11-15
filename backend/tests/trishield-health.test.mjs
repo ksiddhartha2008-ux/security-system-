@@ -173,3 +173,20 @@ test('history is bounded and exposes the last success and failure', async () => 
   assert.ok(stored.lastSuccessAt);
   assert.ok(stored.lastFailureAt);
 });
+
+test('two checks recorded in the same millisecond resolve to the newest row', () => {
+  const ts = dbmod.nowIso();
+  dbmod.run(
+    `INSERT INTO trishield_health_checks (id, org_id, integration, state, ok, latency_ms, detail, version, checked_at)
+     VALUES (?, ?, 'cloudflare', 'DEGRADED', 0, 12, 'first of the pair', NULL, ?)`,
+    'thc_tie_a', ORG, ts,
+  );
+  dbmod.run(
+    `INSERT INTO trishield_health_checks (id, org_id, integration, state, ok, latency_ms, detail, version, checked_at)
+     VALUES (?, ?, 'cloudflare', 'ERROR', 0, 15, 'second of the pair', NULL, ?)`,
+    'thc_tie_b', ORG, ts,
+  );
+  const stored = card('cloudflare');
+  assert.equal(stored.state, 'ERROR');
+  assert.equal(stored.detail, 'second of the pair');
+});

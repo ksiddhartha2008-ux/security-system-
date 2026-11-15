@@ -70,9 +70,9 @@ test('a Linux nftables check distinguishes unprovisioned from verified', async (
     },
   });
   assert.equal(verified.state, 'VERIFIED');
-  // The read only card still reports UNAVAILABLE on this Windows host, because
-  // the platform cannot run nft, but the recorded success is visible.
-  assert.equal(card('nftables').state, 'UNAVAILABLE');
+  // The read only card follows the host platform: UNAVAILABLE on Windows, the
+  // recorded state on a Linux host where nft can actually run.
+  assert.equal(card('nftables').state, process.platform === 'linux' ? 'VERIFIED' : 'UNAVAILABLE');
   assert.ok(card('nftables').lastSuccessAt);
 });
 

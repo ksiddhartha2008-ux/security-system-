@@ -9,6 +9,7 @@ import { rateLimit } from '../lib/ratelimit.js';
 import { DEMO_ACCOUNTS, isDemoMode } from '../lib/demo.js';
 import { verifyTotp, generateSecret, otpauthUrl, generateRecoveryCodes, hashRecoveryCode } from '../lib/totp.js';
 import { websiteProtectionEnabled } from '../lib/websiteFlag.js';
+import { trishieldFlags } from '../lib/config.js';
 
 const router = Router();
 
@@ -151,7 +152,7 @@ router.get('/me', requireAuth, asyncHandler(async (req, res) => {
       canAdmin: req.user.role === 'admin',
       canApprove: req.user.role !== 'viewer',
     },
-    features: { websiteProtection: websiteProtectionEnabled() },
+    features: { websiteProtection: websiteProtectionEnabled(), trishield: trishieldFlags() },
   });
 }));
 

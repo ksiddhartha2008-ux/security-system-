@@ -54,6 +54,12 @@ export function migrate() {
     db.exec('PRAGMA user_version = 5');
     console.log('[db] schema v5 applied (website protection, scoped API keys, notifications)');
   }
+  if (current < 6) {
+    const sql = readFileSync(join(here, 'migrations', '006_trishield.sql'), 'utf8');
+    db.exec(sql);
+    db.exec('PRAGMA user_version = 6');
+    console.log('[db] schema v6 applied (TriShield infrastructure, firewall actions, IP vault)');
+  }
 }
 
 export const all = (sql, ...params) => db.prepare(sql).all(...params);

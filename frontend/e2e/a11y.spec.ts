@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 
 const ROUTES: { path: string }[] = [
   { path: '/overview' },
+  { path: '/trishield' },
   { path: '/monitoring' },
   { path: '/assets' },
   { path: '/websites' },

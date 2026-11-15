@@ -2,6 +2,8 @@
 
 Base URL: `/api`. A machine readable index is served at `GET /api/docs` for any signed in user.
 
+The TriShield defense endpoints, including collector ingestion and the firewall approval lifecycle, are listed under the `TriShield defense` tag in that index and specified in [trishield/ARCHITECTURE.md](trishield/ARCHITECTURE.md).
+
 ## Conventions
 
 **Authentication** - session cookie `sf_session` (HttpOnly, SameSite=Lax, seven day expiry). Send `credentials: 'same-origin'` from the browser. Unauthenticated requests receive `401`.

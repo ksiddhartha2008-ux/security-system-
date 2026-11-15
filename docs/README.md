@@ -30,6 +30,16 @@ Start with the [project README](../README.md).
 - [DATA_FLOW_AUDIT.md](DATA_FLOW_AUDIT.md) - why a workspace showed zero and what changed
 - [DEMO_DATA_GUIDE.md](DEMO_DATA_GUIDE.md) - generate, classify and reset demo data
 
+## TriShield defense
+
+- [trishield/README.md](trishield/README.md) - implemented code versus verified protection, and the status vocabulary
+- [trishield/ARCHITECTURE.md](trishield/ARCHITECTURE.md) - three layers, data flow, schema v6 tables, API surface
+- [trishield/INTEGRATIONS.md](trishield/INTEGRATIONS.md) - nftables, Cloudflare, Suricata, Wazuh, WAF, ClamAV, YARA, Falco
+- [trishield/IP_SHIELD.md](trishield/IP_SHIELD.md) - masking, keyed fingerprints, vault, reveal, origin evidence
+- [trishield/SECURITY.md](trishield/SECURITY.md) - threat model, ASVS 5.0 and NIST 800-207 mapping, known gaps
+- [trishield/OPERATIONS.md](trishield/OPERATIONS.md) - isolated firewall verification, deployment, rollback, troubleshooting
+- [trishield/TEST_EVIDENCE.md](trishield/TEST_EVIDENCE.md) - commands, results and what remains BLOCKED
+
 ## Website protection
 
 - [website/STATUS.md](website/STATUS.md) - workflow, task status, launch gates and verdict

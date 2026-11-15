@@ -21,11 +21,21 @@ export type Organization = {
   settings: Record<string, unknown>;
 };
 
+type TriShieldFeatures = {
+  enabled: boolean;
+  network: boolean;
+  endpoint: boolean;
+  ipShield: boolean;
+  response: boolean;
+  apply: boolean;
+  autoApply: boolean;
+};
+
 type AuthState = {
   user: User | null;
   organization: Organization | null;
   permissions: { canWrite: boolean; canAdmin: boolean; canApprove: boolean };
-  features: { websiteProtection: boolean };
+  features: { websiteProtection: boolean; trishield: TriShieldFeatures };
   loading: boolean;
   login: (email: string, password: string) => Promise<{ mfaRequired: boolean }>;
   register: (input: { name: string; email: string; password: string; organizationName: string }) => Promise<void>;
@@ -34,7 +44,10 @@ type AuthState = {
 };
 
 const EMPTY_PERMISSIONS = { canWrite: false, canAdmin: false, canApprove: false };
-const EMPTY_FEATURES = { websiteProtection: false };
+const EMPTY_FEATURES = {
+  websiteProtection: false,
+  trishield: { enabled: false, network: false, endpoint: false, ipShield: false, response: false, apply: false, autoApply: false },
+};
 
 const AuthContext = createContext<AuthState>({
   user: null,

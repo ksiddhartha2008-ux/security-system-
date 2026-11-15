@@ -35,9 +35,12 @@ Status labels: **IMPLEMENTED** (works, not directly covered by an automated test
 | 15 | Settings and administration | TESTED | `backend/tests/auth.test.mjs`; audit chain verification |
 | + | Website protection | TESTED, launch gate G1 blocked | `backend/tests/website-*.test.mjs`; [status](docs/website/STATUS.md) |
 | + | Threat simulation lab | TESTED, all data SIMULATED | `backend/tests/simulation.test.mjs` |
+| + | TriShield defense | IMPLEMENTED, TESTED for the approval lifecycle and IP Shield; live firewall, WAF, IDS and endpoint feeds BLOCKED | `backend/tests/trishield*.test.mjs`; [status](docs/trishield/README.md) |
 | + | Demo data management | TESTED | `backend/tests/demo.test.mjs` |
 
 No LLM, prompt template engine or agent framework exists in the repository. Detection is deterministic and explainable; the interface says so where scores appear. See [PROMPT_ENGINE_SECURITY_AUDIT.md](docs/PROMPT_ENGINE_SECURITY_AUDIT.md).
+
+TriShield adds real firewall connectors, not simulated ones. Live rule changes stay off until `TRISHIELD_FIREWALL_APPLY=true` and an administrator approves a specific action. Enforcement on a real kernel could not be verified on this Windows machine; the runner and the evidence are in [docs/trishield](docs/trishield/README.md).
 
 Five simulation scenarios: credential stuffing, API abuse, phishing, insider threat and ransomware.
 

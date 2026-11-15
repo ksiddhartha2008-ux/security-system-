@@ -7,13 +7,27 @@ Last updated: 11 November 2026. This file reflects what was actually built, run 
 | | |
 | --- | --- |
 | Application | SecureFlow AI, single page client plus REST API |
-| Backend tests | 91 passing, 0 failing (`npm test`) |
+| Backend tests | 145 passing, 2 skipped, 0 failing (`npm test`) |
 | SDK tests | 13 passing, 0 failing (`npm run test:sdk`) |
 | Type check | clean (`npm run typecheck`) |
 | Production build | success (`npm run build`), 858 kB initial JavaScript and 321 kB CSS after the Astryx integration |
 | Dependency audit | 0 vulnerabilities (server and web) |
 | Manual browser verification | signing in, overview, monitoring, assets, incidents (create, transition, note), detections, threat intel, simulations (create, run to completion, history), reports, settings, website onboarding, DNS verification, key creation, ingestion, detections and incidents, 404 |
 | Deployment | not performed, by instruction |
+
+## TriShield defense
+
+Schema v6 adds eight tables and a fifth navigation entry, `TriShield defense`. The authoritative status table is in [trishield/README.md](trishield/README.md); the evidence is in [trishield/TEST_EVIDENCE.md](trishield/TEST_EVIDENCE.md).
+
+| Area | Status | Note |
+| --- | --- | --- |
+| Backend contracts, approval lifecycle, IP Shield, collectors | IMPLEMENTED, TESTED | 24 new tests across three files |
+| TriShield page | IMPLEMENTED, TESTED | Lazy chunk, real API data, both themes in the accessibility suite |
+| nftables enforcement | BLOCKED | No Linux host or nft binary here; runner committed |
+| Cloudflare live account | BLOCKED | No token; failure path tested |
+| Suricata, Wazuh, WAF feeds | BLOCKED | No collector services |
+| ClamAV, YARA, Falco | BLOCKED | Not installed |
+| Production readiness | NOT CLAIMED | No staging deployment or independent test |
 
 ## Module status
 

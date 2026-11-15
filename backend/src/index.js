@@ -35,6 +35,9 @@ import demoRoutes from './routes/demo.js';
 import settingsRoutes from './routes/settings.js';
 import websiteRoutes from './routes/websites.js';
 import ingestRoutes from './routes/ingest.js';
+import trishieldRoutes from './routes/trishield.js';
+import trishieldIngestRoutes from './routes/trishieldIngest.js';
+import { trishieldFlags } from './lib/config.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -108,6 +111,7 @@ app.use('/api/v1/ingest', ingestRoutes);
 
 app.use(express.json({ limit: '8mb' }));
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+if (trishieldFlags().enabled) app.use('/api/trishield/ingest', trishieldIngestRoutes);
 app.use(attachUser);
 app.use(checkOrigin);
 app.use(requireCsrf);
@@ -155,6 +159,7 @@ app.use('/api/simulations', simulationRoutes);
 app.use('/api/demo', demoRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/v1/websites', websiteRoutes);
+if (trishieldFlags().enabled) app.use('/api/trishield', trishieldRoutes);
 
 /** Server sent events for live monitoring and simulation progress. */
 app.get('/api/stream', requireAuth, (req, res) => {
@@ -294,6 +299,36 @@ app.get('/api/docs', requireAuth, (req, res) => {
         ['POST', '/api/v1/websites/:id/data-deletion', 'Delete website event data (admin, recent auth)'],
         ['POST', '/api/v1/ingest/website-events', 'SDK ingestion, API key only'],
       ] },
+      { tag: 'TriShield defense', endpoints: [
+        ['GET', '/api/trishield/overview', 'Per layer status, connector health, counts and origin evidence'],
+        ['GET', '/api/trishield/status', 'Firewall and collector health'],
+        ['GET', '/api/trishield/firewall/status', 'Provider status and apply flag'],
+        ['GET', '/api/trishield/firewall/rules', 'Recorded rules and state'],
+        ['POST', '/api/trishield/firewall/health', 'Run real health checks (admin)'],
+        ['GET', '/api/trishield/firewall/allowlist', 'Addresses that cannot be blocked'],
+        ['POST', '/api/trishield/firewall/allowlist', 'Add an allowlist entry (admin)'],
+        ['DELETE', '/api/trishield/firewall/allowlist/:id', 'Remove an allowlist entry (admin)'],
+        ['GET', '/api/trishield/actions', 'Approval queue with optional status filter'],
+        ['POST', '/api/trishield/actions', 'Propose a block or unblock (analyst, rate limited)'],
+        ['POST', '/api/trishield/actions/:id/approve', 'Approve a pending action (admin)'],
+        ['POST', '/api/trishield/actions/:id/reject', 'Reject a pending action (admin)'],
+        ['POST', '/api/trishield/actions/:id/execute', 'Execute an approved action and verify (admin; permanent needs recent auth)'],
+        ['POST', '/api/trishield/actions/:id/rollback', 'Roll back a succeeded block (admin)'],
+        ['GET', '/api/trishield/network/events', 'Suricata events, paginated'],
+        ['GET', '/api/trishield/waf/events', 'WAF events, paginated'],
+        ['GET', '/api/trishield/endpoints', 'Agents, collectors, ClamAV state and evidence scans'],
+        ['GET', '/api/trishield/ip/addresses', 'Masked infrastructure addresses and origin evidence'],
+        ['POST', '/api/trishield/ip/discover', 'Discover local interfaces (admin)'],
+        ['POST', '/api/trishield/ip/:id/reveal', 'Reveal the sealed address with a reason (admin, audited)'],
+        ['GET', '/api/trishield/policies', 'Response policies'],
+        ['PATCH', '/api/trishield/policies/:id', 'Enable or change a policy (admin)'],
+        ['GET', '/api/trishield/collectors', 'Collector metadata, never tokens (admin)'],
+        ['POST', '/api/trishield/collectors', 'Create a collector, token shown once (admin)'],
+        ['DELETE', '/api/trishield/collectors/:id', 'Revoke a collector token (admin)'],
+        ['POST', '/api/trishield/ingest/suricata', 'EVE ingestion, collector bearer token only'],
+        ['POST', '/api/trishield/ingest/wazuh', 'Wazuh ingestion, collector bearer token only'],
+        ['POST', '/api/trishield/ingest/waf', 'WAF ingestion, collector bearer token only'],
+      ] },
       { tag: 'Settings', endpoints: [
         ['GET', '/api/settings/organization', 'Organization settings'], ['PATCH', '/api/settings/organization', 'Update (admin)'],
         ['GET', '/api/settings/users', 'Members'], ['POST', '/api/settings/users', 'Create a member (admin)'],
@@ -302,7 +337,7 @@ app.get('/api/docs', requireAuth, (req, res) => {
       ] },
     ],
     scenarios: SCENARIOS.map((s) => ({ key: s.key, name: s.name, rounds: s.defaultRounds })),
-    features: { websiteProtection: websiteProtectionEnabled() },
+    features: { websiteProtection: websiteProtectionEnabled(), trishield: trishieldFlags() },
     simulationDisclaimer: DISCLAIMER,
   });
 });

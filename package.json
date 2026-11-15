@@ -18,6 +18,7 @@
     "typecheck": "npm --prefix frontend run typecheck",
     "theme:build": "npm --prefix frontend run theme:build",
     "check:theme": "npm --prefix frontend run check:theme",
-    "check:astryx": "node scripts/check-astryx.mjs"
+    "check:astryx": "node scripts/check-astryx.mjs",
+    "check:firewall": "node scripts/trishield-firewall-check.mjs"
   }
 }

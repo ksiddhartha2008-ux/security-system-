@@ -33,6 +33,7 @@ const SimulationsPage = lazy(() => import('./pages/Simulations'));
 const SimulationDetailPage = lazy(() => import('./pages/SimulationDetail'));
 const SettingsPage = lazy(() => import('./pages/Settings'));
 const DemoDataPage = lazy(() => import('./pages/DemoData'));
+const TriShieldPage = lazy(() => import('./pages/TriShield'));
 const PeoplePage = lazy(() => import('./pages/People'));
 const WebsitesPage = lazy(() => import('./pages/Websites'));
 const WebsiteNewPage = lazy(() => import('./pages/WebsiteNew'));
@@ -73,6 +74,7 @@ export default function App() {
 
                   <Route element={<RequireAuth><AppShellLayout /></RequireAuth>}>
                     <Route path="/overview" element={<OverviewPage />} />
+                    <Route path="/trishield" element={<TriShieldPage />} />
                     <Route path="/monitoring" element={<MonitoringPage />} />
                     <Route path="/assets" element={<AssetsPage />} />
                     <Route path="/websites" element={<WebsitesPage />} />

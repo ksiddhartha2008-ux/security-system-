@@ -48,7 +48,7 @@ for (const table of orgTables) {
   snap.prepare(`DELETE FROM ${table} WHERE org_id != ?`).run(DEMO_ORG);
 }
 
-for (const table of ['sessions', 'login_attempts', 'mfa_challenges', 'audit_logs', 'site_api_keys', 'forensic_evidence', 'custody_records']) {
+for (const table of ['sessions', 'login_attempts', 'mfa_challenges', 'audit_logs', 'site_api_keys', 'forensic_evidence', 'custody_records', 'infra_addresses', 'ip_vault', 'trishield_allowlist', 'firewall_rules', 'firewall_actions', 'endpoint_agents', 'trishield_collectors']) {
   if (tables.includes(table)) snap.exec(`DELETE FROM ${table};`);
 }
 
@@ -70,7 +70,7 @@ const scalar = (sql, ...params) => snap.prepare(sql).get(...params)?.c ?? 0;
 if (scalar('SELECT COUNT(*) AS c FROM organizations') !== 1) failures.push('more than one organization remains');
 if (scalar('SELECT COUNT(*) AS c FROM users WHERE org_id != ?', DEMO_ORG) !== 0) failures.push('a non-demo user remains');
 if (scalar('SELECT COUNT(*) AS c FROM users WHERE email NOT LIKE ?', '%@secureflow.dev') !== 0) failures.push('a non-demo email remains');
-for (const table of ['sessions', 'login_attempts', 'mfa_challenges', 'audit_logs', 'site_api_keys', 'forensic_evidence', 'custody_records']) {
+for (const table of ['sessions', 'login_attempts', 'mfa_challenges', 'audit_logs', 'site_api_keys', 'forensic_evidence', 'custody_records', 'infra_addresses', 'ip_vault', 'trishield_allowlist', 'firewall_rules', 'firewall_actions', 'endpoint_agents', 'trishield_collectors']) {
   if (tables.includes(table) && scalar(`SELECT COUNT(*) AS c FROM ${table}`) !== 0) failures.push(`${table} is not empty`);
 }
 

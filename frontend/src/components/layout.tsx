@@ -23,6 +23,7 @@ const NAV = [
     label: 'Operations',
     items: [
       { to: '/overview', label: 'Overview', icon: LayoutDashboard },
+      { to: '/trishield', label: 'TriShield defense', icon: ShieldCheck },
       { to: '/monitoring', label: 'Live monitoring', icon: Activity },
       { to: '/threat-intel', label: 'Threat intelligence', icon: Globe2 },
       { to: '/assets', label: 'Assets', icon: Server },
@@ -123,7 +124,7 @@ export function AppShellLayout() {
 
   const nav = NAV.map((group) => ({
     ...group,
-    items: group.items.filter((item) => item.to !== '/websites' || features.websiteProtection),
+    items: group.items.filter((item) => (item.to !== '/websites' || features.websiteProtection) && (item.to !== '/trishield' || features.trishield.enabled)),
   }));
 
   const handleLogout = async () => {
@@ -277,6 +278,7 @@ export function AppShellLayout() {
 
 const MODULE_LABEL: Record<string, string> = {
   '/overview': 'MODULE 02',
+  '/trishield': 'TRISHIELD',
   '/monitoring': 'MODULE 03',
   '/threat-intel': 'MODULE 04',
   '/assets': 'MODULE 05',

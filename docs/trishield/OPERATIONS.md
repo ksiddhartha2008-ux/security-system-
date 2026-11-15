@@ -54,6 +54,47 @@ A container run needs `--cap-add=NET_ADMIN`, or `--privileged` in a disposable
 container, plus an `nft` binary. Nothing in this repository ships a privileged
 container by default.
 
+## Integration checks
+
+The TriShield page has an Integrations tab, the Integration Setup Center. Each card
+shows Configuration, Connection and Verification separately, the last check, the
+last success and failure, the latency, the version, the recorded history, the exact
+missing requirements and the next action.
+
+`Test connection` calls `POST /api/trishield/health/:key/check`. It runs the real
+check for that integration and writes the result, the latency and the provider
+version to `trishield_health_checks`. The action is administrator only, rate
+limited to 20 per minute, and audited.
+
+What a check can honestly return on this machine:
+
+| Integration | Expected result here |
+| --- | --- |
+| Linux nftables | UNAVAILABLE, because the platform is Windows |
+| Cloudflare | NOT CONFIGURED, because no token is set |
+| Suricata, WAF | NOT CONFIGURED, because no collector exists |
+| Wazuh | NOT CONFIGURED, because no API URL or collector exists |
+| ClamAV | NOT CONFIGURED, because no host is set |
+
+A result of ERROR is not a bug. It means the provider was asked and refused, and
+the message is shown to the administrator.
+
+## Suricata tailer
+
+On the sensor host:
+
+```bash
+node scripts/trishield-eve-tail.mjs \
+  --file /var/log/suricata/eve.json \
+  --url https://secureflow.example \
+  --token tsk_xxx \
+  --follow
+```
+
+The tailer stores its byte offset next to the file, so a restart does not replay
+old events. `--once` reads the current file and exits, `--all` sends every event
+type instead of alerts only, `--dry-run` prints the batches without sending them.
+
 ## Deployment sequence
 
 1. Run the production configuration check. It errors when live firewall changes

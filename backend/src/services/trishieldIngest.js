@@ -305,9 +305,22 @@ export function endpointSummary(orgId) {
 export function collectorHealth(orgId) {
   return listCollectors(orgId).map((collector) => {
     const stale = !collector.lastSeenAt || Date.now() - new Date(collector.lastSeenAt).getTime() > 15 * 60_000;
+    // Same vocabulary as the integration health engine. VERIFIED means data
+    // actually arrived recently, not that a token exists.
+    const state = collector.status === 'disabled'
+      ? 'UNAVAILABLE'
+      : !collector.lastSeenAt
+        ? 'CONFIGURED'
+        : stale ? 'DEGRADED' : 'VERIFIED';
     return {
       ...collector,
-      health: collector.status === 'disabled' ? 'DISABLED' : stale ? 'CONNECTED - NO RECENT EVENTS' : 'ACTIVE',
+      state,
+      health: state,
+      detail: state === 'VERIFIED'
+        ? 'Events arrived within the last 15 minutes'
+        : state === 'DEGRADED'
+          ? 'No event in the last 15 minutes'
+          : state === 'UNAVAILABLE' ? 'Collector token revoked' : 'No event received yet',
     };
   });
 }

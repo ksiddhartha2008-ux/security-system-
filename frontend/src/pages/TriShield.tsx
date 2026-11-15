@@ -57,14 +57,23 @@ type EndpointPayload = {
   malwareScans: { id: string; filename: string; caseRef: string; status: string; scanStatus: string; scanDetail: string | null; createdAt: string }[];
 };
 type Policy = { id: string; key: string; enabled: boolean; mode: string; config: Record<string, unknown> };
+type IntegrationCard = {
+  key: string; name: string; layer: string; category: string; docs: string;
+  state: string; ok: boolean; detail: string; latencyMs: number | null; version: string | null;
+  lastCheckedAt: string | null; lastSuccessAt: string | null; lastFailureAt: string | null;
+  history: { state: string; ok: boolean; checkedAt: string; latencyMs: number | null }[];
+  requirements: string[]; missing: string[]; nextAction: string;
+  setup: { windows: string[]; linux: string[]; cloud: string[] };
+};
+type HealthPayload = { integrations: IntegrationCard[]; counts: Record<string, number> };
 
 function toneFor(status: string): Tone {
   const value = status.toUpperCase();
-  if (['ACTIVE', 'SUCCEEDED', 'CONNECTED', 'ONLINE'].includes(value)) return 'mint';
-  if (['CONFIGURED', 'EXECUTING', 'VERIFYING', 'APPROVED'].includes(value)) return 'info';
-  if (['AWAITING_APPROVAL', 'PENDING', 'STALE', 'CONNECTED - NO RECENT EVENTS'].includes(value)) return 'amber';
-  if (['ERROR', 'FAILED', 'UNAVAILABLE'].includes(value)) return 'critical';
-  if (['BLOCKED', 'REJECTED', 'EXPIRED', 'ROLLED_BACK', 'DISABLED', 'NOT CONFIGURED'].includes(value)) return 'neutral';
+  if (['VERIFIED', 'SUCCEEDED', 'ONLINE'].includes(value)) return 'mint';
+  if (['CONNECTED', 'CONFIGURED', 'EXECUTING', 'VERIFYING', 'APPROVED'].includes(value)) return 'info';
+  if (['DEGRADED', 'AWAITING_APPROVAL', 'PENDING', 'STALE', 'CONNECTED - NO RECENT EVENTS'].includes(value)) return 'amber';
+  if (['ERROR', 'FAILED'].includes(value)) return 'critical';
+  if (['UNAVAILABLE', 'BLOCKED', 'REJECTED', 'EXPIRED', 'ROLLED_BACK', 'DISABLED', 'NOT CONFIGURED'].includes(value)) return 'neutral';
   return 'neutral';
 }
 
@@ -76,9 +85,10 @@ export default function TriShieldPage() {
   const { permissions, features } = useAuth();
   const flags = features.trishield;
   const toast = useToast();
-  const [tab, setTab] = useState<'overview' | 'perimeter' | 'endpoints' | 'ip' | 'approvals'>('overview');
+  const [tab, setTab] = useState<'overview' | 'perimeter' | 'endpoints' | 'integrations' | 'ip' | 'approvals'>('overview');
   const [proposeOpen, setProposeOpen] = useState(false);
   const [revealTarget, setRevealTarget] = useState<Address | null>(null);
+  const [checkingKey, setCheckingKey] = useState<string | null>(null);
 
   const overview = useApi<Overview>('/trishield/overview');
   const status = useApi<{ providers: Provider[]; applyEnabled: boolean; activeRules: number; note: string }>(tab === 'perimeter' && flags.network ? '/trishield/firewall/status' : null);
@@ -88,6 +98,7 @@ export default function TriShieldPage() {
   const waf = useApi<{ data: { id: string; source: string; severity: string; title: string; occurredAt: string; synthetic: boolean }[] }>(tab === 'perimeter' && flags.network ? '/trishield/waf/events?limit=8' : null);
   const policies = useApi<Policy[]>(tab === 'perimeter' && flags.network ? '/trishield/policies' : null);
   const endpoints = useApi<EndpointPayload>(tab === 'endpoints' && flags.endpoint ? '/trishield/endpoints' : null);
+  const health = useApi<HealthPayload>(tab === 'integrations' ? '/trishield/health' : null);
   const addresses = useApi<AddressPayload>(tab === 'ip' && flags.ipShield ? '/trishield/ip/addresses' : null);
 
   const refreshAll = () => {
@@ -112,6 +123,24 @@ export default function TriShieldPage() {
 
   const data = overview.data;
   const layerIcon = (key: string) => key === 'perimeter' ? Globe2 : key === 'application' ? ShieldCheck : Fingerprint;
+
+  const runCheck = async (key: string) => {
+    setCheckingKey(key);
+    try {
+      const result = await api.post<{ result: { state: string; detail: string } }>(`/trishield/health/${key}/check`);
+      toast.push(
+        result.result.state === 'VERIFIED' ? 'success' : 'info',
+        `${key}: ${statusLabel(result.result.state)}`,
+        result.result.detail,
+      );
+      health.refresh();
+      overview.refresh();
+    } catch (error) {
+      toast.push('error', `${key} check failed`, error instanceof ApiError ? error.message : undefined);
+    } finally {
+      setCheckingKey(null);
+    }
+  };
 
   if (!flags.enabled) {
     return (
@@ -159,6 +188,7 @@ export default function TriShieldPage() {
               { key: 'overview', label: 'Overview' },
               ...(flags.network ? [{ key: 'perimeter', label: 'Perimeter' }] : []),
               ...(flags.endpoint ? [{ key: 'endpoints', label: 'Endpoints' }] : []),
+              { key: 'integrations', label: 'Integrations' },
               ...(flags.ipShield ? [{ key: 'ip', label: 'IP Shield' }] : []),
               ...(flags.response ? [{ key: 'approvals', label: 'Approvals' }] : []),
             ]}
@@ -231,7 +261,7 @@ export default function TriShieldPage() {
                 </div>
 
                 <InlineNotice tone="info">
-                  {data.firewall.note} The application never labels a connector active before a real health check, and simulated response actions stay in the existing labelled workflow.
+                  {data.firewall.note} A connector is never labelled verified before a real health check, and simulated response actions stay in the existing labelled workflow.
                 </InlineNotice>
               </div>
             )}
@@ -364,6 +394,36 @@ export default function TriShieldPage() {
               </div>
             )}
 
+            {tab === 'integrations' && (
+              <div className="stack" style={{ gap: 14 }}>
+                <InlineNotice tone="info">
+                  Every state comes from a recorded check or live collector telemetry. VERIFIED means the last real check succeeded. A configured variable alone is never shown as healthy.
+                </InlineNotice>
+                {health.loading && !health.data ? <Card><TableSkeleton rows={6} cols={3} /></Card> : health.error ? <Card><ErrorState message={health.error} onRetry={health.refresh} /></Card> : (
+                  <>
+                    <div className="row wrap" style={{ gap: 8 }}>
+                      <Badge tone="mint">{health.data?.counts.verified ?? 0} verified</Badge>
+                      <Badge tone="amber">{health.data?.counts.degraded ?? 0} degraded</Badge>
+                      <Badge tone="critical">{health.data?.counts.error ?? 0} error</Badge>
+                      <Badge tone="neutral">{health.data?.counts.notConfigured ?? 0} not configured</Badge>
+                      <Badge tone="neutral">{health.data?.counts.unavailable ?? 0} unavailable</Badge>
+                    </div>
+                    <div className="grid grid-2">
+                      {(health.data?.integrations ?? []).map((card) => (
+                        <IntegrationSetupCard
+                          key={card.key}
+                          card={card}
+                          canAdmin={permissions.canAdmin}
+                          busy={checkingKey === card.key}
+                          onCheck={() => runCheck(card.key)}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             {tab === 'ip' && (
               <div className="stack" style={{ gap: 14 }}>
                 <InlineNotice tone="info">
@@ -442,6 +502,77 @@ export default function TriShieldPage() {
         onClose={() => setRevealTarget(null)}
       />
     </>
+  );
+}
+
+function IntegrationSetupCard({ card, canAdmin, busy, onCheck }: {
+  card: IntegrationCard; canAdmin: boolean; busy: boolean; onCheck: () => void;
+}) {
+  const configured = card.missing.length === 0;
+  const connected = ['CONNECTED', 'VERIFIED', 'DEGRADED'].includes(card.state) || Boolean(card.lastSuccessAt);
+  const verified = card.state === 'VERIFIED';
+  const rows = [
+    { label: 'Configuration', ok: configured, text: configured ? 'Required settings present' : `Missing ${card.missing.join(', ')}` },
+    { label: 'Connection', ok: connected, text: connected ? 'A check reached the provider' : 'No successful connection recorded' },
+    { label: 'Verification', ok: verified, text: verified ? 'The last check confirmed functionality' : 'Functionality not verified yet' },
+  ];
+  return (
+    <Card
+      title={card.name}
+      subtitle={`${card.layer} layer · ${card.category}`}
+      actions={<Badge tone={toneFor(card.state)} dot>{statusLabel(card.state)}</Badge>}
+      footer={(
+        <div className="row" style={{ gap: 8 }}>
+          <Button size="sm" onClick={onCheck} loading={busy} disabled={!canAdmin} icon={<RefreshCw size={13} aria-hidden="true" />}>
+            Test connection
+          </Button>
+          <span className="tiny faint">{canAdmin ? 'Runs a real check and records it' : 'Administrator only'}</span>
+        </div>
+      )}
+    >
+      <div className="stack" style={{ gap: 10 }}>
+        {rows.map((row) => (
+          <div key={row.label} className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
+            {row.ok
+              ? <CheckCircle2 size={14} style={{ color: 'var(--color-mint)', flexShrink: 0, marginTop: 2 }} aria-hidden="true" />
+              : <XCircle size={14} style={{ color: 'var(--color-faint)', flexShrink: 0, marginTop: 2 }} aria-hidden="true" />}
+            <div style={{ minWidth: 0 }}>
+              <p className="tiny" style={{ fontWeight: 600 }}>{row.label}</p>
+              <p className="tiny faint">{row.text}</p>
+            </div>
+          </div>
+        ))}
+        {card.detail && <p className="small muted">{card.detail}</p>}
+        <div className="row wrap tiny faint" style={{ gap: 12 }}>
+          <span>Last check {card.lastCheckedAt ? timeAgo(card.lastCheckedAt) : 'never'}</span>
+          {card.latencyMs !== null && <span>{card.latencyMs} ms</span>}
+          {card.version && <span>{card.version}</span>}
+        </div>
+        {card.missing.length > 0 && (
+          <InlineNotice tone="warn">
+            <span className="row" style={{ gap: 6 }}>
+              <AlertTriangle size={13} aria-hidden="true" /> {card.missing.join(' · ')}
+            </span>
+          </InlineNotice>
+        )}
+        <p className="tiny muted">Next: {card.nextAction}</p>
+        <details className="setup-details">
+          <summary className="small">Setup steps</summary>
+          <div className="stack" style={{ gap: 8, marginTop: 8 }}>
+            {(['windows', 'linux', 'cloud'] as const).map((platform) => (
+              <div key={platform}>
+                <p className="tiny" style={{ fontWeight: 600 }}>
+                  {platform === 'windows' ? 'Windows' : platform === 'linux' ? 'Linux' : 'Cloud'}
+                </p>
+                <ol className="tiny faint" style={{ paddingLeft: 16, margin: '4px 0 0' }}>
+                  {card.setup[platform].map((line) => <li key={line}>{line}</li>)}
+                </ol>
+              </div>
+            ))}
+          </div>
+        </details>
+      </div>
+    </Card>
   );
 }
 

@@ -56,6 +56,19 @@ test.describe('accessibility', () => {
     }
   }
 
+  test('the TriShield setup center is accessible in both themes', async ({ page }) => {
+    for (const theme of ['dark', 'light'] as const) {
+      await page.goto('/trishield');
+      await page.evaluate((value) => window.localStorage.setItem('sf-theme', value), theme);
+      await page.reload();
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      await page.getByRole('tab', { name: 'Integrations' }).click();
+      await expect(page.getByRole('heading', { name: 'Linux nftables' })).toBeVisible();
+      await page.waitForLoadState('networkidle');
+      await scan(page, `trishield-integrations-${theme}`);
+    }
+  });
+
   test('the skip link is first and moves focus into the main region', async ({ page }) => {
     await page.goto('/overview');
     await page.waitForLoadState('networkidle');

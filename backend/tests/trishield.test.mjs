@@ -210,6 +210,16 @@ test('policy evaluation can propose but never auto-applies without the explicit 
   assert.equal(result.reason, 'auto_apply_disabled');
 });
 
+test('synthetic demo events never reach a real provider', async () => {
+  const result = await policy.evaluateEventForBlock({
+    orgId: ORG,
+    event: { srcIp: '1.1.1.3', severity: 'critical', category: 'network', eventType: 'suricata.alert', title: 'seeded', dedupeKey: 'synthetic-1', synthetic: true },
+    env: { ...process.env, TRISHIELD_AUTO_APPLY: 'true', TRISHIELD_FIREWALL_APPLY: 'true', TRISHIELD_PROVIDER: 'cloudflare' },
+  });
+  assert.equal(result.decision, 'skipped');
+  assert.equal(result.reason, 'synthetic_event');
+});
+
 test('Suricata, Wazuh and WAF records normalize safely', () => {
   const eve = ingest.parseSuricataRecord({ timestamp: '2026-11-15T10:00:00Z', event_type: 'alert', src_ip: '1.1.1.1', dest_ip: '10.0.0.5', src_port: 50000, dest_port: 443, proto: 'TCP', alert: { signature: 'Test', signature_id: 1, category: 'Test', severity: 1 } });
   assert.equal(eve.severity, 'critical');

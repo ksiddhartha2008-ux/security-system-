@@ -10,13 +10,14 @@ import {
   refreshFirewallHealth, rejectAction, rollbackAction,
 } from '../services/firewall.js';
 import {
-  createCollector, collectorHealth, endpointSummary, listCollectors, revokeCollector,
+  createCollector, collectorHealth, endpointSummary, revokeCollector,
 } from '../services/trishieldIngest.js';
 import {
   addressIsProtected, fingerprintAddress, infrastructureSummary, listInfrastructureAddresses,
   originProtectionStatus, revealAddress, syncInfrastructureAddresses,
 } from '../services/infraAddresses.js';
 import { ensurePolicies, listPolicies } from '../services/trishieldPolicy.js';
+import { checkIntegration, healthSummary, integrationHealth, INTEGRATION_KEYS } from '../services/trishieldHealth.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -41,24 +42,31 @@ router.get('/overview', asyncHandler(async (req, res) => {
   );
   const mfa = get('SELECT COUNT(*) AS total, SUM(CASE WHEN mfa_enabled = 1 THEN 1 ELSE 0 END) AS enabled FROM users WHERE org_id = ? AND status = \'active\'', orgId);
   const failedLogins = get('SELECT COUNT(*) AS c FROM login_attempts WHERE success = 0 AND created_at >= ?', new Date(Date.now() - 24 * 3600_000).toISOString())?.c ?? 0;
-  const perimeterActive = firewall.providers.some((provider) => provider.status === 'ACTIVE')
-    || collectors.some((collector) => collector.health === 'ACTIVE');
-  const perimeterPresent = firewall.providers.some((provider) => provider.available) || collectors.length > 0;
-  const perimeterStatus = perimeterActive ? 'ACTIVE' : perimeterPresent ? 'CONFIGURED' : 'NOT CONFIGURED';
-  const endpointActive = endpoints.length > 0 || Boolean(process.env.CLAMAV_HOST);
+  const healthCards = integrationHealth(orgId);
+  const layerState = (cards) => {
+    if (cards.some((card) => card.state === 'VERIFIED')) return 'VERIFIED';
+    if (cards.some((card) => card.state === 'ERROR')) return 'ERROR';
+    if (cards.some((card) => card.state === 'DEGRADED')) return 'DEGRADED';
+    if (cards.some((card) => card.state === 'CONNECTED')) return 'CONNECTED';
+    if (cards.some((card) => card.state === 'CONFIGURED')) return 'CONFIGURED';
+    if (cards.length > 0 && cards.every((card) => card.state === 'UNAVAILABLE')) return 'UNAVAILABLE';
+    return 'NOT CONFIGURED';
+  };
+  const perimeterCards = healthCards.filter((card) => card.layer === 'perimeter');
+  const endpointCards = healthCards.filter((card) => card.layer === 'endpoint');
   return ok(res, {
     layers: [
       {
-        key: 'perimeter', name: 'Perimeter and network', status: perimeterStatus,
-        detail: `${firewall.providers.filter((provider) => provider.available).length} firewall connector(s) available, ${collectors.filter((c) => c.health === 'ACTIVE').length} collector(s) active`,
+        key: 'perimeter', name: 'Perimeter and network', status: layerState(perimeterCards), state: layerState(perimeterCards),
+        detail: `${perimeterCards.filter((card) => card.state === 'VERIFIED').length} of ${perimeterCards.length} perimeter integrations verified`,
       },
       {
-        key: 'application', name: 'Application and identity', status: 'ACTIVE',
+        key: 'application', name: 'Application and identity', status: 'VERIFIED', state: 'VERIFIED',
         detail: `${mfa.enabled ?? 0} of ${mfa.total ?? 0} active users have MFA; ${failedLogins} failed sign-ins in 24h`,
       },
       {
-        key: 'endpoint', name: 'Endpoint and data', status: endpointActive ? 'ACTIVE' : 'NOT CONFIGURED',
-        detail: `${endpoints.filter((agent) => agent.status === 'online').length} online endpoint agent(s); ClamAV ${process.env.CLAMAV_HOST ? 'configured' : 'not configured'}`,
+        key: 'endpoint', name: 'Endpoint and data', status: layerState(endpointCards), state: layerState(endpointCards),
+        detail: `${endpointCards.filter((card) => card.state === 'VERIFIED').length} of ${endpointCards.length} endpoint integrations verified; ${endpoints.filter((agent) => agent.status === 'online').length} agent(s) online`,
       },
     ],
     infra,
@@ -73,7 +81,8 @@ router.get('/overview', asyncHandler(async (req, res) => {
     pendingApprovals: actions.filter((action) => action.status === 'awaiting_approval').length,
     recentActions: actions.slice(0, 8),
     origin: originProtectionStatus(),
-    note: 'A connector is not ACTIVE until its real health check succeeds. No simulated event is presented as provider telemetry.',
+    health: { cards: healthCards, counts: healthSummary(orgId).counts },
+    note: 'An integration is VERIFIED only after a real check succeeded. No simulated event is presented as provider telemetry.',
   });
 }));
 
@@ -87,18 +96,30 @@ router.get('/status', asyncHandler(async (req, res) => {
   });
 }));
 
+router.get('/health', asyncHandler(async (req, res) => {
+  const { counts } = healthSummary(req.user.orgId);
+  return ok(res, { integrations: integrationHealth(req.user.orgId), counts });
+}));
+
+router.post('/health/:key/check', requireRole('admin'), rateLimit({ windowMs: 60_000, max: 20, keyPrefix: 'trishield-health', failMode: 'closed' }), asyncHandler(async (req, res) => {
+  const key = String(req.params.key ?? '');
+  if (!INTEGRATION_KEYS.includes(key)) throw notFound('Unknown integration');
+  const result = await checkIntegration(req.user.orgId, key);
+  audit(req, 'trishield.integration.checked', 'integration', key, { state: result.state, latencyMs: result.latencyMs, version: result.version });
+  return ok(res, { result, integrations: integrationHealth(req.user.orgId) });
+}));
+
 router.get('/integrations', asyncHandler(async (req, res) => {
   const orgId = req.user.orgId;
+  const summary = healthSummary(orgId);
   return ok(res, {
+    integrations: integrationHealth(orgId),
+    counts: summary.counts,
     firewall: firewallStatus(orgId).providers,
     collectors: collectorHealth(orgId),
     threatIntel: [
-      { key: 'virustotal', status: process.env.VIRUSTOTAL_API_KEY ? 'CONFIGURED' : 'UNAVAILABLE' },
-      { key: 'abuseipdb', status: process.env.ABUSEIPDB_API_KEY ? 'CONFIGURED' : 'UNAVAILABLE' },
-    ],
-    endpoint: [
-      { key: 'wazuh', status: listCollectors(orgId).some((collector) => collector.kind === 'wazuh') ? 'CONFIGURED' : 'UNAVAILABLE' },
-      { key: 'clamav', status: process.env.CLAMAV_HOST ? 'CONFIGURED' : 'UNAVAILABLE' },
+      { key: 'virustotal', status: process.env.VIRUSTOTAL_API_KEY ? 'CONFIGURED' : 'NOT CONFIGURED' },
+      { key: 'abuseipdb', status: process.env.ABUSEIPDB_API_KEY ? 'CONFIGURED' : 'NOT CONFIGURED' },
     ],
   });
 }));

@@ -58,7 +58,15 @@ export function migrate() {
     const sql = readFileSync(join(here, 'migrations', '006_trishield.sql'), 'utf8');
     db.exec(sql);
     db.exec('PRAGMA user_version = 6');
+    current = 6;
     console.log('[db] schema v6 applied (TriShield infrastructure, firewall actions, IP vault)');
+  }
+  if (current < 7) {
+    const sql = readFileSync(join(here, 'migrations', '007_trishield_health.sql'), 'utf8');
+    db.exec(sql);
+    db.exec('PRAGMA user_version = 7');
+    current = 7;
+    console.log('[db] schema v7 applied (TriShield integration health history)');
   }
 }
 

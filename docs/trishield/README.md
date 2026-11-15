@@ -21,18 +21,25 @@ Status vocabulary used everywhere in this folder:
 
 | Area | Status | Evidence |
 | --- | --- | --- |
-| Database schema v6 (8 TriShield tables) | TESTED | `backend/tests/trishield.test.mjs` applies v1 to v6 on a fresh database. |
+| Database schema v7 (8 TriShield tables plus health history) | TESTED | `backend/tests/trishield.test.mjs` applies v1 to v7 on a fresh database. |
+| Integration health engine | TESTED | `backend/tests/trishield-health.test.mjs` covers every state transition and the read model. |
+| Health API and role gate | TESTED | `backend/tests/trishield-health-api.test.mjs`: viewer read, admin check, audit entry. |
+| Integration Setup Center | TESTED | `frontend/e2e/trishield-integrations.spec.ts` checks six cards, setup steps and a real check. |
 | IP classification, masking, keyed fingerprint | TESTED | Unit tests cover IPv4, IPv6, private, loopback, link local, reserved and public ranges. |
 | AES-256-GCM address vault | TESTED | Round trip plus tamper rejection in the unit test. |
 | nftables connector command construction | TESTED | A stateful emulator asserts table, set, base chain, drop rule, element, timeout and delete. |
+| nftables health states | TESTED | UNAVAILABLE off Linux, DEGRADED when unprovisioned or apply is off, VERIFIED after a real check. |
 | nftables enforcement on a real kernel | BLOCKED | No Linux host, WSL distribution, container runtime or `nft` binary on this machine. Runner: `scripts/trishield-firewall-check.mjs`. |
 | Cloudflare firewall connector | IMPLEMENTED, TESTED with a fake fetch | Create, list, verify and delete against an injected `fetch`. No live account token exists here. |
 | Approval gate, idempotency, expiry, rollback | TESTED | Service tests with a fake provider and API tests with the real HTTP route. |
-| Deterministic auto-block policy | TESTED | Default disabled, approval mode, and auto mode still stops when `TRISHIELD_AUTO_APPLY` is off. |
+| Deterministic auto-block policy | TESTED | Default disabled, approval mode, and auto mode still stops when `TRISHIELD_AUTO_APPLY` is off. Synthetic events are skipped. |
 | Suricata EVE, Wazuh and WAF normalization | TESTED | Parsers, dedupe and tenant scoping covered. |
+| Suricata EVE tailer | TESTED | `backend/tests/trishield-eve-tail.test.mjs` sends real records, skips malformed lines and never replays after restart. |
+| Wazuh manager API client | TESTED with an injected fetch | Authenticates, reads manager info, lists agents, reports ERROR with the HTTP status. |
+| ClamAV VERSION check | TESTED | Parser plus scanner-down path; a missing scanner is ERROR or NOT CONFIGURED, never clean. |
 | Collector token authentication | TESTED | Bearer token, wrong kind, revoked token, missing token and cross tenant isolation. |
 | Live Suricata, Wazuh, ClamAV, YARA, Falco feeds | BLOCKED | No collector, daemon or endpoint agent is installed here. |
-| TriShield user interface | TESTED at build and type level | Lazy route, real API data, empty and error states, administrator gating. |
+| TriShield user interface | TESTED | Lazy route, real API data, six tabs, empty and error states, administrator gating, a11y in both themes. |
 | Production readiness | NOT CLAIMED | No staging or production deployment, no penetration test, no live firewall run. |
 
 ## Rules this implementation obeys
@@ -40,8 +47,10 @@ Status vocabulary used everywhere in this folder:
 1. No fake address is ever stored or displayed as an infrastructure address.
    Discovery reads `os.networkInterfaces`, or an explicitly configured HTTPS
    public IP endpoint whose answer is recorded as an unverified origin.
-2. A configured connector is not ACTIVE. Only a successful health check sets
-   ACTIVE, and a failed check records ERROR with the provider message.
+2. A configured integration is not VERIFIED. Only a successful real check sets
+   VERIFIED, and a failed check records ERROR with the provider message. The
+   states are NOT CONFIGURED, CONFIGURED, CONNECTED, VERIFIED, DEGRADED, ERROR
+   and UNAVAILABLE.
 3. An action that is not approved cannot execute, and an execution that the
    provider did not confirm is reported as failed, never as succeeded.
 4. Blocking refuses private, loopback, link local, multicast, reserved,

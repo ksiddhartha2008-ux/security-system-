@@ -301,6 +301,8 @@ app.get('/api/docs', requireAuth, (req, res) => {
       ] },
       { tag: 'TriShield defense', endpoints: [
         ['GET', '/api/trishield/overview', 'Per layer status, connector health, counts and origin evidence'],
+        ['GET', '/api/trishield/health', 'Integration health cards with history, missing requirements and setup steps'],
+        ['POST', '/api/trishield/health/:key/check', 'Run one real integration check and record it (admin)'],
         ['GET', '/api/trishield/status', 'Firewall and collector health'],
         ['GET', '/api/trishield/firewall/status', 'Provider status and apply flag'],
         ['GET', '/api/trishield/firewall/rules', 'Recorded rules and state'],

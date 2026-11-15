@@ -607,6 +607,10 @@ h1.page-title { font-size: 22px; line-height: 1.25; }
 
 .table-wrap { overflow-x: auto; }
 .table-wrap:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 8px; }
+.setup-details { border-top: 1px solid var(--color-line); padding-top: 8px; }
+.setup-details > summary { cursor: pointer; color: var(--color-muted); list-style-position: inside; }
+.setup-details > summary:hover { color: var(--color-ink); }
+.setup-details > summary:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 4px; }
 .table-wrap table.data { min-width: 660px; }
 table.data { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.8px; }
 table.data thead th {

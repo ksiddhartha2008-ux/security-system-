@@ -40,16 +40,16 @@ test('the overview reports each layer separately and never claims an unconfigure
   const body = response.body.data;
   assert.deepEqual(body.layers.map((layer) => layer.key), ['perimeter', 'application', 'endpoint']);
   const endpointLayer = body.layers.find((layer) => layer.key === 'endpoint');
-  assert.notEqual(endpointLayer.status, 'ACTIVE', 'no endpoint agent or scanner is configured in the test environment');
+  assert.notEqual(endpointLayer.status, 'VERIFIED', 'no endpoint agent or scanner is configured in the test environment');
   assert.equal(body.endpoints.total, 0);
   assert.ok(Array.isArray(body.firewall.providers) && body.firewall.providers.length >= 2);
   for (const provider of body.firewall.providers) {
-    assert.ok(['NOT CONFIGURED', 'CONFIGURED', 'UNAVAILABLE', 'ACTIVE', 'ERROR'].includes(provider.status), provider.status);
-    if (provider.status === 'ACTIVE') assert.equal(provider.available, true, 'a provider cannot be active while unavailable');
+    assert.ok(['NOT CONFIGURED', 'CONFIGURED', 'CONNECTED', 'VERIFIED', 'DEGRADED', 'ERROR', 'UNAVAILABLE'].includes(provider.status), provider.status);
+    if (provider.status === 'VERIFIED') assert.equal(provider.available, true, 'a provider cannot be verified while unavailable');
   }
   assert.equal(typeof body.infra.fingerprintConfigured, 'boolean');
   assert.equal(typeof body.origin.reverseProxyConfigured, 'boolean');
-  assert.match(body.note, /not ACTIVE until/i);
+  assert.match(body.note, /VERIFIED only after a real check/i);
 });
 
 test('privileged TriShield routes are closed to viewers and analysts', async () => {

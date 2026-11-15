@@ -42,6 +42,8 @@ export function listPolicies(orgId) {
  */
 export async function evaluateEventForBlock({ orgId, event, env = process.env, connectorOptions = {} }) {
   if (!event?.srcIp || !event?.severity || !event?.dedupeKey) return { decision: 'none', reason: 'missing_fields' };
+  // Synthetic demo telemetry must never reach a real provider.
+  if (event.synthetic) return { decision: 'skipped', reason: 'synthetic_event' };
   const policy = get('SELECT * FROM trishield_policies WHERE org_id = ? AND key = \'firewall.auto_block\'', orgId);
   if (!policy || policy.enabled !== 1) return { decision: 'none', reason: 'policy_disabled' };
   const config = parseJson(policy.config, {});

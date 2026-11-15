@@ -1,7 +1,7 @@
 # TriShield integrations
 
 Every provider below is a real adapter with a defined contract. None is
-simulated, and none is labelled ACTIVE until a health check succeeds. Where this
+simulated, and none is labelled VERIFIED until a real check succeeds. Where this
 machine cannot reach the provider, the adapter still exists, the failure is
 recorded with the provider message, and live verification is BLOCKED.
 
@@ -9,13 +9,36 @@ recorded with the provider message, and live verification is BLOCKED.
 
 | Displayed | Meaning |
 | --- | --- |
-| `NOT CONFIGURED` | Required setting or credential absent. |
-| `CONFIGURED` | Credentials or platform present, no successful check yet. |
-| `ACTIVE` | Health check succeeded and the last recorded status is connected. |
-| `ERROR` | Present, but the last check failed. The provider message is shown. |
-| `UNAVAILABLE` | This host cannot run the connector. |
-| `CONNECTED - NO RECENT EVENTS` | Collector exists and is enabled, but no event arrived in 15 minutes. |
-| `DISABLED` | Collector token revoked. |
+| `NOT CONFIGURED` | A required setting, credential or collector token is absent. |
+| `CONFIGURED` | Settings exist, but no successful connection has been recorded. |
+| `CONNECTED` | A real connection or event flow exists, without a completed verification. |
+| `VERIFIED` | The last real check confirmed the expected functionality. |
+| `DEGRADED` | Reachable, but incomplete or unhealthy: unprovisioned nftables, apply disabled, stale collector. |
+| `ERROR` | The last connection or check failed. The provider message is shown. |
+| `UNAVAILABLE` | This host cannot support the integration, or every collector token is revoked. |
+
+Every card also shows the last check, the last success, the last failure, the
+latency, the version where the provider reports one, a five entry history, the
+exact missing requirements and the next recommended action. A variable alone is
+never enough to show a healthy state.
+
+## Health engine
+
+`backend/src/services/trishieldHealth.js` is the single source of truth.
+
+| Integration | Real check | Honest failure |
+| --- | --- | --- |
+| nftables | Reads the table, both sets and both drop rules through the connector | UNAVAILABLE off Linux, DEGRADED when unprovisioned, ERROR when nft refuses |
+| Cloudflare | Lists account firewall access rules with the configured token | NOT CONFIGURED without both settings, ERROR with the API message |
+| Suricata | Collector freshness, 15 minute window | CONFIGURED with no events, DEGRADED when stale |
+| WAF | Same collector rule for the WAF feed | Same |
+| Wazuh | Manager API authenticate, then `/manager/info`, then the agent list | ERROR with the HTTP status; collector-only mode uses event freshness |
+| ClamAV | `zVERSION` over a real socket, parsed into engine and signature version | NOT CONFIGURED without a host, ERROR when the daemon does not answer |
+
+Results are written to `trishield_health_checks`, pruned to the newest 200 rows
+per integration, and exposed by `GET /api/trishield/health`. Only an
+administrator can run `POST /api/trishield/health/:key/check`, which is rate
+limited to 20 per minute and audited as `trishield.integration.checked`.
 
 ## Linux nftables
 
@@ -100,6 +123,19 @@ product does not enable it and the UI does not claim it.
 **Configuration**: create a collector in the TriShield page, copy the token once,
 point `eve.json` at the endpoint. Tokens are stored as SHA-256 hashes.
 
+**Tailer**: `scripts/trishield-eve-tail.mjs` reads EVE JSON, keeps a byte offset so
+a restart does not replay events, batches records and posts them with the collector
+token. It skips non-alert types unless `--all` is passed and counts malformed lines
+instead of failing the whole batch.
+
+```bash
+node scripts/trishield-eve-tail.mjs \
+  --file /var/log/suricata/eve.json \
+  --url https://secureflow.example \
+  --token tsk_xxx \
+  --follow
+```
+
 ## Wazuh
 
 Collector endpoint: `POST /api/trishield/ingest/wazuh`.
@@ -112,6 +148,12 @@ instead of a healthy one.
 
 **Failure behaviour**: a payload without an agent id or rule description is
 rejected as malformed and counted, not stored.
+
+**Manager API**: set `WAZUH_API_URL` plus `WAZUH_API_USER` and
+`WAZUH_API_PASSWORD`, or a static `WAZUH_API_TOKEN`. The health check
+authenticates, reads `/manager/info` and lists agents, so the online agent count
+can come from the manager. Trust the manager certificate with
+`NODE_EXTRA_CA_CERTS`; TLS verification is never disabled by the client.
 
 **Scope limit**: the integration is telemetry ingestion. It does not deploy or
 manage Wazuh agents, and it does not claim an endpoint is protected without one.

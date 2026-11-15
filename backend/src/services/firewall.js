@@ -208,6 +208,7 @@ export function firewallProviders(env = process.env) {
   return [
     {
       key: 'nftables', name: 'Linux nftables', kind: 'host',
+      supported: process.platform === 'linux',
       configured: process.platform === 'linux',
       available: nft.available,
       applyEnabled: nft.available && nft.applyEnabled,
@@ -216,10 +217,11 @@ export function firewallProviders(env = process.env) {
     },
     {
       key: 'cloudflare', name: 'Cloudflare firewall', kind: 'cloud',
+      supported: true,
       configured: cf.available,
       available: cf.available,
       applyEnabled: cf.available && cf.applyEnabled,
-      status: cf.available ? 'CONFIGURED' : 'UNAVAILABLE',
+      status: cf.available ? 'CONFIGURED' : 'NOT CONFIGURED',
       detail: cf.available ? 'Account firewall access rules. Credentials are environment only.' : 'SF_CLOUDFLARE_API_TOKEN and SF_CLOUDFLARE_ACCOUNT_ID are not configured.',
     },
   ];
@@ -230,9 +232,12 @@ function healthKey(providerKey) {
 }
 
 function statusFor(orgId, provider) {
-  if (!provider.available) return 'UNAVAILABLE';
+  // Same state vocabulary as the TriShield health engine. A connector is not
+  // ACTIVE because credentials exist; it is VERIFIED only after a real check.
+  if (!provider.supported) return 'UNAVAILABLE';
+  if (!provider.available) return 'NOT CONFIGURED';
   const row = get('SELECT status, last_sync_at, last_error FROM integration_configs WHERE org_id = ? AND key = ?', orgId, healthKey(provider.key));
-  if (row?.status === 'connected') return 'ACTIVE';
+  if (row?.status === 'connected') return 'VERIFIED';
   if (row?.status === 'error') return 'ERROR';
   return 'CONFIGURED';
 }
@@ -265,12 +270,12 @@ export async function refreshFirewallHealth(orgId, options = {}) {
     const connector = providerConnector(provider.key, options);
     const health = await connector.health();
     recordHealth(orgId, provider.key, health);
-    results.push({ key: provider.key, ok: health.ok, status: health.ok ? 'ACTIVE' : 'ERROR', detail: health.detail });
+    results.push({ key: provider.key, ok: health.ok, status: health.ok ? 'VERIFIED' : 'ERROR', detail: health.detail });
   }
   return results;
 }
 
-function providerConnector(key, options = {}) {
+export function providerConnector(key, options = {}) {
   if (key === 'nftables') return createNftConnector(options);
   if (key === 'cloudflare') return createCloudflareConnector(options);
   throw notFound('Unknown firewall provider');

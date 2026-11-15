@@ -125,6 +125,18 @@ session as the demo administrator.
 | Provider status | nftables `UNAVAILABLE`, cloudflare `UNAVAILABLE` |
 | Browser, `/trishield` | Overview cards, five tabs, IP Shield table with masked values, Perimeter feed with `simulated` badges on seeded rows |
 
+## Continuous integration
+
+```
+GitHub Actions, workflow CI, run #24
+Commit c0045dc on main
+Result: completed successfully in 2m 23s
+The three jobs (test, redis, accessibility) passed.
+```
+
+The run covers the full backend suite, the Redis rate limiter job and the
+Playwright accessibility suite that now includes `/trishield`.
+
 ## What was not tested, and why
 
 | Item | Status | Reason |

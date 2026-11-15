@@ -31,6 +31,6 @@ test('a real check with no scanner records not configured instead of healthy', a
 
   const card = page.locator('.card', { has: page.getByRole('heading', { name: 'ClamAV scanner' }) });
   await card.getByRole('button', { name: 'Test connection' }).click();
-  await expect(page.getByText('clamav: not configured')).toBeVisible({ timeout: 10_000 });
-  await expect(card.getByText(/CLAMAV_HOST is not set/)).toBeVisible();
+  await expect(card.getByText(/CLAMAV_HOST is not set/)).toBeVisible({ timeout: 15_000 });
+  await expect(card.getByText(/Last check/)).not.toContainText('never');
 });

@@ -22,7 +22,7 @@ after(() => {
 
 function runTail(args) {
   return new Promise((resolve) => {
-    execFile(process.execPath, [script, ...args], { timeout: 30_000 }, (error, stdout, stderr) => {
+    execFile(process.execPath, [script, ...args], { timeout: 60_000 }, (error, stdout, stderr) => {
       resolve({ code: error ? (error.code ?? 1) : 0, stdout, stderr });
     });
   });

@@ -7,7 +7,7 @@ Last updated: 11 November 2026. This file reflects what was actually built, run 
 | | |
 | --- | --- |
 | Application | SecureFlow AI, single page client plus REST API |
-| Backend tests | 162 passing, 2 skipped, 0 failing (`npm test`) |
+| Backend tests | 163 passing, 2 skipped, 0 failing (`npm test`) |
 | SDK tests | 13 passing, 0 failing (`npm run test:sdk`) |
 | Type check | clean (`npm run typecheck`) |
 | Production build | success (`npm run build`), 858 kB initial JavaScript and 321 kB CSS after the Astryx integration |

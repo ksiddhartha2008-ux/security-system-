@@ -80,7 +80,7 @@ cd C:\Users\ksidd\OneDrive\Pictures\Desktop\hack
 npm test
 ```
 
-Result: 164 tests, 162 pass, 0 fail, 2 skipped. The two skips are the existing
+Result: 165 tests, 163 pass, 0 fail, 2 skipped. The two skips are the existing
 PostgreSQL and Redis cases that need services which are not installed here.
 
 ## Type checking and build
@@ -125,7 +125,7 @@ session as the demo administrator.
 | Provider status | nftables `UNAVAILABLE`, cloudflare `UNAVAILABLE` |
 | Browser, `/trishield` | Overview cards, five tabs, IP Shield table with masked values, Perimeter feed with `simulated` badges on seeded rows |
 
-## Integration health tests\n\n```\ncd backend\nnode --test tests/trishield-health.test.mjs\nnode --test tests/trishield-health-api.test.mjs\nnode --test tests/trishield-eve-tail.test.mjs\n```\n\nResult: 10 + 4 + 2 tests, all pass. They cover the state model (NOT CONFIGURED,\nCONFIGURED, VERIFIED, DEGRADED, ERROR, UNAVAILABLE), the apply-disabled case, a\nreal ClamAV VERSION parser, the Wazuh client authentication, a revoked collector,\nhistory pruning, the admin-only check route, the audit entry, and the EVE tailer\nincluding its offset file and malformed lines.\n\n## Continuous integration
+## Integration health tests\n\n```\ncd backend\nnode --test tests/trishield-health.test.mjs\nnode --test tests/trishield-health-api.test.mjs\nnode --test tests/trishield-eve-tail.test.mjs\n```\n\nResult: 11 + 4 + 2 tests, all pass. They cover the state model (NOT CONFIGURED,\nCONFIGURED, VERIFIED, DEGRADED, ERROR, UNAVAILABLE), the apply-disabled case, a\nreal ClamAV VERSION parser, the Wazuh client authentication, a revoked collector,\nhistory pruning, the admin-only check route, the audit entry, and the EVE tailer\nincluding its offset file and malformed lines.\n\n## Continuous integration
 
 ```
 GitHub Actions, workflow CI, run #24

@@ -139,7 +139,7 @@ scrolls inside a focusable wrapper instead of moving the whole layout.
 | Playwright motion suite | 11 passed |
 | Playwright accessibility suite | 43 passed, including `/trishield` and its setup center in both themes |
 | Playwright shell health suite | 17 routes, no console or page errors |\n| Playwright TriShield setup center suite | 2 passed |
-| Backend suite | 164 tests, 162 passed, 2 skipped, 0 failed |
+| Backend suite | 165 tests, 163 passed, 2 skipped, 0 failed |
 
 The motion suite covers fast-scroll reveal, final metric text, page transition replay, the ten-row cap, chart classes and reduced motion. A DNS resolver defect found while running these tests is fixed and covered by two regression tests in `backend/tests/website-dns.test.mjs`.
 

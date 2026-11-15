@@ -64,6 +64,11 @@ test.describe('accessibility', () => {
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
       await page.getByRole('tab', { name: 'Integrations' }).click();
       await expect(page.getByRole('heading', { name: 'Linux nftables' })).toBeVisible();
+      // The tab panel fades in. Scanning mid animation blends the text with the
+      // surface and produces false contrast failures, so wait for settle.
+      await page.locator('.tab-panel').evaluate(async (element) => {
+        await Promise.all(element.getAnimations().map((animation) => animation.finished));
+      });
       await page.waitForLoadState('networkidle');
       await scan(page, `trishield-integrations-${theme}`);
     }

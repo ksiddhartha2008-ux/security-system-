@@ -22,7 +22,17 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
       - name: Backend tests
-        run: npm test --prefix backend
+        run: |
+          set -o pipefail
+          npm test --prefix backend 2>&1 | tee backend-tests.log
+      - name: Annotate failing backend tests
+        if: failure()
+        run: |
+          grep -E 'not ok|✖ |AssertionError|Error: ' backend-tests.log | head -20 | while IFS= read -r line; do
+            line="${line//'%'/'%25'}"
+            line="${line//$'\r'/''}"
+            echo "::error::${line}"
+          done
       - name: SDK tests
         run: npm test --prefix packages/sdk-node
       - name: Secret scan

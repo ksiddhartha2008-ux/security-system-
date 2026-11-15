@@ -74,6 +74,17 @@ export function TrendChart({ data, series, height = 210, valueSuffix = '' }: {
               {points.length <= 20 && points.map(([px, py], i) => (
                 <circle key={i} cx={px} cy={py} r="2.4" style={{ fill: "var(--color-chart-point)", stroke: s.color }} strokeWidth="1.6" />
               ))}
+              {points.length > 1 && (
+                <circle
+                  className="chart-pulse"
+                  cx={points[points.length - 1][0]}
+                  cy={points[points.length - 1][1]}
+                  r="3.2"
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth="1.4"
+                />
+              )}
             </g>
           );
         })}

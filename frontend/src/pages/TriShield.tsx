@@ -265,7 +265,7 @@ export default function TriShieldPage() {
                   {rules.loading && !rules.data ? <TableSkeleton rows={4} cols={4} /> : rules.error ? <ErrorState message={rules.error} onRetry={rules.refresh} /> : (rules.data?.rules.length ?? 0) === 0 ? (
                     <EmptyState title="No active rules" body="A rule appears here only after a provider confirms it." icon={<ShieldOff size={18} aria-hidden="true" />} />
                   ) : (
-                    <div className="table-wrap">
+                    <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
                       <table className="data">
                         <thead><tr><th>Provider</th><th>CIDR</th><th>Action</th><th>State</th><th>Expires</th><th>Verified</th></tr></thead>
                         <tbody>
@@ -288,7 +288,7 @@ export default function TriShieldPage() {
                 <div className="grid grid-2">
                   <Card title="Suricata events" subtitle="Normalized EVE records. Demo fixture rows are marked simulated." bodyClass="">
                     {(network.data?.data.length ?? 0) === 0 ? <EmptyState title="No Suricata events" body="Create a collector token and send EVE JSON to the ingestion endpoint." /> : (
-                      <div className="table-wrap"><table className="data"><thead><tr><th>Type</th><th>Severity</th><th>Signal</th><th>Source</th><th className="right">When</th></tr></thead><tbody>
+                      <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table"><table className="data"><thead><tr><th>Type</th><th>Severity</th><th>Signal</th><th>Source</th><th className="right">When</th></tr></thead><tbody>
                         {network.data?.data.map((event) => (
                           <tr key={event.id}><td className="mono tiny">{event.eventType}{event.synthetic && <> <Badge tone="neutral">simulated</Badge></>}</td><td><Badge tone={toneFor(event.severity.toUpperCase())}>{event.severity}</Badge></td><td className="truncate-cell">{event.title}</td><td className="mono tiny">{event.srcIp ?? '—'}</td><td className="right tiny faint">{timeAgo(event.occurredAt)}</td></tr>
                         ))}
@@ -297,7 +297,7 @@ export default function TriShieldPage() {
                   </Card>
                   <Card title="WAF events" subtitle="Provider-labelled application events. Demo fixture rows are marked simulated." bodyClass="">
                     {(waf.data?.data.length ?? 0) === 0 ? <EmptyState title="No WAF events" body="A WAF collector token can forward normalized block and challenge events." /> : (
-                      <div className="table-wrap"><table className="data"><thead><tr><th>Provider</th><th>Severity</th><th>Signal</th><th className="right">When</th></tr></thead><tbody>
+                      <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table"><table className="data"><thead><tr><th>Provider</th><th>Severity</th><th>Signal</th><th className="right">When</th></tr></thead><tbody>
                         {waf.data?.data.map((event) => (
                           <tr key={event.id}><td className="mono tiny">{event.source}{event.synthetic && <> <Badge tone="neutral">simulated</Badge></>}</td><td><Badge tone={toneFor(event.severity.toUpperCase())}>{event.severity}</Badge></td><td className="truncate-cell">{event.title}</td><td className="right tiny faint">{timeAgo(event.occurredAt)}</td></tr>
                         ))}
@@ -345,7 +345,7 @@ export default function TriShieldPage() {
                   {endpoints.loading && !endpoints.data ? <TableSkeleton rows={4} cols={5} /> : endpoints.error ? <ErrorState message={endpoints.error} onRetry={endpoints.refresh} /> : (endpoints.data?.agents.length ?? 0) === 0 ? (
                     <EmptyState title="No endpoint agents" body="Send a Wazuh alert with a collector token to register an agent." icon={<Server size={18} aria-hidden="true" />} />
                   ) : (
-                    <div className="table-wrap"><table className="data"><thead><tr><th>Agent</th><th>Host</th><th>OS</th><th>Address</th><th>Status</th><th className="right">Last seen</th></tr></thead><tbody>
+                    <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table"><table className="data"><thead><tr><th>Agent</th><th>Host</th><th>OS</th><th>Address</th><th>Status</th><th className="right">Last seen</th></tr></thead><tbody>
                       {endpoints.data?.agents.map((agent) => (
                         <tr key={agent.id}><td className="mono tiny">{agent.agentId}</td><td>{agent.hostname || '—'}</td><td className="tiny faint">{agent.os ?? '—'}</td><td className="mono tiny">{agent.ipMasked ?? '—'}</td><td><Badge tone={toneFor(agent.status.toUpperCase())}>{agent.status}</Badge></td><td className="right tiny faint">{agent.lastSeenAt ? timeAgo(agent.lastSeenAt) : '—'}</td></tr>
                       ))}
@@ -354,7 +354,7 @@ export default function TriShieldPage() {
                 </Card>
                 <Card title="Evidence scan history" subtitle="ClamAV result recorded at upload" bodyClass="">
                   {(endpoints.data?.malwareScans.length ?? 0) === 0 ? <EmptyState title="No evidence yet" body="Seal evidence in Forensics to record a scan state." /> : (
-                    <div className="table-wrap"><table className="data"><thead><tr><th>File</th><th>Case</th><th>Scan</th><th className="right">Created</th></tr></thead><tbody>
+                    <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table"><table className="data"><thead><tr><th>File</th><th>Case</th><th>Scan</th><th className="right">Created</th></tr></thead><tbody>
                       {endpoints.data?.malwareScans.map((scan) => (
                         <tr key={scan.id}><td className="truncate-cell">{scan.filename}</td><td className="mono tiny">{scan.caseRef}</td><td><Badge tone={scan.scanStatus === 'clean' ? 'mint' : scan.scanStatus === 'infected' ? 'critical' : 'neutral'}>{scan.scanStatus}</Badge></td><td className="right tiny faint">{formatDate(scan.createdAt)}</td></tr>
                       ))}
@@ -373,7 +373,7 @@ export default function TriShieldPage() {
                   {addresses.loading && !addresses.data ? <TableSkeleton rows={5} cols={6} /> : addresses.error ? <ErrorState message={addresses.error} onRetry={addresses.refresh} /> : (addresses.data?.addresses.length ?? 0) === 0 ? (
                     <EmptyState title="No addresses discovered" body="Run Discover IPs to read the host interfaces." icon={<Wifi size={18} aria-hidden="true" />} />
                   ) : (
-                    <div className="table-wrap"><table className="data"><thead><tr><th>Address</th><th>Type</th><th>Interface</th><th>Scope</th><th>Fingerprint</th><th>Vault</th><th></th></tr></thead><tbody>
+                    <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table"><table className="data"><thead><tr><th>Address</th><th>Type</th><th>Interface</th><th>Scope</th><th>Fingerprint</th><th>Vault</th><th></th></tr></thead><tbody>
                       {addresses.data?.addresses.map((address) => (
                         <tr key={address.id}>
                           <td className="mono tiny">{address.masked}</td>
@@ -404,7 +404,7 @@ export default function TriShieldPage() {
                 {actions.loading && !actions.data ? <TableSkeleton rows={5} cols={6} /> : actions.error ? <ErrorState message={actions.error} onRetry={actions.refresh} /> : (actions.data?.length ?? 0) === 0 ? (
                   <EmptyState title="No firewall actions" body="A proposed block appears here first. Nothing is applied without authorisation." icon={<ShieldCheck size={18} aria-hidden="true" />} />
                 ) : (
-                  <div className="table-wrap"><table className="data"><thead><tr><th>Target</th><th>Provider</th><th>Risk</th><th>Status</th><th>Reason</th><th className="right">Created</th><th></th></tr></thead><tbody>
+                  <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table"><table className="data"><thead><tr><th>Target</th><th>Provider</th><th>Risk</th><th>Status</th><th>Reason</th><th className="right">Created</th><th></th></tr></thead><tbody>
                     {actions.data?.map((action) => (
                       <tr key={action.id}>
                         <td className="mono tiny">{action.targetIp}</td>

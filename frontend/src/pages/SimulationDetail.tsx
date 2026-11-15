@@ -174,7 +174,7 @@ export default function SimulationDetailPage() {
       </div>
 
       <Card title="Agents" subtitle="Each agent acts on synthetic data only" bodyClass="">
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
           <table className="data">
             <thead><tr><th>Agent</th><th>Role</th><th className="hide-sm">Persona</th><th>Actions</th><th>Risk</th><th>Last action</th></tr></thead>
             <tbody>
@@ -194,7 +194,7 @@ export default function SimulationDetailPage() {
       </Card>
 
       <Card title="Simulation events" subtitle={`${sim.events.length} events across ${sim.currentRound} round(s)`} bodyClass="" className="">
-        <div className="table-wrap" style={{ maxHeight: 460, overflowY: 'auto' }}>
+        <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table" style={{ maxHeight: 460, overflowY: 'auto' }}>
           <table className="data">
             <thead><tr><th>Round</th><th>Severity</th><th>Agent</th><th>Event</th><th>Detail</th></tr></thead>
             <tbody>

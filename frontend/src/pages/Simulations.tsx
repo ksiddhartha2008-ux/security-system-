@@ -70,7 +70,7 @@ export default function SimulationsPage() {
       <Card bodyClass="">
         {runs.loading && !runs.data ? <TableSkeleton rows={5} cols={6} /> : runs.error ? <ErrorState message={runs.error} onRetry={runs.refresh} /> : (
           <>
-            <div className="table-wrap">
+            <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
               <table className="data">
                 <thead><tr><th>Reference</th><th>Run</th><th>Scenario</th><th>Engine</th><th>Status</th><th>Progress</th><th>Risk</th><th className="right">Created</th></tr></thead>
                 <tbody>

@@ -210,7 +210,7 @@ function AuditTab({ canAdmin }: { canAdmin: boolean }) {
       </div>
       {logs.loading && !logs.data ? <TableSkeleton rows={8} cols={4} /> : logs.error ? <ErrorState message={logs.error} onRetry={logs.refresh} /> : (
         <>
-          <div className="table-wrap">
+          <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
             <table className="data">
               <thead><tr><th>Action</th><th>Resource</th><th>Actor</th><th>IP</th><th className="right">When</th></tr></thead>
               <tbody>

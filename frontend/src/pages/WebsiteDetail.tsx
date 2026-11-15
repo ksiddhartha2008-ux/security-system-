@@ -428,7 +428,7 @@ function Overview({ site, onVerify, busy }: { site: WebsiteDetail; onVerify: () 
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', margin: '14px 0' }}>
         <Card title="Top source addresses" subtitle="Last 7 days">
           {site.stats.topSources.length === 0 ? <p className="small muted">No address reported yet.</p> : (
-            <div className="table-wrap">
+            <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
               <table className="data" style={{ minWidth: 280 }}>
                 <thead><tr><th>Address</th><th className="right">Events</th></tr></thead>
                 <tbody>
@@ -442,7 +442,7 @@ function Overview({ site, onVerify, busy }: { site: WebsiteDetail; onVerify: () 
         </Card>
         <Card title="Detections by rule" subtitle="All time">
           {site.stats.detectionsByRule.length === 0 ? <p className="small muted">No detection yet.</p> : (
-            <div className="table-wrap">
+            <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
               <table className="data" style={{ minWidth: 280 }}>
                 <thead><tr><th>Rule</th><th className="right">Detections</th></tr></thead>
                 <tbody>
@@ -503,7 +503,7 @@ function EventsTab({ siteId }: { siteId: string }) {
       ) : result.data && result.data.data.length === 0 ? (
         <p className="empty-body" style={{ padding: 24 }}>No event matches this filter.</p>
       ) : (
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
           <table className="data">
             <thead><tr><th>Time</th><th>Type</th><th>Source</th><th>Account</th><th>Path</th></tr></thead>
             <tbody>
@@ -554,7 +554,7 @@ function DetectionsTab({ siteId }: { siteId: string }) {
       ) : result.data && result.data.data.length === 0 ? (
         <p className="empty-body" style={{ padding: 24 }}>No detection for this website yet.</p>
       ) : (
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
           <table className="data">
             <thead><tr><th>Time</th><th>Rule</th><th>Severity</th><th className="right">Risk</th><th>Incident</th></tr></thead>
             <tbody>
@@ -596,7 +596,7 @@ function IncidentsTab({ siteId }: { siteId: string }) {
       ) : result.data && result.data.data.length === 0 ? (
         <p className="empty-body" style={{ padding: 24 }}>No incident linked to this website yet.</p>
       ) : (
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
           <table className="data">
             <thead><tr><th>Reference</th><th>Title</th><th>Priority</th><th>Status</th><th>Detected</th></tr></thead>
             <tbody>
@@ -643,7 +643,7 @@ function KeysTab({ siteId, site, canAdmin, version, onAdd, onRevoke }: {
               </p>
             </div>
           ) : (
-            <div className="table-wrap">
+            <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
               <table className="data">
                 <thead><tr><th>Key</th><th>Label</th><th>Status</th><th>Created</th><th>Last used</th><th /></tr></thead>
                 <tbody>

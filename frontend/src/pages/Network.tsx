@@ -78,7 +78,7 @@ export default function NetworkPage() {
         </div>
         {flows.loading && !flows.data ? <TableSkeleton rows={8} cols={6} /> : flows.error ? <ErrorState message={flows.error} onRetry={flows.refresh} /> : (
           <>
-            <div className="table-wrap">
+            <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
               <table className="data">
                 <thead><tr><th>Source</th><th>Destination</th><th>Protocol</th><th>Volume</th><th>Direction</th><th>Verdict</th><th>Asset</th><th className="right">When</th></tr></thead>
                 <tbody>

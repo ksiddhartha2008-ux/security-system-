@@ -85,6 +85,8 @@ export function AnimatedMetric({
   const target = Number.isFinite(value) ? value : 0;
   const { ref, inView } = useInView<HTMLSpanElement>({ threshold: 0.3, once: false });
   const [display, setDisplay] = useState(() => (reduced || !animateOnView ? target : 0));
+  const [updating, setUpdating] = useState(false);
+  const pulseTimer = useRef<number | null>(null);
   const shown = useRef(display);
   const frame = useRef<number | null>(null);
   const revealed = useRef(!animateOnView);
@@ -124,6 +126,13 @@ export function AnimatedMetric({
     if (lastTarget.current === target) return;
     lastTarget.current = target;
     run(target, shown.current, Math.min(duration, 450));
+    // A short settle marks the change without moving the layout.
+    if (!reduced) {
+      setUpdating(true);
+      if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
+      pulseTimer.current = window.setTimeout(() => { setUpdating(false); pulseTimer.current = null; }, 640);
+    }
+    // `run` and `reduced` are read at call time; they are intentionally not dependencies.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target, duration]);
 
@@ -137,10 +146,11 @@ export function AnimatedMetric({
 
   useEffect(() => () => {
     if (frame.current) cancelAnimationFrame(frame.current);
+    if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
   }, []);
 
   return (
-    <span ref={ref} className={`animated-metric${className ? ` ${className}` : ''}`}>
+    <span ref={ref} className={`animated-metric${updating ? ' is-updating' : ''}${className ? ` ${className}` : ''}`}>
       <span aria-hidden="true">{prefix}{formatMetric(display, { decimals, locale })}{suffix}</span>
       <span className="sr-only">{prefix}{formatMetric(target, { decimals, locale })}{suffix}</span>
     </span>

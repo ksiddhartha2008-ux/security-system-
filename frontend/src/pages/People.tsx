@@ -34,7 +34,7 @@ export default function PeoplePage() {
 
       <Card bodyClass="" className="">
         {users.loading && !users.data ? <TableSkeleton rows={5} cols={5} /> : users.error ? <ErrorState message={users.error} onRetry={users.refresh} /> : (
-          <div className="table-wrap">
+          <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
             <table className="data">
               <thead><tr><th>Member</th><th>Email</th><th>Role</th><th>Status</th><th>Last sign in</th><th className="right">Joined</th></tr></thead>
               <tbody>

@@ -95,6 +95,67 @@ export function AppShellLayout() {
   const summary = useApi<{ kpis: { incidentsOpen: number; detectionsOpen: number } }>('/overview/summary');
   const demoStatus = useApi<{ hasDemoData: boolean }>('/demo/status');
   const live = useEventStream(() => {}, true);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const progressRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Scroll progress is written as a CSS variable on the sticky bar instead of
+   * React state, so a fast scroll never re-renders the whole shell.
+   */
+  useEffect(() => {
+    const scroller = document.getElementById('astryx-app-shell-main');
+    const shell = contentRef.current;
+    if (!scroller || !shell) return undefined;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const max = scroller.scrollHeight - scroller.clientHeight;
+      const ratio = max > 0 ? Math.min(1, Math.max(0, scroller.scrollTop / max)) : 0;
+      progressRef.current?.style.setProperty('--scroll-progress', ratio.toFixed(4));
+      shell.dataset.scrolled = scroller.scrollTop > 8 ? 'true' : 'false';
+    };
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
+    scroller.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    update();
+    return () => {
+      cancelAnimationFrame(frame);
+      scroller.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+    };
+  }, [location.pathname]);
+
+  /**
+   * One delegated pointer listener drives the card sheen. It writes two custom
+   * properties and never calls setState, so hovering a dashboard costs no render.
+   */
+  useEffect(() => {
+    const shell = contentRef.current;
+    if (!shell) return undefined;
+    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+    let frame = 0;
+    let pending: { card: HTMLElement; x: number; y: number } | null = null;
+    const apply = () => {
+      frame = 0;
+      if (!pending) return;
+      pending.card.style.setProperty('--pointer-x', `${pending.x.toFixed(0)}px`);
+      pending.card.style.setProperty('--pointer-y', `${pending.y.toFixed(0)}px`);
+    };
+    const onMove = (event: PointerEvent) => {
+      if (!finePointer.matches) return;
+      const target = event.target as Element | null;
+      const card = target?.closest?.('.card') as HTMLElement | null;
+      if (!card) return;
+      const rect = card.getBoundingClientRect();
+      pending = { card, x: event.clientX - rect.left, y: event.clientY - rect.top };
+      if (!frame) frame = requestAnimationFrame(apply);
+    };
+    shell.addEventListener('pointermove', onMove, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      shell.removeEventListener('pointermove', onMove);
+    };
+  }, []);
 
   const root = `/${location.pathname.split('/')[1] ?? ''}`;
   const title = TITLES[root] ?? 'SecureFlow AI';
@@ -264,7 +325,8 @@ export function AppShellLayout() {
         </SideNav>
       )}
     >
-      <div className="content-shell">
+      <div className="content-shell" ref={contentRef}>
+        <div className="scroll-progress" ref={progressRef} aria-hidden="true" />
         <CyberFluidBackground />
         <div className="page">
           <PageTransition routeKey={location.pathname}>

@@ -107,7 +107,7 @@ export default function MonitoringPage() {
 
         {events.loading && !events.data ? <TableSkeleton rows={8} cols={5} /> : events.error ? <ErrorState message={events.error} onRetry={events.refresh} /> : (
           <>
-            <div className="table-wrap">
+            <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
               <table className="data">
                 <thead>
                   <tr><th>Severity</th><th>Event</th><th>Source</th><th>Endpoints</th><th>Asset</th><th>Status</th><th className="right">Occurred</th></tr>

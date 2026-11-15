@@ -193,7 +193,7 @@ export default function DemoDataPage() {
             {data.runs.length === 0 ? (
               <p className="empty-body" style={{ padding: 20 }}>No demo runs yet. Generate a batch to populate the dashboard.</p>
             ) : (
-              <div className="table-wrap">
+              <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
                 <table className="data">
                   <thead><tr><th>Action</th><th>Batch</th><th>Records</th><th className="right">When</th></tr></thead>
                   <tbody>

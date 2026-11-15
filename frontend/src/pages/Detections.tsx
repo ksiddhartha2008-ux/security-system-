@@ -122,7 +122,7 @@ export default function DetectionsPage() {
           </div>
           {detections.loading && !detections.data ? <TableSkeleton rows={7} cols={5} /> : detections.error ? <ErrorState message={detections.error} onRetry={detections.refresh} /> : (
             <>
-              <div className="table-wrap">
+              <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
                 <table className="data">
                   <thead><tr><th>Severity</th><th>Detection</th><th>Rule</th><th>Asset</th><th>Risk</th><th>Confidence</th><th>Status</th><th className="right">Detected</th></tr></thead>
                   <tbody>

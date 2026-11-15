@@ -111,7 +111,7 @@ export default function WebsitesPage() {
               : undefined}
           />
         ) : (
-          <div className="table-wrap">
+          <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
             <table className="data">
               <thead>
                 <tr>

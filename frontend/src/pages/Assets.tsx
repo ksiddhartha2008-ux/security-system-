@@ -92,7 +92,7 @@ export default function AssetsPage() {
 
         {assets.loading && !assets.data ? <TableSkeleton rows={8} cols={6} /> : assets.error ? <ErrorState message={assets.error} onRetry={assets.refresh} /> : (
           <>
-            <div className="table-wrap">
+            <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
               <table className="data">
                 <thead><tr><th>Asset</th><th>Address</th><th>Type</th><th>Criticality</th><th>Risk</th><th>Status</th><th className="right">Last seen</th></tr></thead>
                 <tbody>

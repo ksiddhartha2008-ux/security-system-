@@ -316,7 +316,31 @@ h1.page-title { font-size: 22px; line-height: 1.25; }
 .card {
   background: var(--color-panel); border: 1px solid var(--color-line);
   border-radius: var(--radius-card); box-shadow: var(--shadow-1);
-}.card-head {
+  position: relative;
+  isolation: isolate;
+  transition: transform 200ms var(--motion-ease), border-color 180ms ease, background 180ms ease;
+}
+/*
+ * Pointer sheen. The shell sets --pointer-x/--pointer-y while the pointer moves
+ * over a card, so the highlight follows the cursor without a React render and
+ * without a per-card listener.
+ */
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    220px circle at var(--pointer-x, 50%) var(--pointer-y, 50%),
+    color-mix(in srgb, var(--color-blue) 15%, transparent),
+    transparent 68%
+  );
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+.card-head {
   display: flex; align-items: center; gap: 10px; padding: 14px 16px;
   border-bottom: 1px solid var(--color-line);
 }
@@ -326,6 +350,11 @@ h1.page-title { font-size: 22px; line-height: 1.25; }
 .card-foot { padding: 12px 16px; border-top: 1px solid var(--color-line); }
 
 .grid { display: grid; gap: 14px; }
+/* A grid item defaults to min-width:auto, so a wide table inside a card would
+   push the whole page sideways on a narrow screen. Let the card shrink and the
+   table scroll inside its own wrapper instead. */
+.grid > * { min-width: 0; }
+.page-transition { min-width: 0; }
 
 /* ---------- motion system ---------- */
 .reveal {
@@ -419,6 +448,112 @@ h1.page-title { font-size: 22px; line-height: 1.25; }
 @keyframes chart-draw { to { stroke-dashoffset: 0; } }
 @keyframes chart-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes bar-in { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* ---------- signal flow motion ---------- */
+
+.astryx-side-nav-item { position: relative; }
+.astryx-side-nav-item[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--color-blue), var(--color-mint));
+}
+
+/*
+ * Ambient field. Two slow gradients drift behind the console so the surface has
+ * depth without moving text or competing with the data. Both are transforms on
+ * a pseudo element, and the global reduced-motion rule flattens them.
+ */
+.fluid-layer::before,
+.fluid-layer::after {
+  content: '';
+  position: absolute;
+  inset: -30%;
+  pointer-events: none;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--color-blue) 13%, transparent), transparent 70%);
+  filter: blur(36px);
+  opacity: 0.9;
+}
+.fluid-layer::after {
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--color-mint) 11%, transparent), transparent 70%);
+}
+
+.scroll-progress {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: 2px;
+  width: 100%;
+  transform: scaleX(var(--scroll-progress, 0));
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, var(--color-blue), var(--color-mint));
+  opacity: 0;
+  transition: opacity 240ms ease;
+  pointer-events: none;
+}
+.content-shell[data-scrolled='true'] .scroll-progress { opacity: 0.9; }
+
+.section-in { animation: section-in 430ms var(--motion-ease) both; }
+@keyframes section-in {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+.animated-metric > [aria-hidden='true'] { display: inline-block; }
+.chart-pulse { transform-box: fill-box; transform-origin: center; opacity: 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .page-transition > * { animation: section-in 430ms var(--motion-ease) both; }
+  .page-transition > *:nth-child(2) { animation-delay: 55ms; }
+  .page-transition > *:nth-child(3) { animation-delay: 110ms; }
+  .page-transition > *:nth-child(4) { animation-delay: 165ms; }
+  .page-transition > *:nth-child(5) { animation-delay: 220ms; }
+  .page-transition > *:nth-child(6) { animation-delay: 275ms; }
+  .page-transition > *:nth-child(n + 7) { animation-delay: 320ms; }
+
+  .fluid-layer::before { animation: ambient-drift 34s ease-in-out infinite alternate; }
+  .fluid-layer::after { animation: ambient-drift 46s ease-in-out infinite alternate-reverse; }
+
+  .animated-metric.is-updating > [aria-hidden='true'] { animation: metric-settle 620ms var(--motion-ease); }
+  .chart-pulse { animation: point-pulse 2600ms ease-out infinite; }
+  .empty-icon { animation: empty-pop 360ms var(--motion-ease) both; }
+
+  .astryx-side-nav-item[aria-current='page']::before { animation: rail-in 260ms var(--motion-ease) both; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--color-blue) 34%, var(--color-line));
+  }
+  .card:hover::after { opacity: 1; }
+}
+
+@keyframes ambient-drift {
+  from { transform: translate3d(-5%, -4%, 0) scale(1); }
+  to { transform: translate3d(6%, 5%, 0) scale(1.12); }
+}
+@keyframes metric-settle {
+  0% { opacity: 0.5; transform: translate3d(0, -3px, 0); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes point-pulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  70% { transform: scale(2.7); opacity: 0; }
+  100% { transform: scale(2.7); opacity: 0; }
+}
+@keyframes empty-pop {
+  from { opacity: 0; transform: scale(0.82); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rail-in {
+  from { transform: scaleY(0.2); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
 .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -471,6 +606,7 @@ h1.page-title { font-size: 22px; line-height: 1.25; }
 .search { flex: 1; min-width: 180px; max-width: 340px; }
 
 .table-wrap { overflow-x: auto; }
+.table-wrap:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 8px; }
 .table-wrap table.data { min-width: 660px; }
 table.data { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.8px; }
 table.data thead th {
@@ -478,8 +614,10 @@ table.data thead th {
   color: var(--color-faint); font-weight: 600; padding: 9px 12px;
   border-bottom: 1px solid var(--color-line); background: var(--color-table-head); white-space: nowrap;
 }
-table.data tbody td { padding: 10px 12px; border-bottom: 1px solid rgba(30, 43, 56, 0.7); vertical-align: middle; }
-table.data tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+table.data tbody td { padding: 10px 12px; border-bottom: 1px solid color-mix(in srgb, var(--color-line) 72%, transparent); vertical-align: middle; }
+table.data tbody tr { transition: background 140ms ease; }
+table.data tbody tr:hover { background: color-mix(in srgb, var(--color-blue) 7%, transparent); }
+table.data tbody tr:hover td:first-child { box-shadow: inset 2px 0 0 var(--color-blue); }
 table.data tbody tr:last-child td { border-bottom: none; }
 table.data td.num { font-variant-numeric: tabular-nums; }
 .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; font-size: 11.6px; }

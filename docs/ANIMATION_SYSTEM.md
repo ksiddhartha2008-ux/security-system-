@@ -101,16 +101,45 @@ No animation dependency was added. The bundle grew by about 5 kB of JavaScript f
 - No `filter` animation on large panels. The tab panel uses a 220 ms blur once.
 - The particle canvas caps device pixel ratio at 1.5 and pauses when the tab is hidden.
 
+## 5a. Signal flow layer (console pages)
+
+The console now carries the same energy as the landing page, at a volume that
+suits a security tool: motion explains arrival, hierarchy and response, and never
+moves data while it is being read.
+
+| Layer | Behaviour | Implementation |
+| --- | --- | --- |
+| Section stagger | Page sections rise 10px and fade, 55ms apart, up to seven children | `.page-transition > *` with `section-in`, remounted on every route |
+| Ambient field | Two blurred gradients drift on 34s and 46s cycles behind the content | `.fluid-layer::before/::after`, `ambient-drift` |
+| Particle flow | Existing canvas, unchanged, plus the new wash behind it | `CyberFluidBackground` |
+| Scroll progress | 2px gradient line at the top of the content, appears after 8px of scroll | shell listener writes `--scroll-progress`, no React state |
+| Card sheen | Radial highlight follows the pointer, card lifts 2px on hover | one delegated pointer listener writes `--pointer-x/--pointer-y` |
+| Metric settle | A changed KPI dips 3px and settles for 620ms | `AnimatedMetric` adds `is-updating` |
+| Chart pulse | The newest point of each trend line emits a slow ring | `.chart-pulse` circle at the last point |
+| Nav rail | Active item gets a blue to mint rail that scales in | `.astryx-side-nav-item[aria-current="page"]::before` |
+| Empty icon | Empty state icon pops in once | `.empty-icon` with `empty-pop` |
+| Tables | Row hover tint and a left accent; the wrapper is focusable for keyboard scrolling | `.table-wrap` with `tabIndex`, `role="group"` and a label |
+
+Every effect is a transform, opacity or background transition on a token colour.
+The global reduced-motion rule collapses all of them, and the motion suite asserts
+that the section animation name is `none` and the ambient animation is `none`
+under `prefers-reduced-motion: reduce`.
+
+Grid items also received `min-width: 0`. Without it, a card holding a wide table
+expanded its track and pushed the page sideways on a narrow screen. The table now
+scrolls inside a focusable wrapper instead of moving the whole layout.
+
 ## 6. Tests
 
 | Check | Result |
 | --- | --- |
 | `npm run typecheck` | pass |
-| `npm run build` | pass, 870.62 kB JS (281.38 kB gzip), 328.74 kB CSS (56.63 kB gzip) |
+| `npm run build` | pass, 872.58 kB JS (282.03 kB gzip), 333.92 kB CSS (57.58 kB gzip) |
 | `npm run test:motion --prefix frontend` | 4 passed |
-| Playwright motion suite | 6 passed |
-| Playwright accessibility suite | 39 passed |
-| Backend suite | 123 tests, 121 passed, 2 skipped, 0 failed |
+| Playwright motion suite | 11 passed |
+| Playwright accessibility suite | 42 passed, including `/trishield` in both themes |
+| Playwright shell health suite | 17 routes, no console or page errors |
+| Backend suite | 147 tests, 145 passed, 2 skipped, 0 failed |
 
 The motion suite covers fast-scroll reveal, final metric text, page transition replay, the ten-row cap, chart classes and reduced motion. A DNS resolver defect found while running these tests is fixed and covered by two regression tests in `backend/tests/website-dns.test.mjs`.
 

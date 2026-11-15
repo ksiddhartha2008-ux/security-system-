@@ -224,7 +224,7 @@ export default function OverviewPage() {
       <div className="grid grid-2" style={{ marginTop: 14, gridTemplateColumns: '1.4fr 1fr' }}>
         <Card title="Recent telemetry" subtitle="Newest events across every source" bodyClass="" reveal revealDelay={40} actions={<Link to="/monitoring" className="btn btn-sm btn-ghost">Monitoring <ArrowUpRight size={13} aria-hidden="true" /></Link>}>
           {summary.loading ? <TableSkeleton rows={6} cols={4} /> : (
-            <div className="table-wrap">
+            <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
               <table className="data">
                 <thead><tr><th>Severity</th><th>Event</th><th>Source</th><th>Asset</th><th className="right">When</th></tr></thead>
                 <tbody>

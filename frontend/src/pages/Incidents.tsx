@@ -73,7 +73,7 @@ export function IncidentsPage() {
 
         {incidents.loading && !incidents.data ? <TableSkeleton rows={7} cols={6} /> : incidents.error ? <ErrorState message={incidents.error} onRetry={incidents.refresh} /> : (
           <>
-            <div className="table-wrap">
+            <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
               <table className="data">
                 <thead><tr><th>Reference</th><th>Incident</th><th>Severity</th><th>Priority</th><th>Status</th><th>Owner</th><th className="right">Detected</th></tr></thead>
                 <tbody>

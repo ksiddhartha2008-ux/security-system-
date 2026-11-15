@@ -150,7 +150,7 @@ export default function PhishingPage() {
       <Card title="Scan history" subtitle="Most recent first" bodyClass="" className="" >
         {history.loading && !history.data ? <TableSkeleton rows={5} cols={4} /> : history.error ? <ErrorState message={history.error} onRetry={history.refresh} /> : (
           <>
-            <div className="table-wrap">
+            <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
               <table className="data">
                 <thead><tr><th>Verdict</th><th>URL</th><th>Risk</th><th>Indicators</th><th>Reachable</th><th className="right">Scanned</th></tr></thead>
                 <tbody>

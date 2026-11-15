@@ -101,7 +101,7 @@ export default function AutomationPage() {
       <Card title="Execution history" subtitle="Every run, approval and recorded step" bodyClass="" className="" >
         {executions.loading && !executions.data ? <TableSkeleton rows={5} cols={4} /> : executions.error ? <ErrorState message={executions.error} onRetry={executions.refresh} /> : (
           <>
-            <div className="table-wrap">
+            <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
               <table className="data">
                 <thead><tr><th>Workflow</th><th>Incident</th><th>Status</th><th>Steps</th><th>Started by</th><th className="right">When</th><th /></tr></thead>
                 <tbody>

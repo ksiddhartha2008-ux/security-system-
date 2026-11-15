@@ -71,7 +71,7 @@ export default function VulnerabilitiesPage() {
         </div>
         {vulns.loading && !vulns.data ? <TableSkeleton rows={7} cols={6} /> : vulns.error ? <ErrorState message={vulns.error} onRetry={vulns.refresh} /> : (
           <>
-            <div className="table-wrap">
+            <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
               <table className="data">
                 <thead><tr><th>CVE</th><th>Vulnerability</th><th>Asset</th><th>Severity</th><th>CVSS</th><th>Status</th><th className="right">Due</th></tr></thead>
                 <tbody>

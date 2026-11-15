@@ -157,7 +157,7 @@ export default function IntelPage() {
         </div>
         {iocs.loading && !iocs.data ? <TableSkeleton rows={7} cols={5} /> : iocs.error ? <ErrorState message={iocs.error} onRetry={iocs.refresh} /> : (
           <>
-            <div className="table-wrap">
+            <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
               <table className="data">
                 <thead><tr><th>Type</th><th>Indicator</th><th>Threat</th><th>Confidence</th><th>Source</th><th>Status</th><th className="right">Last seen</th></tr></thead>
                 <tbody>

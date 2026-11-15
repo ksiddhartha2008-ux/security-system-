@@ -64,7 +64,7 @@ export default function ForensicsPage() {
         </div>
         {evidence.loading && !evidence.data ? <TableSkeleton rows={6} cols={5} /> : evidence.error ? <ErrorState message={evidence.error} onRetry={evidence.refresh} /> : (
           <>
-            <div className="table-wrap">
+            <div className="table-wrap" tabIndex={0} role="group" aria-label="Scrollable table">
               <table className="data">
                 <thead><tr><th>Case</th><th>File</th><th>Size</th><th>SHA-256</th><th>Status</th><th className="right">Sealed</th></tr></thead>
                 <tbody>

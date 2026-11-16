@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { all, get, run, newId, nowIso, parseJson, transaction } from '../db.js';
-import { asyncHandler, badRequest, conflict, created, ok, unauthorized, validate, tooMany } from '../lib/http.js';
+import { asyncHandler, accepted, badRequest, ok, unauthorized, validate, tooMany } from '../lib/http.js';
 import { hashPasswordAsync, hashPassword, verifyPasswordAsync, createSession, destroySession, requireAuth, parseCookies, hashToken, SESSION_COOKIE, setMfaCookie, clearMfaCookie } from '../lib/auth.js';
 import { audit } from '../lib/audit.js';
 import { rateLimit } from '../lib/ratelimit.js';
@@ -51,33 +51,65 @@ router.get('/demo-accounts', asyncHandler(async (_req, res) => {
 }));
 
 router.post('/register', rateLimit({ windowMs: 60 * 60 * 1000, max: 6, keyPrefix: 'register', failMode: 'closed', message: 'Too many accounts created from this address. Try again later.' }), asyncHandler(async (req, res) => {
+  const startedAt = Date.now();
   const body = validate(registerSchema, req.body);
-  if (get('SELECT id FROM users WHERE email = ?', body.email)) {
-    throw conflict('An account with this email already exists');
+
+  /**
+   * Every registration outcome returns this exact body. It says nothing about
+   * whether the address already existed, and no session is created for either
+   * case, so cookies and redirects cannot reveal the difference either.
+   */
+  const neutral = () => accepted(res, {
+    message: 'If registration can be completed, you can continue by signing in.',
+  });
+  const settle = async () => {
+    // Bounded timing floor, not an unbounded sleep. Hash cost usually dominates;
+    // this keeps the existing and new paths in the same response band.
+    const remaining = 250 - (Date.now() - startedAt);
+    if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
+  };
+
+  const existing = get('SELECT id FROM users WHERE email = ?', body.email);
+  if (existing) {
+    audit(req, 'auth.register_duplicate', 'user', null, {});
+    await settle();
+    return neutral();
   }
+
   const slugBase = body.organizationName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'workspace';
   const orgId = newId('org');
   const userId = newId('usr');
   const ts = nowIso();
   const passwordHash = await hashPasswordAsync(body.password);
-  transaction(() => {
-    let slug = slugBase;
-    let n = 1;
-    while (get('SELECT id FROM organizations WHERE slug = ?', slug)) { slug = `${slugBase}-${n}`; n += 1; }
-    run(
-      `INSERT INTO organizations (id, name, slug, plan, settings, created_at, updated_at) VALUES (?, ?, ?, 'team', ?, ?, ?)`,
-      orgId, body.organizationName, slug, JSON.stringify({ timezone: 'UTC', retentionDays: 90, demoMode: false }), ts, ts,
-    );
-    run(
-      `INSERT INTO users (id, org_id, email, name, password_hash, role, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'admin', 'active', ?, ?)`,
-      userId, orgId, body.email, body.name, passwordHash, ts, ts,
-    );
-  });
-  const user = get('SELECT * FROM users WHERE id = ?', userId);
-  createSession(user, req, res);
-  audit(req, 'auth.register', 'user', userId, { orgId });
-  return created(res, { user: publicUser(user, body.organizationName) });
+  try {
+    transaction(() => {
+      let slug = slugBase;
+      let n = 1;
+      while (get('SELECT id FROM organizations WHERE slug = ?', slug)) { slug = `${slugBase}-${n}`; n += 1; }
+      run(
+        `INSERT INTO organizations (id, name, slug, plan, settings, created_at, updated_at) VALUES (?, ?, ?, 'team', ?, ?, ?)`,
+        orgId, body.organizationName, slug, JSON.stringify({ timezone: 'UTC', retentionDays: 90, demoMode: false }), ts, ts,
+      );
+      run(
+        `INSERT INTO users (id, org_id, email, name, password_hash, role, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, 'admin', 'active', ?, ?)`,
+        userId, orgId, body.email, body.name, passwordHash, ts, ts,
+      );
+    });
+  } catch (error) {
+    // A concurrent request won the unique index. The transaction rolled the
+    // organisation back, so nothing partial remains.
+    if (/UNIQUE constraint failed: users\.email/i.test(String(error.message))) {
+      audit(req, 'auth.register_duplicate', 'user', null, {});
+      await settle();
+      return neutral();
+    }
+    throw error;
+  }
+
+  audit(req, 'auth.register', 'user', userId, { orgId }, { orgId });
+  await settle();
+  return neutral();
 }));
 
 router.post('/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 12, keyPrefix: 'login', failMode: 'closed' }), asyncHandler(async (req, res) => {

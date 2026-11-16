@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { startServer, login, client, enrollAdminMfa, DEMO } from './helpers.mjs';
+import { startServer, login, client, registerInto, DEMO } from './helpers.mjs';
 
 const dnsFile = join(tmpdir(), `sf-website-dns-${process.pid}-${Date.now()}.json`);
 let server;
@@ -326,11 +326,7 @@ test('another organization cannot read, change or verify the website', async () 
   const { siteId } = globalThis.__websiteTest;
   const other = client(server.base);
   const email = `owner-${Date.now()}@example.test`;
-  const registered = await other.post('/auth/register', {
-    name: 'Other Owner', email, password: 'CorrectHorse#2026', organizationName: `Other ${Date.now()}`,
-  });
-  assert.equal(registered.status, 201, registered.text);
-  await enrollAdminMfa(other, 'CorrectHorse#2026');
+  await registerInto(other, server.base, { name: 'Other Owner', email, password: 'OtherOwner#2026', organizationName: `Other ${Date.now()}` });
   const step = await other.stepUp();
   assert.equal(step.status, 200);
 
@@ -361,12 +357,12 @@ test('concurrent verification of one hostname has exactly one winner', async () 
   const orgB = client(server.base);
   const password = 'CorrectHorse#2026';
   for (const [org, label] of [[orgA, 'a'], [orgB, 'b']]) {
-    const email = `race-${label}-${stamp}@example.test`;
-    const registered = await org.post('/auth/register', {
-      name: `Race ${label}`, email, password, organizationName: `Race ${label} ${stamp}`,
+    await registerInto(org, server.base, {
+      name: `Race ${label}`,
+      email: `race-${label}-${stamp}@example.test`,
+      password,
+      organizationName: `Race ${label} ${stamp}`,
     });
-    assert.equal(registered.status, 201, registered.text);
-    await enrollAdminMfa(org, password);
     await org.stepUp();
   }
 
@@ -394,11 +390,7 @@ test('domain scope blocks a later subdomain claim from another organization', as
   const claimant = client(server.base);
   const password = 'CorrectHorse#2026';
   for (const [org, label] of [[owner, 'owner'], [claimant, 'claimant']]) {
-    const registered = await org.post('/auth/register', {
-      name: label, email: `${label}-${stamp}@example.test`, password, organizationName: `${label} ${stamp}`,
-    });
-    assert.equal(registered.status, 201, registered.text);
-    await enrollAdminMfa(org, password);
+    await registerInto(org, server.base, { name: label, email: `${label}-${stamp}@example.test`, password, organizationName: `${label} ${stamp}` });
     await org.stepUp();
   }
 

@@ -109,9 +109,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [load]);
 
   const register = useCallback(async (input: { name: string; email: string; password: string; organizationName: string }) => {
+    // Registration never creates a session. The server returns the same neutral
+    // response for a new and an existing address; the person then signs in.
     await api.post('/auth/register', input);
-    await load();
-  }, [load]);
+  }, []);
 
   const logout = useCallback(async () => {
     try { await api.post('/auth/logout'); } finally {

@@ -1,6 +1,6 @@
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { startServer, client, login, enrollAdminMfa, DEMO } from './helpers.mjs';
+import { startServer, client, login, registerInto, DEMO } from './helpers.mjs';
 
 let server;
 before(async () => { server = await startServer(); }, { timeout: 60_000 });
@@ -9,11 +9,7 @@ after(() => server?.stop());
 async function newWorkspace(suffix = '') {
   const c = client(server.base);
   const email = `demo-owner-${Date.now()}${suffix}@example.test`;
-  const response = await c.post('/auth/register', {
-    name: 'Demo Owner', email, password: 'CorrectHorse#1', organizationName: `Demo Workspace ${suffix || Date.now()}`,
-  });
-  assert.equal(response.status, 201);
-  await enrollAdminMfa(c, "CorrectHorse#1");
+  await registerInto(c, server.base, { name: 'Demo Owner', email, password: 'DemoOwner#2026', organizationName: `Demo Workspace ${suffix || Date.now()}` });
   return { c, email };
 }
 

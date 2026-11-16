@@ -6,32 +6,41 @@ let server;
 before(async () => { server = await startServer(); }, { timeout: 60_000 });
 after(() => server?.stop());
 
-test('registration creates an organization and signs the admin in', async () => {
+test('registration returns the same neutral response and does not sign anyone in', async () => {
   const c = client(server.base);
   const email = `founder-${Date.now()}@example.test`;
-  const response = await c.post('/auth/register', {
-    name: 'Avery Stone', email, password: 'CorrectHorse#1', organizationName: 'Stone Labs',
-  });
-  assert.equal(response.status, 201);
-  assert.equal(response.body.data.user.role, 'admin');
-  assert.equal(response.body.data.user.email, email);
-  assert.ok(c.cookie.startsWith('sf_session='));
+  const payload = { name: 'Avery Stone', email, password: 'Anchor#2026', organizationName: 'Stone Labs' };
+  const response = await c.post('/auth/register', payload);
+  assert.equal(response.status, 202);
+  assert.deepEqual(response.body.data, { message: 'If registration can be completed, you can continue by signing in.' });
+  assert.equal(response.headers.get('set-cookie'), null, 'registration must not create a session');
+  assert.equal((await c.get('/auth/me')).status, 401);
 
-  const me = await c.get('/auth/me');
+  const signedIn = await login(server.base, email, payload.password);
+  const me = await signedIn.get('/auth/me');
   assert.equal(me.status, 200);
   assert.equal(me.body.data.user.email, email);
   assert.equal(me.body.data.permissions.canAdmin, true);
 });
 
-test('duplicate registration is rejected with 409', async () => {
-  const c = client(server.base);
-  const payload = {
-    name: 'Duplicate User', email: `dupe-${Date.now()}@example.test`, password: 'CorrectHorse#1', organizationName: 'Dupe Co',
-  };
-  assert.equal((await c.post('/auth/register', payload)).status, 201);
-  const second = await c.post('/auth/register', payload);
-  assert.equal(second.status, 409);
-  assert.equal(second.body.error.code, 'conflict');
+test('duplicate registration returns the same neutral response and creates nothing', async () => {
+  const email = `dupe-${Date.now()}@example.test`;
+  const payload = { name: 'Duplicate User', email, password: 'Anchor#2026', organizationName: 'Dupe Co' };
+  const first = await client(server.base).post('/auth/register', payload);
+  const second = await client(server.base).post('/auth/register', {
+    ...payload, name: 'Someone Else', password: 'Other#2026', organizationName: 'Other Org',
+  });
+  assert.equal(first.status, 202);
+  assert.equal(second.status, 202);
+  assert.deepEqual(second.body, first.body);
+
+  const signedIn = await login(server.base, email, payload.password);
+  const users = await signedIn.get('/settings/users');
+  assert.equal(users.status, 200);
+  assert.equal(users.body.data.length, 1);
+  assert.equal(users.body.data[0].email, email);
+  const org = await signedIn.get('/settings/organization');
+  assert.equal(org.body.data.name, 'Dupe Co');
 });
 
 test('login rejects a wrong password with the same message as an unknown account', async () => {

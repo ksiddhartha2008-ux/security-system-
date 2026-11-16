@@ -2,7 +2,7 @@ import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { startServer, client, login, enrollAdminMfa, DEMO } from './helpers.mjs';
+import { startServer, client, login, registerInto, DEMO } from './helpers.mjs';
 
 /**
  * The Cloudflare connector is configured through the environment so the approval
@@ -26,16 +26,20 @@ function openDb() {
 async function secondWorkspace() {
   const c = client(server.base);
   const email = `tri-owner-${Date.now()}-${Math.floor(Math.random() * 1000)}@example.test`;
-  const response = await c.post('/auth/register', {
-    name: 'Tri Owner', email, password: 'Anchor#2026', organizationName: 'Tri Second Workspace',
-  });
-  assert.equal(response.status, 201, response.text);
-  await enrollAdminMfa(c, "Anchor#2026");
-  return { client: c, orgId: response.body.data.user.orgId };
+  await registerInto(c, server.base, { name: 'Tri Owner', email, password: 'TriOwner#2026', organizationName: 'Tri Second Workspace' });
+  const me = await c.get('/auth/me');
+  return { client: c, orgId: me.body.data.user.orgId };
+}
+
+const roleSessions = new Map();
+async function roleSession(...credentials) {
+  const key = credentials[0];
+  if (!roleSessions.has(key)) roleSessions.set(key, await login(server.base, ...credentials));
+  return roleSessions.get(key);
 }
 
 test('the overview reports each layer separately and never claims an unconfigured layer is active', async () => {
-  const viewer = await login(server.base, ...DEMO.viewer);
+  const viewer = await roleSession(...DEMO.viewer);
   const response = await viewer.get('/trishield/overview');
   assert.equal(response.status, 200);
   const body = response.body.data;
@@ -54,8 +58,8 @@ test('the overview reports each layer separately and never claims an unconfigure
 });
 
 test('privileged TriShield routes are closed to viewers and analysts', async () => {
-  const viewer = await login(server.base, ...DEMO.viewer);
-  const analyst = await login(server.base, ...DEMO.analyst);
+  const viewer = await roleSession(...DEMO.viewer);
+  const analyst = await roleSession(...DEMO.analyst);
   const policy = (await viewer.get('/trishield/policies')).body.data[0];
 
   assert.equal((await viewer.get('/trishield/actions')).status, 200, 'viewers may read the approval queue');
@@ -73,7 +77,7 @@ test('privileged TriShield routes are closed to viewers and analysts', async () 
 });
 
 test('a proposed block validates the address, refuses internal ranges and needs an administrator to approve', async () => {
-  const analyst = await login(server.base, ...DEMO.analyst);
+  const analyst = await roleSession(...DEMO.analyst);
 
   const invalid = await analyst.post('/trishield/actions', {
     providerKey: 'cloudflare', type: 'block_ip', targetIp: 'not-an-address', reason: 'invalid address attempt',
@@ -111,7 +115,7 @@ test('a proposed block validates the address, refuses internal ranges and needs 
   assert.equal((await analyst.post(`/trishield/actions/${action.id}/approve`)).status, 403);
   assert.equal((await analyst.post(`/trishield/actions/${action.id}/execute`)).status, 403);
 
-  const admin = await login(server.base, ...DEMO.admin);
+  const admin = await roleSession(...DEMO.admin);
   const approved = await admin.post(`/trishield/actions/${action.id}/approve`);
   assert.equal(approved.status, 200, approved.text);
   assert.equal(approved.body.data.status, 'approved');
@@ -130,7 +134,7 @@ test('a proposed block validates the address, refuses internal ranges and needs 
 });
 
 test('a duplicate proposal is rejected as idempotent instead of creating a second action', async () => {
-  const analyst = await login(server.base, ...DEMO.analyst);
+  const analyst = await roleSession(...DEMO.analyst);
   const body = {
     providerKey: 'cloudflare', type: 'block_ip', targetIp: '203.0.113.9', reason: 'Idempotency probe',
     expiresMinutes: 30,
@@ -151,7 +155,7 @@ test('a duplicate proposal is rejected as idempotent instead of creating a secon
 });
 
 test('an unavailable provider is refused instead of silently simulated', async () => {
-  const admin = await login(server.base, ...DEMO.admin);
+  const admin = await roleSession(...DEMO.admin);
   const status = (await admin.get('/trishield/firewall/status')).body.data;
   const nft = status.providers.find((provider) => provider.key === 'nftables');
   const response = await admin.post('/trishield/actions', {
@@ -166,7 +170,7 @@ test('an unavailable provider is refused instead of silently simulated', async (
 });
 
 test('collector tokens are per organization and cannot inject into another tenant', async () => {
-  const admin = await login(server.base, ...DEMO.admin);
+  const admin = await roleSession(...DEMO.admin);
   const other = await secondWorkspace();
 
   const created = await admin.post('/trishield/collectors', { kind: 'suricata', name: 'API collector' });
@@ -227,7 +231,7 @@ test('collector tokens are per organization and cannot inject into another tenan
 });
 
 test('another workspace cannot read or approve a firewall action, allowlist entry or address', async () => {
-  const admin = await login(server.base, ...DEMO.admin);
+  const admin = await roleSession(...DEMO.admin);
   const other = await secondWorkspace();
 
   const db = openDb();
@@ -263,8 +267,8 @@ test('another workspace cannot read or approve a firewall action, allowlist entr
 });
 
 test('permanent changes and IP reveal demand an administrator and a reason', async () => {
-  const admin = await login(server.base, ...DEMO.admin);
-  const analyst = await login(server.base, ...DEMO.analyst);
+  const admin = await roleSession(...DEMO.admin);
+  const analyst = await roleSession(...DEMO.analyst);
 
   assert.equal((await analyst.post('/trishield/ip/any/reveal', { reason: 'should be forbidden' })).status, 403);
   assert.equal((await admin.post('/trishield/ip/any/reveal', { reason: '' })).status, 400);

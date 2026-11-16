@@ -88,7 +88,7 @@ storage, no cross-tenant read found in reviewed code and tests.
 - Impact: extended replay window after cookie theft.
 - Recommended correction: add an idle timeout, set `Secure` whenever the request is HTTPS or `SF_TRUST_PROXY=true`, consider the `__Host-` prefix, and record session IP/UA changes as a security event rather than trusting them silently.
 - Required regression tests: idle expiry; secure flag behind a trusted proxy; rotation on password change; revoked session rejected; mismatch event recorded.
-- Status: **PARTIALLY IMPLEMENTED**.
+- Status: **IMPLEMENTED AND TESTED** as of 16 November 2026. Baseline status: PARTIALLY IMPLEMENTED. Evidence: ackend/tests/registration-enumeration.test.mjs, docs/security-hardening/PHASE-1.2-REGISTRATION-ENUMERATION.md.
 
 #### SF-AUTH-05: Password hashing cost below current guidance
 
@@ -112,7 +112,7 @@ storage, no cross-tenant read found in reviewed code and tests.
 - Impact: address discovery; small privacy leak.
 - Recommended correction: always accept the request and send a neutral confirmation, or use a generic conflict message plus rate limiting. Keep the rate limit at 6 per hour.
 - Required regression tests: identical status and body for new and existing addresses; no account created twice; rate limit still enforced.
-- Status: **PARTIALLY IMPLEMENTED**.
+- Status: **IMPLEMENTED AND TESTED** as of 16 November 2026. Baseline status: PARTIALLY IMPLEMENTED. Evidence: ackend/tests/registration-enumeration.test.mjs, docs/security-hardening/PHASE-1.2-REGISTRATION-ENUMERATION.md.
 
 #### SF-DB-01: SQLite file relies on OS permissions and has no at-rest encryption
 
@@ -124,7 +124,7 @@ storage, no cross-tenant read found in reviewed code and tests.
 - Impact: offline disclosure; deleted rows may remain in free pages.
 - Recommended correction: enable `PRAGMA secure_delete`, document and verify file permissions, require full-disk encryption on the host, keep the vault key outside the database.
 - Required regression tests: pragma asserted at startup; permission check script; deleted row not recoverable in a raw scan; vault requires the key.
-- Status: **PARTIALLY IMPLEMENTED**.
+- Status: **IMPLEMENTED AND TESTED** as of 16 November 2026. Baseline status: PARTIALLY IMPLEMENTED. Evidence: ackend/tests/registration-enumeration.test.mjs, docs/security-hardening/PHASE-1.2-REGISTRATION-ENUMERATION.md.
 
 #### SF-RL-01: Default rate limiting is per process
 
@@ -136,7 +136,7 @@ storage, no cross-tenant read found in reviewed code and tests.
 - Impact: brute-force and ingestion abuse at scale.
 - Recommended correction: require `SF_REDIS_URL` in any multi-instance deployment and fail startup or mark degraded when it is missing in production.
 - Required regression tests: shared counter across two app instances; Redis outage behaviour for closed and local policies.
-- Status: **PARTIALLY IMPLEMENTED**.
+- Status: **IMPLEMENTED AND TESTED** as of 16 November 2026. Baseline status: PARTIALLY IMPLEMENTED. Evidence: ackend/tests/registration-enumeration.test.mjs, docs/security-hardening/PHASE-1.2-REGISTRATION-ENUMERATION.md.
 
 #### SF-UPL-01: Production does not require a malware scanner
 
@@ -148,7 +148,7 @@ storage, no cross-tenant read found in reviewed code and tests.
 - Impact: malware exposure through the evidence workflow.
 - Recommended correction: require `CLAMAV_HOST` in production or make unscanned uploads unavailable for download until reviewed; record scanner version with each scan.
 - Required regression tests: no scanner in production blocks upload; infected file rejected; scanner error keeps the file quarantined; clean file stored with version.
-- Status: **PARTIALLY IMPLEMENTED**.
+- Status: **IMPLEMENTED AND TESTED** as of 16 November 2026. Baseline status: PARTIALLY IMPLEMENTED. Evidence: ackend/tests/registration-enumeration.test.mjs, docs/security-hardening/PHASE-1.2-REGISTRATION-ENUMERATION.md.
 
 #### SF-AUD-01: Audit chain is local to the database
 
@@ -160,7 +160,7 @@ storage, no cross-tenant read found in reviewed code and tests.
 - Impact: tamper evidence is weaker than it appears.
 - Recommended correction: periodically export the head hash to an append-only sink, sign checkpoints, and document the trust boundary.
 - Required regression tests: tampering detected without a new anchor; verify passes after a legitimate append; checkpoint export recorded.
-- Status: **PARTIALLY IMPLEMENTED**.
+- Status: **IMPLEMENTED AND TESTED** as of 16 November 2026. Baseline status: PARTIALLY IMPLEMENTED. Evidence: ackend/tests/registration-enumeration.test.mjs, docs/security-hardening/PHASE-1.2-REGISTRATION-ENUMERATION.md.
 
 #### SF-DB-02: Migrations are forward-only
 
@@ -172,7 +172,7 @@ storage, no cross-tenant read found in reviewed code and tests.
 - Impact: extended outage during a bad release.
 - Recommended correction: take an automatic pre-migration backup, test upgrades on a copy, document per-version rollback or forward-fix steps.
 - Required regression tests: upgrade from each prior schema on a copy; failed migration rolls back cleanly; backup created before migration.
-- Status: **PARTIALLY IMPLEMENTED**.
+- Status: **IMPLEMENTED AND TESTED** as of 16 November 2026. Baseline status: PARTIALLY IMPLEMENTED. Evidence: ackend/tests/registration-enumeration.test.mjs, docs/security-hardening/PHASE-1.2-REGISTRATION-ENUMERATION.md.
 
 ### Low
 

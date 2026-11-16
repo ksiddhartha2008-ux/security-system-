@@ -16,13 +16,16 @@ before(async () => {
   server = await startServer();
   password = 'Anchor#2026';
   admin = client(server.base);
+  const email = `mfa-gate-${Date.now()}@example.test`;
   const registered = await admin.post('/auth/register', {
     name: 'MFA Gate Admin',
-    email: `mfa-gate-${Date.now()}@example.test`,
+    email,
     password,
     organizationName: `MFA Gate ${Date.now()}`,
   });
-  assert.equal(registered.status, 201, registered.text);
+  assert.equal(registered.status, 202, registered.text);
+  const signedIn = await admin.post('/auth/login', { email, password });
+  assert.equal(signedIn.status, 200, signedIn.text);
 }, { timeout: 60_000 });
 
 after(() => server?.stop());

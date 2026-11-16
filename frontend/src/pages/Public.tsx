@@ -515,6 +515,7 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const next = safeNext(params.get('next'));
+  const justRegistered = params.get('registered') === '1';
   const demoAccounts = useApi<DemoAccount[]>('/auth/demo-accounts');
   const accounts = demoAccounts.data ?? [];
   const selected = accounts.find((account) => account.email === selectedEmail) ?? accounts[0];
@@ -590,6 +591,19 @@ export function LoginPage() {
             <p>Intelligent cybersecurity platform · MODULE 01</p>
           </div>
         </div>
+
+        {justRegistered && (
+          <div className="login-demo-note" role="status">
+            <Info size={18} aria-hidden="true" />
+            <div>
+              <p className="login-note-title">Continue by signing in</p>
+              <p>
+                If registration can be completed, sign in with your email and password.
+                If the address is already registered, use the existing account.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="login-demo-note">
           <Info size={18} aria-hidden="true" />
@@ -722,7 +736,7 @@ export function SignupPage() {
     setBusy(true);
     try {
       await register({ ...form, name: form.name.trim(), email: form.email.trim(), organizationName: form.organizationName.trim() });
-      navigate('/overview', { replace: true });
+      navigate('/login?registered=1', { replace: true });
     } catch (err) {
       if (err instanceof ApiError && err.details?.length) {
         setFieldErrors(Object.fromEntries(err.details.map((d) => [d.path, d.message])));

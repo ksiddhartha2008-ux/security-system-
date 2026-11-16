@@ -13,7 +13,9 @@ test('MFA enrol, login step-up, recovery code and disable', async () => {
   const registered = await owner.post('/auth/register', {
     name: 'MFA Tester', email: account[0], password: account[1], organizationName: 'MFA Lab',
   });
-  assert.equal(registered.status, 201);
+  assert.equal(registered.status, 202);
+  const signedIn = await owner.post('/auth/login', { email: account[0], password: account[1] });
+  assert.equal(signedIn.status, 200, signedIn.text);
 
   // Setup requires the password and returns a secret plus recovery codes.
   const wrongPassword = await owner.post('/auth/mfa/setup', { password: 'not-it' });

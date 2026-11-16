@@ -32,6 +32,11 @@ export function created(res, data) {
   return res.status(201).json({ data });
 }
 
+/** Accepted without confirming what, if anything, happened. */
+export function accepted(res, data) {
+  return res.status(202).json({ data });
+}
+
 export function pageParams(req, { maxLimit = 100, defaultLimit = 20 } = {}) {
   const limit = Math.min(Math.max(Number.parseInt(req.query.limit ?? defaultLimit, 10) || defaultLimit, 1), maxLimit);
   const page = Math.max(Number.parseInt(req.query.page ?? 1, 10) || 1, 1);

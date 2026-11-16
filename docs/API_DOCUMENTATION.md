@@ -47,7 +47,7 @@ Paginated endpoints add `meta`:
 
 | Method | Path | Role | Purpose |
 | --- | --- | --- | --- |
-| POST | `/auth/register` | public | Create an organization and its first admin |
+| POST | `/auth/register` | public | Create an organization and its first admin. Returns a neutral 202 and never creates a session; sign in afterwards |
 | POST | `/auth/login` | public | Start a session, or return an MFA challenge |
 | POST | `/auth/mfa/verify` | public with challenge cookie | Complete an MFA login |
 | POST | `/auth/logout` | any | Destroy the current session |

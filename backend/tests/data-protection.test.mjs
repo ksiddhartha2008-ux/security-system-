@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { startServer, client, login, DEMO } from './helpers.mjs';
+import { startServer, client, login, registerInto, DEMO } from './helpers.mjs';
 
 /**
  * Credential and database protection, end to end: the real ingestion endpoint,
@@ -114,8 +114,7 @@ test('the protection summary reports the same evidence for the tenant', async ()
 test('another workspace sees zeros, not this tenant evidence', async () => {
   const other = client(server.base);
   const email = `prot-${Date.now()}@example.test`;
-  const registered = await other.post('/auth/register', { name: 'Other Owner', email, password: 'Anchor#2026', organizationName: 'Other Workspace' });
-  assert.equal(registered.status, 201, registered.text);
+  await registerInto(other, server.base, { name: 'Other Owner', email, password: 'OtherWorkspace#2026', organizationName: 'Other Workspace' });
   const response = await other.get('/data-protection/overview');
   assert.equal(response.status, 200);
   assert.equal(response.body.data.credential.events24h, 0);

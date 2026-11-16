@@ -104,6 +104,38 @@ export function client(base) {
 const mfaSecrets = new Map();
 const mfaKey = (base, email) => `${base}|${email.toLowerCase()}`;
 
+/**
+ * Registration returns a neutral 202 and never creates a session. Tests that
+ * need the new workspace sign in afterwards, exactly like a person would.
+ */
+export async function registerWorkspace(base, { name, email, password, organizationName }) {
+  const anonymous = client(base);
+  const response = await anonymous.post('/auth/register', { name, email, password, organizationName });
+  if (response.status !== 202) {
+    throw new Error(`registration failed: ${response.status} ${response.text}`);
+  }
+  const session = await login(base, email, password);
+  const me = await session.get('/auth/me');
+  if (me.status !== 200) throw new Error(`new workspace could not sign in: ${me.status} ${me.text}`);
+  return {
+    client: session,
+    response,
+    user: me.body.data.user,
+    organization: me.body.data.organization,
+  };
+}
+
+/** Register on an existing client, then sign in and enrol administrator MFA. */
+export async function registerInto(c, base, payload) {
+  const response = await c.post('/auth/register', payload);
+  if (response.status !== 202) throw new Error(`registration failed: ${response.status} ${response.text}`);
+  const loginResponse = await c.post('/auth/login', { email: payload.email, password: payload.password });
+  if (loginResponse.status !== 200) throw new Error(`new workspace could not sign in: ${loginResponse.status} ${loginResponse.text}`);
+  if (loginResponse.body?.data?.mfaRequired) throw new Error('registerInto expects an account without MFA');
+  await enrollAdminMfa(c, payload.password);
+  return response;
+}
+
 export async function login(base, email, password) {
   const c = client(base);
   const response = await c.post('/auth/login', { email, password });

@@ -37,6 +37,7 @@ import websiteRoutes from './routes/websites.js';
 import ingestRoutes from './routes/ingest.js';
 import trishieldRoutes from './routes/trishield.js';
 import trishieldIngestRoutes from './routes/trishieldIngest.js';
+import dataProtectionRoutes from './routes/dataProtection.js';
 import { trishieldFlags } from './lib/config.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -160,6 +161,7 @@ app.use('/api/demo', demoRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/v1/websites', websiteRoutes);
 if (trishieldFlags().enabled) app.use('/api/trishield', trishieldRoutes);
+app.use('/api/data-protection', dataProtectionRoutes);
 
 /** Server sent events for live monitoring and simulation progress. */
 app.get('/api/stream', requireAuth, (req, res) => {
@@ -330,6 +332,9 @@ app.get('/api/docs', requireAuth, (req, res) => {
         ['POST', '/api/trishield/ingest/suricata', 'EVE ingestion, collector bearer token only'],
         ['POST', '/api/trishield/ingest/wazuh', 'Wazuh ingestion, collector bearer token only'],
         ['POST', '/api/trishield/ingest/waf', 'WAF ingestion, collector bearer token only'],
+      ] },
+      { tag: 'Data protection', endpoints: [
+        ['GET', '/api/data-protection/overview', 'Credential and database protection summary for the workspace'],
       ] },
       { tag: 'Settings', endpoints: [
         ['GET', '/api/settings/organization', 'Organization settings'], ['PATCH', '/api/settings/organization', 'Update (admin)'],

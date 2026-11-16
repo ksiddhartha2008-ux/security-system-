@@ -6,6 +6,7 @@ const ROUTES: { path: string }[] = [
   { path: '/trishield' },
   { path: '/monitoring' },
   { path: '/assets' },
+  { path: '/data-protection' },
   { path: '/websites' },
   { path: '/incidents' },
   { path: '/investigations' },

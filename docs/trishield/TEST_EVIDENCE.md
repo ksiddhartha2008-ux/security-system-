@@ -80,7 +80,7 @@ cd C:\Users\ksidd\OneDrive\Pictures\Desktop\hack
 npm test
 ```
 
-Result: 165 tests, 163 pass, 0 fail, 2 skipped. The two skips are the existing
+Result: 169 tests, 167 pass, 0 fail, 2 skipped. The two skips are the existing
 PostgreSQL and Redis cases that need services which are not installed here.
 
 ## Type checking and build
@@ -100,7 +100,7 @@ cd frontend
 npx playwright test --project=chromium
 ```
 
-Result: 78 pass, 0 fail, including `/trishield`, the Integration Setup Center in light and dark, and the public journey
+Result: 81 pass, 0 fail, including `/trishield`, the Integration Setup Center in light and dark, the public journey and `/data-protection`
 data. The route was added to `ROUTES` in `e2e/a11y.spec.ts`, so any future
 regression on this page fails the suite.
 

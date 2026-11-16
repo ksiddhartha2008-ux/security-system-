@@ -45,6 +45,7 @@ const NAV = [
       { to: '/vulnerabilities', label: 'Vulnerabilities', icon: ShieldCheck },
       { to: '/network', label: 'Network', icon: Network },
       { to: '/forensics', label: 'Forensics', icon: Fingerprint },
+      { to: '/data-protection', label: 'Data protection', icon: Database },
     ],
   },
   {
@@ -341,6 +342,7 @@ export function AppShellLayout() {
 const MODULE_LABEL: Record<string, string> = {
   '/overview': 'MODULE 02',
   '/trishield': 'TRISHIELD',
+  '/data-protection': 'MODULE 17',
   '/monitoring': 'MODULE 03',
   '/threat-intel': 'MODULE 04',
   '/assets': 'MODULE 05',

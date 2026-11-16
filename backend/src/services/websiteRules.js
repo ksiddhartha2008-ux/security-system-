@@ -300,6 +300,137 @@ export const WEBSITE_RULES = [
       });
     },
   },
+  {
+    key: 'w-db-001',
+    name: 'Repeated database authentication failures',
+    category: 'database',
+    severity: 'high',
+    description: 'One source produced at least 5 failed database authentications within 10 minutes against one website.',
+    threshold: 5,
+    windowMinutes: 10,
+    evaluate(orgId) {
+      const sites = siteIndex(orgId);
+      const rows = all(
+        `SELECT website_site_id AS site_id, src_ip, COUNT(*) AS hits, COUNT(DISTINCT user_email) AS accounts
+           FROM security_events
+          WHERE org_id = ? AND website_site_id IS NOT NULL AND event_type = 'database.auth_failure'
+            AND occurred_at >= ?
+          GROUP BY website_site_id, src_ip HAVING COUNT(*) >= 5
+          ORDER BY hits DESC LIMIT 20`,
+        orgId, WINDOW(10),
+      );
+      return rows.map((row) => base(sites.get(row.site_id), this, 'high', Math.min(92, 78 + row.hits), `${row.hits} failed database sign-ins from ${row.src_ip} in 10 minutes.`, { srcIp: row.src_ip, attempts: row.hits, accounts: row.accounts, windowMinutes: 10 }, [
+        { label: 'Failure volume', weight: 40, detail: `${row.hits} failures` },
+        { label: 'Database target', weight: 25, detail: 'database.auth_failure events from one source' },
+        { label: 'Account spread', weight: 15, detail: `${row.accounts} database accounts` },
+      ], { signature: `w-db-001:${row.site_id}:${row.src_ip}:${BUCKET(10)}`, srcIp: row.src_ip }));
+    },
+  },
+  {
+    key: 'w-db-002',
+    name: 'Bulk customer data export',
+    category: 'database',
+    severity: 'critical',
+    description: 'A website reported a database export of 500 or more records, or three exports within 30 minutes.',
+    threshold: 500,
+    windowMinutes: 30,
+    evaluate(orgId) {
+      const sites = siteIndex(orgId);
+      const rows = all(
+        `SELECT website_site_id AS site_id, src_ip,
+                COUNT(*) AS exports,
+                COALESCE(SUM(CAST(json_extract(raw, '$.attributes.records') AS INTEGER)), 0) AS records
+           FROM security_events
+          WHERE org_id = ? AND website_site_id IS NOT NULL AND event_type = 'database.export'
+            AND occurred_at >= ?
+          GROUP BY website_site_id, src_ip
+         HAVING COUNT(*) >= 3 OR SUM(CAST(json_extract(raw, '$.attributes.records') AS INTEGER)) >= 500
+          ORDER BY records DESC LIMIT 20`,
+        orgId, WINDOW(30),
+      );
+      return rows.map((row) => base(sites.get(row.site_id), this, row.records >= 5000 ? 'critical' : 'high', 88, `${row.exports} export(s) totalling ${row.records} records from ${row.src_ip} in 30 minutes.`, { srcIp: row.src_ip, exports: row.exports, records: row.records, windowMinutes: 30 }, [
+        { label: 'Record volume', weight: 40, detail: `${row.records} records` },
+        { label: 'Export count', weight: 25, detail: `${row.exports} exports` },
+        { label: 'Data sensitivity', weight: 20, detail: 'customer records from a protected website' },
+      ], { signature: `w-db-002:${row.site_id}:${row.src_ip}:${BUCKET(30)}`, srcIp: row.src_ip }));
+    },
+  },
+  {
+    key: 'w-db-003',
+    name: 'Database schema change',
+    category: 'database',
+    severity: 'medium',
+    description: 'A website reported a database schema change. Three or more in 30 minutes are treated as high severity.',
+    threshold: 1,
+    windowMinutes: 30,
+    evaluate(orgId) {
+      const sites = siteIndex(orgId);
+      const rows = all(
+        `SELECT website_site_id AS site_id, src_ip, COUNT(*) AS changes,
+                GROUP_CONCAT(DISTINCT json_extract(raw, '$.attributes.operation')) AS operations
+           FROM security_events
+          WHERE org_id = ? AND website_site_id IS NOT NULL AND event_type = 'database.schema_change'
+            AND occurred_at >= ?
+          GROUP BY website_site_id, src_ip ORDER BY changes DESC LIMIT 20`,
+        orgId, WINDOW(30),
+      );
+      return rows.map((row) => base(sites.get(row.site_id), this, row.changes >= 3 ? 'high' : 'medium', 74, `${row.changes} schema change(s) reported from ${row.src_ip} in 30 minutes.`, { srcIp: row.src_ip, changes: row.changes, operations: row.operations }, [
+        { label: 'Schema changes', weight: 35, detail: `${row.changes} change(s)` },
+        { label: 'Unexpected operation', weight: 20, detail: row.operations || 'schema operation not baselined' },
+      ], { signature: `w-db-003:${row.site_id}:${row.src_ip}:${BUCKET(30)}`, srcIp: row.src_ip }));
+    },
+  },
+  {
+    key: 'w-db-004',
+    name: 'Privileged database operation burst',
+    category: 'database',
+    severity: 'high',
+    description: 'Ten or more privileged database operations from one source within 10 minutes.',
+    threshold: 10,
+    windowMinutes: 10,
+    evaluate(orgId) {
+      const sites = siteIndex(orgId);
+      const rows = all(
+        `SELECT website_site_id AS site_id, src_ip, COUNT(*) AS operations,
+                GROUP_CONCAT(DISTINCT json_extract(raw, '$.attributes.operation')) AS kinds
+           FROM security_events
+          WHERE org_id = ? AND website_site_id IS NOT NULL AND event_type = 'database.privileged'
+            AND occurred_at >= ?
+          GROUP BY website_site_id, src_ip HAVING COUNT(*) >= 10
+          ORDER BY operations DESC LIMIT 20`,
+        orgId, WINDOW(10),
+      );
+      return rows.map((row) => base(sites.get(row.site_id), this, 'high', 80, `${row.operations} privileged database operations from ${row.src_ip} in 10 minutes.`, { srcIp: row.src_ip, operations: row.operations, kinds: row.kinds }, [
+        { label: 'Operation volume', weight: 35, detail: `${row.operations} operations` },
+        { label: 'Privilege level', weight: 30, detail: row.kinds || 'privileged statements' },
+      ], { signature: `w-db-004:${row.site_id}:${row.src_ip}:${BUCKET(10)}`, srcIp: row.src_ip }));
+    },
+  },
+  {
+    key: 'w-api-001',
+    name: 'API authorisation denial burst',
+    category: 'application',
+    severity: 'medium',
+    description: 'At least 25 authorisation denials from one source within 5 minutes against one website API.',
+    threshold: 25,
+    windowMinutes: 5,
+    evaluate(orgId) {
+      const sites = siteIndex(orgId);
+      const rows = all(
+        `SELECT website_site_id AS site_id, src_ip, COUNT(*) AS denials
+           FROM security_events
+          WHERE org_id = ? AND website_site_id IS NOT NULL AND event_type = 'authz.denied'
+            AND occurred_at >= ?
+          GROUP BY website_site_id, src_ip HAVING COUNT(*) >= 25
+          ORDER BY denials DESC LIMIT 20`,
+        orgId, WINDOW(5),
+      );
+      return rows.map((row) => base(sites.get(row.site_id), this, 'medium', 72, `${row.denials} authorisation denials from ${row.src_ip} in 5 minutes.`, { srcIp: row.src_ip, denials: row.denials }, [
+        { label: 'Denial volume', weight: 35, detail: `${row.denials} denied requests` },
+        { label: 'API target', weight: 20, detail: 'one protected website' },
+      ], { signature: `w-api-001:${row.site_id}:${row.src_ip}:${BUCKET(5)}`, srcIp: row.src_ip }));
+    },
+  },
 ];
 
 export const WEBSITE_RULE_KEYS = WEBSITE_RULES.map((rule) => rule.key);

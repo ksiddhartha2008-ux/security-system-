@@ -7,7 +7,7 @@ Last updated: 11 November 2026. This file reflects what was actually built, run 
 | | |
 | --- | --- |
 | Application | SecureFlow AI, single page client plus REST API |
-| Backend tests | 163 passing, 2 skipped, 0 failing (`npm test`) |
+| Backend tests | 167 passing, 2 skipped, 0 failing (`npm test`) |
 | SDK tests | 13 passing, 0 failing (`npm run test:sdk`) |
 | Type check | clean (`npm run typecheck`) |
 | Production build | success (`npm run build`), 858 kB initial JavaScript and 321 kB CSS after the Astryx integration |
@@ -21,7 +21,7 @@ Schema v6 adds eight tables and a fifth navigation entry, `TriShield defense`. T
 
 | Area | Status | Note |
 | --- | --- | --- |
-| Backend contracts, approval lifecycle, IP Shield, collectors | IMPLEMENTED, TESTED | 24 tests across three files |\n| Integration health engine and Setup Center | IMPLEMENTED, TESTED | 16 new tests, schema v7 history, real ClamAV and Wazuh checks, EVE tailer |
+| Backend contracts, approval lifecycle, IP Shield, collectors | IMPLEMENTED, TESTED | 24 tests across three files |\n| Integration health engine and Setup Center | IMPLEMENTED, TESTED | 16 new tests, schema v7 history, real ClamAV and Wazuh checks, EVE tailer |`r`n| Data protection | IMPLEMENTED, TESTED | Secret stripping, five database and API rules, tenant summary API, `/data-protection` page |
 | TriShield page | IMPLEMENTED, TESTED | Lazy chunk, real API data, both themes in the accessibility suite |
 | nftables enforcement | BLOCKED | No Linux host or nft binary here; runner committed |
 | Cloudflare live account | BLOCKED | No token; failure path tested |

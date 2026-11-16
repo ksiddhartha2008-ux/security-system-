@@ -33,6 +33,7 @@ const SimulationsPage = lazy(() => import('./pages/Simulations'));
 const SimulationDetailPage = lazy(() => import('./pages/SimulationDetail'));
 const SettingsPage = lazy(() => import('./pages/Settings'));
 const DemoDataPage = lazy(() => import('./pages/DemoData'));
+const DataProtectionPage = lazy(() => import('./pages/DataProtection'));
 const TriShieldPage = lazy(() => import('./pages/TriShield'));
 const PeoplePage = lazy(() => import('./pages/People'));
 const WebsitesPage = lazy(() => import('./pages/Websites'));
@@ -99,6 +100,7 @@ export default function App() {
                     <Route path="/users" element={<PeoplePage />} />
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/demo-data" element={<DemoDataPage />} />
+                    <Route path="/data-protection" element={<DataProtectionPage />} />
                   </Route>
 
                   <Route path="*" element={<NotFoundPage />} />

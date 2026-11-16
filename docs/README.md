@@ -40,6 +40,10 @@ Start with the [project README](../README.md).
 - [trishield/OPERATIONS.md](trishield/OPERATIONS.md) - isolated firewall verification, deployment, rollback, troubleshooting
 - [trishield/TEST_EVIDENCE.md](trishield/TEST_EVIDENCE.md) - commands, results and what remains BLOCKED
 
+## Data protection
+
+- [data-protection/README.md](data-protection/README.md) - credential and database monitoring scope, event contract, detection rules, privacy boundary and explicit gaps
+
 ## Website protection
 
 - [website/STATUS.md](website/STATUS.md) - workflow, task status, launch gates and verdict

@@ -5,6 +5,7 @@ const ROUTES = [
   '/trishield',
   '/monitoring',
   '/assets',
+  '/data-protection',
   '/websites',
   '/incidents',
   '/investigations',

@@ -100,7 +100,7 @@ cd frontend
 npx playwright test --project=chromium
 ```
 
-Result: 75 pass, 0 fail, including `/trishield` and the Integration Setup Center in light and dark with real API
+Result: 78 pass, 0 fail, including `/trishield`, the Integration Setup Center in light and dark, and the public journey
 data. The route was added to `ROUTES` in `e2e/a11y.spec.ts`, so any future
 regression on this page fails the suite.
 

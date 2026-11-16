@@ -71,3 +71,26 @@ Facts used on the page: 15 platform modules, 3 workspace roles, 5 simulation sce
 - The preview uses sample labels, not live data; the caption says so.
 - No screenshot baseline is kept for the landing page.
 - The public navigation is not shared with Privacy and Terms, which keep the existing simple public header.
+
+## 9. Public entry routes
+
+| Path | Behaviour |
+| --- | --- |
+| `/` | Public landing page, for visitors and for signed in users (the button changes to Open the workspace) |
+| `/login` | Sign in, with an optional safe `next` path |
+| `/signup` | Create a workspace |
+| `/register` | Alias that redirects to `/signup` |
+| `/dashboard` | Alias that redirects to `/overview` |
+| `/overview` and the other modules | Protected; a signed out visitor goes to `/login?next=...` |
+| `/trishield` | Protected TriShield console |
+| any other path | Not found page with a return link |
+
+The landing page also introduces TriShield in a three layer section between the workflow and the
+security section. The copy states that a connector is only healthy after a recorded check, and that
+AI assists while deterministic checks decide, which mirrors the actual product behaviour.
+
+`frontend/e2e/journey.spec.ts` proves the public path: signed out landing, both entry links, the
+`/register` alias, the protected route redirect with `next`, sign in, refresh, `/dashboard`, TriShield,
+returning to the landing page while signed in, the not found page, no console errors and no horizontal
+overflow at 390px. The full Playwright suite is the gate.
+

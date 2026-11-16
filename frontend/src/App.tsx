@@ -68,9 +68,11 @@ export default function App() {
                   <Route path="/" element={<LandingPage />} />
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/signup" element={<SignupPage />} />
+                  <Route path="/register" element={<Navigate to="/signup" replace />} />
                   <Route path="/privacy" element={<PrivacyPage />} />
                   <Route path="/terms" element={<TermsPage />} />
                   <Route path="/app" element={<Navigate to="/overview" replace />} />
+                  <Route path="/dashboard" element={<Navigate to="/overview" replace />} />
 
                   <Route element={<RequireAuth><AppShellLayout /></RequireAuth>}>
                     <Route path="/overview" element={<OverviewPage />} />

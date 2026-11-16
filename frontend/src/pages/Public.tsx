@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Activity, ArrowRight, Check, FileSearch, Fingerprint, FlaskConical, Gauge, Info, KeyRound,
+  Activity, ArrowRight, Check, FileSearch, Fingerprint, FlaskConical, Gauge, Globe2, Info, KeyRound,
   Layers, Menu, ShieldCheck, Siren, X,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
@@ -78,9 +78,31 @@ const LANDING_STATS = [
   { value: 41, label: 'Database tables' },
 ];
 
+const TRISHIELD_LAYERS = [
+  {
+    icon: Globe2,
+    title: 'Perimeter and network',
+    tag: 'Layer 1',
+    body: 'nftables and Cloudflare connectors, plus Suricata and WAF feeds. A rule counts only after the provider confirms it and it can be rolled back.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Application and identity',
+    tag: 'Layer 2',
+    body: 'Sessions, roles, tenant scoping, MFA and the audit chain. Authorisation is enforced on the server, never by a hidden route.',
+  },
+  {
+    icon: Fingerprint,
+    title: 'Endpoint and data',
+    tag: 'Layer 3',
+    body: 'Wazuh telemetry, ClamAV evidence state and endpoint health. A scanner that is down is never reported as clean.',
+  },
+];
+
 const LANDING_LINKS = [
   { href: '#platform', label: 'Platform' },
   { href: '#workflow', label: 'How it works' },
+  { href: '#trishield', label: 'TriShield' },
   { href: '#security', label: 'Security' },
   { href: '#status', label: 'Status' },
 ];
@@ -124,6 +146,7 @@ function LandingNav() {
           ) : (
             <>
               <Link to="/login" className="btn btn-sm">Sign in</Link>
+              <Link to="/signup" className="btn btn-sm">Create account</Link>
               <Link to="/login" className="btn btn-primary btn-sm">Open demo</Link>
             </>
           )}
@@ -311,6 +334,47 @@ export function LandingPage() {
         </section>
 
         <LandingWave />
+
+        <section id="trishield" className="lp-section">
+          <div className="lp-wrap">
+            <ScrollReveal className="lp-section-head">
+              <span className="lp-kicker">TriShield defense</span>
+              <h2>Three layers. <span className="lp-gradient">One accountable console.</span></h2>
+              <p className="lp-section-copy">
+                Perimeter, application and endpoint controls share one event pipeline, one approval queue
+                and one audit trail. A connector is never called healthy because a variable exists: every state
+                comes from a recorded check with a timestamp, a latency and a result.
+              </p>
+            </ScrollReveal>
+            <div className="lp-features">
+              {TRISHIELD_LAYERS.map((layer, index) => {
+                const Icon = layer.icon;
+                return (
+                  <ScrollReveal
+                    as="article"
+                    className="lp-feature"
+                    delay={index * 55}
+                    key={layer.title}
+                    onPointerMove={spotlight}
+                  >
+                    <div className="lp-feature-icon"><Icon size={19} aria-hidden="true" /></div>
+                    <h3>{layer.title}</h3>
+                    <p>{layer.body}</p>
+                    <span className="lp-tag">{layer.tag}</span>
+                  </ScrollReveal>
+                );
+              })}
+            </div>
+            <ScrollReveal className="lp-status" delay={60}>
+              <Info size={18} className="lp-status-icon" aria-hidden="true" />
+              <p>
+                <b>AI assists. Deterministic checks decide.</b> Every score shows the stored factors behind it,
+                no model can approve a firewall change, and a block stays a proposal until an administrator
+                approves it and the provider confirms the rule.
+              </p>
+            </ScrollReveal>
+          </div>
+        </section>
 
         <section id="security" className="lp-section">
           <div className="lp-wrap lp-split">

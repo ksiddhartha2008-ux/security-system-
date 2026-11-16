@@ -75,6 +75,18 @@ test.describe('accessibility', () => {
     }
   });
 
+  test('the public verification page is accessible in both themes', async ({ page }) => {
+    for (const theme of ['dark', 'light'] as const) {
+      await page.goto('/verify-email?token=invalid-token-value-000000000000');
+      await page.evaluate((value) => window.localStorage.setItem('sf-theme', value), theme);
+      await page.reload();
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      await expect(page.getByText('Link not accepted')).toBeVisible();
+      await page.waitForLoadState('networkidle');
+      await scan(page, `verify-email-${theme}`);
+    }
+  });
+
   test('the skip link is first and moves focus into the main region', async ({ page }) => {
     await page.goto('/overview');
     await page.waitForLoadState('networkidle');

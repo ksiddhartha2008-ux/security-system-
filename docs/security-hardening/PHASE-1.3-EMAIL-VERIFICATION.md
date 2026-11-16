@@ -160,10 +160,11 @@ database):
 4. Two simultaneous requests with one token produce exactly one `200` and one
    `400`.
 
-`frontend/e2e/email-verification.spec.ts` (3 tests): a new account lands on the
-pending screen instead of the shell, the resend sentence appears, sign out
-returns to sign in, `/overview` is closed again, the verification page reports
-accepted and rejected links.
+`frontend/e2e/email-verification.spec.ts` (4 tests): a new account lands on
+the pending screen instead of the shell, the resend sentence appears, the screen
+has no serious axe violations, sign out returns to sign in, `/overview` is
+closed again, and the verification page reports accepted and rejected links.
+`frontend/e2e/a11y.spec.ts` scans the public verification page in both themes.
 
 Existing suites were updated to mark their own registered accounts verified
 through the test database (`markEmailVerified` in `backend/tests/helpers.mjs`),
@@ -175,19 +176,28 @@ Commands and results:
 
 ```
 npm test                      190 tests, 188 pass, 2 skipped, 0 fail
-npx playwright test            84 passed
+npx playwright test            85 passed, including 46 accessibility scans
 npm run typecheck             clean
 npm run build                 success
+npm run scan:secrets          clean
+npm audit --omit=dev          0 vulnerabilities in backend and frontend
 ```
 
 ## 4. Live delivery evidence
 
-- A test message was sent through the official SDK to the owner's address and
-  Resend accepted it: message id `01a1e430-07a0-7db5-acab-f64193daca4b`.
+- A direct SDK test and a send through this application's own service and
+template were both accepted by Resend for the owner's address:
+  - raw SDK test: message id `01a1e430-07a0-7db5-acab-f64193daca4b`
+  - through `backend/scripts/live-email-check.mjs`: message id
+    `01a1e49c-2409-7d61-8ca2-e6169e451878`, link host
+    `http://localhost:4000/verify-email`
 - **Acceptance is not inbox delivery.** Nothing on this machine can read the
-  destination mailbox, so inbox arrival, spam placement and link click-through
-  are **UNVERIFIED**. The status of live delivery is therefore
-  **PARTIALLY IMPLEMENTED / UNVERIFIED**, not "working email".
+  destination mailbox, so inbox arrival, spam placement and click-through are
+  **UNVERIFIED**. SF-AUTH-02 is therefore **not marked fully resolved**; the
+  application side is IMPLEMENTED and TESTED.
+- The second message is bound to the demo administrator in the local database,
+so opening its link while `npm run dev:api` serves the app reports a successful
+verification. A person who receives that message can confirm the click-through.
 - `EMAIL_FROM` is `SecureFlow AI <onboarding@resend.dev>`, the Resend test
   sender. It only delivers to the account owner's address; a real domain must be
   verified in Resend before other recipients receive mail. Until then, a

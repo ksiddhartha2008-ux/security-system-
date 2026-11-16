@@ -22,7 +22,7 @@ Schema v6 adds eight tables and a fifth navigation entry, `TriShield defense`. T
 | Area | Status | Note |
 | --- | --- | --- |
 | Backend contracts, approval lifecycle, IP Shield, collectors | IMPLEMENTED, TESTED | 24 tests across three files |\n| Integration health engine and Setup Center | IMPLEMENTED, TESTED | 16 new tests, schema v7 history, real ClamAV and Wazuh checks, EVE tailer |`r`n| Data protection | IMPLEMENTED, TESTED | Secret stripping, five database and API rules, tenant summary API, `/data-protection` page |`r`n| Administrator MFA gate | IMPLEMENTED, TESTED | Admin-only mutations require an enrolled TOTP factor; nine backend tests and the e2e enrolment flow |`r`n| Registration enumeration fix | IMPLEMENTED, TESTED | Neutral 202 for new and existing addresses, no session, six regression tests |
-| Email ownership verification | IMPLEMENTED, TESTED | Schema v8, hashed single use tokens with 24 hour expiry, Resend provider behind an adapter, workspace gate while unverified, 8 backend tests and 3 browser tests. Live inbox delivery is UNVERIFIED (provider acceptance only) |
+| Email ownership verification | IMPLEMENTED, TESTED | Schema v8, hashed single use tokens with 24 hour expiry, Resend provider behind an adapter, workspace gate while unverified, 8 backend tests and 4 browser tests. Live inbox delivery is UNVERIFIED (provider acceptance only) |
 | TriShield page | IMPLEMENTED, TESTED | Lazy chunk, real API data, both themes in the accessibility suite |
 | nftables enforcement | BLOCKED | No Linux host or nft binary here; runner committed |
 | Cloudflare live account | BLOCKED | No token; failure path tested |

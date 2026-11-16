@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
 /**
  * Phase 1.3 gate, exercised through the real UI. The API level suite covers the
@@ -43,6 +44,12 @@ test.describe('email ownership gate', () => {
 
     await page.getByRole('button', { name: 'Resend email' }).click();
     await expect(page.getByRole('status')).toContainText('If this account needs verification, a new message will be sent.');
+
+    // The pending screen is the only surface an unverified account can reach, so
+    // it carries the same accessibility bar as the rest of the app.
+    const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+    const serious = results.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
+    expect(serious.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 
     await page.getByRole('button', { name: 'Sign out' }).click();
     await expect(page).toHaveURL(/\/login/);

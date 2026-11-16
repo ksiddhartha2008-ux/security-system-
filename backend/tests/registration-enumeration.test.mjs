@@ -2,14 +2,14 @@ import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { startServer, client, login } from './helpers.mjs';
+import { startServer, client, login, markEmailVerified } from './helpers.mjs';
 
 /**
  * SF-AUTH-06. Registration must not reveal whether an address exists, and must
  * not create a session for either outcome.
  */
 let server;
-const neutral = { message: 'If registration can be completed, you can continue by signing in.' };
+const neutral = { message: 'If registration can be completed, check your email for the next step.' };
 const stamp = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
 before(async () => { server = await startServer(); }, { timeout: 60_000 });
@@ -44,6 +44,7 @@ test('a new and an existing address return the same response and no cookie', asy
 
 test('only the first request created a workspace, and the duplicate is audited', async () => {
   const email = `neutral-${stamp}@example.test`;
+  markEmailVerified(server, email);
   const signedIn = await login(server.base, email, 'Anchor#2026');
   const users = await signedIn.get('/settings/users');
   assert.equal(users.status, 200);
@@ -72,6 +73,7 @@ test('normalisation is shared with login and duplicate checks', async () => {
   assert.equal(duplicate.status, 202);
   assert.deepEqual(duplicate.body, registered.body);
 
+  markEmailVerified(server, base.toLowerCase());
   const signedIn = await login(server.base, base.toLowerCase(), 'Anchor#2026');
   const users = await signedIn.get('/settings/users');
   assert.equal(users.body.data.length, 1);
@@ -115,6 +117,7 @@ test('simultaneous requests for one address create exactly one workspace', async
     assert.equal(users, 1, 'one user for the address');
     assert.equal(orphans, 0, 'no organisation without a user');
 
+    markEmailVerified(isolated, email);
     const signedIn = await login(isolated.base, email, 'Anchor#2026');
     const list = await signedIn.get('/settings/users');
     assert.equal(list.body.data.length, 1);

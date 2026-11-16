@@ -1,9 +1,10 @@
+import './lib/loadEnv.js';
 import express from 'express';
 import { existsSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { migrate, db, get, nowIso } from './db.js';
-import { attachUser, checkOrigin, requireAuth, requireCsrf, SESSION_COOKIE } from './lib/auth.js';
+import { attachUser, checkOrigin, requireAuth, requireCsrf, requireVerifiedEmail, SESSION_COOKIE } from './lib/auth.js';
 import { errorHandler, notFoundHandler } from './lib/http.js';
 import { rateLimit, setRateLimitStore } from './lib/ratelimit.js';
 import { createRateLimitStore } from './lib/ratelimitStore.js';
@@ -116,6 +117,7 @@ if (trishieldFlags().enabled) app.use('/api/trishield/ingest', trishieldIngestRo
 app.use(attachUser);
 app.use(checkOrigin);
 app.use(requireCsrf);
+app.use('/api', requireVerifiedEmail);
 app.use('/api', rateLimit({ windowMs: 60_000, max: 1200, keyPrefix: 'api' }));
 app.use('/api', (_req, res, next) => {
   // Tenant data and session state must not sit in a shared or browser cache.

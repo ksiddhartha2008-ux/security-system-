@@ -62,6 +62,8 @@ function seedUsers() {
     );
     ids[user.role] = id;
   }
+  // Demo accounts belong to the synthetic workspace and are treated as owned.
+  run('UPDATE users SET email_verified = 1, email_verified_at = created_at WHERE org_id = ?', DEMO_ORG.id);
   return ids;
 }
 

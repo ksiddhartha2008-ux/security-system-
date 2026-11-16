@@ -18,9 +18,11 @@ These five are independent of any external provider except ClamAV and the backup
 key. They can ship without changing the database schema.
 
 > Completed on 16 November 2026: item 1, SF-AUTH-01 administrator MFA
-> enforcement, and item 2, SF-AUTH-06 registration enumeration. See
-> [PHASE-1.1-ADMIN-MFA.md](PHASE-1.1-ADMIN-MFA.md) and
-> [PHASE-1.2-REGISTRATION-ENUMERATION.md](PHASE-1.2-REGISTRATION-ENUMERATION.md).
+> enforcement, item 2, SF-AUTH-06 registration enumeration, and phase 1.3,
+> SF-AUTH-02 email ownership verification. See
+> [PHASE-1.1-ADMIN-MFA.md](PHASE-1.1-ADMIN-MFA.md),
+> [PHASE-1.2-REGISTRATION-ENUMERATION.md](PHASE-1.2-REGISTRATION-ENUMERATION.md)
+> and [PHASE-1.3-EMAIL-VERIFICATION.md](PHASE-1.3-EMAIL-VERIFICATION.md).
 > The other three remain open.
 
 ## Phase 1: access and account lifecycle
@@ -29,12 +31,13 @@ key. They can ship without changing the database schema.
 | --- | --- | --- | --- | --- |
 | 1.1 Admin MFA enforcement | SF-AUTH-01 | Server guard on privileged routes, enrollment gate on role assignment, UI banner | Admin without MFA refused on approve/execute/key/policy; enrolled admin succeeds | High |
 | 1.2 Registration enumeration | SF-AUTH-06 | Neutral response for existing addresses, keep 6/hour limit | Same status and body for both cases; no duplicate account | Medium |
-| 1.3 Email verification | SF-AUTH-02 | Token table, expiry, resend limit, audit event. **Blocked on a mail provider decision** | Token expiry, replay, audit, unverified restrictions | Medium |
-| 1.4 Password reset | SF-AUTH-03 | Hashed single-use token, constant response, session revocation. **Blocked on mail** | Unknown email identical, single use, sessions revoked | Medium |
+| 1.3 Email verification | SF-AUTH-02 | Done: token table, 24 hour expiry, resend limits, audit events, workspace gate while unverified | Token expiry, replay, concurrent consume, audit, unverified restrictions | Medium |
+| 1.4 Password reset | SF-AUTH-03 | Hashed single-use token, constant response, session revocation. Mail channel now exists; not implemented | Unknown email identical, single use, sessions revoked | Medium |
 | 1.5 Session hardening | SF-AUTH-04 | Idle timeout, `Secure` behind trusted proxy, optional `__Host-` prefix, IP/UA change event | Idle expiry, secure flag, rotation, revocation | Medium |
 
-Mail delivery is the only hard dependency. Without it, items 1.3 and 1.4 stay
-BLOCKED and the manual admin reset path must be documented instead.
+Mail delivery now exists through Resend (Phase 1.3), so item 1.4 is no longer
+blocked by a provider decision. Live inbox delivery for recipients other than
+the Resend account owner still requires a verified sending domain.
 
 ## Phase 2: data at rest and recovery
 

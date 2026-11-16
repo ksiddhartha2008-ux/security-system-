@@ -11,6 +11,7 @@ export type User = {
   orgId: string;
   orgName: string | null;
   mfaEnabled?: boolean;
+  emailVerified?: boolean;
 };
 
 export type Organization = {

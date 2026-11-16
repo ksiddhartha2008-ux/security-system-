@@ -936,3 +936,22 @@ table.data td.num { font-variant-numeric: tabular-nums; }
   .website-overview .grid-4 { grid-template-columns: minmax(0, 1fr); }
 }
 .website-snippet .code-block { max-height: 420px; overflow: auto; }
+
+.verification-gate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--color-canvas);
+}
+.verification-card {
+  width: 100%;
+  max-width: 520px;
+  padding: 28px;
+  display: grid;
+  gap: 12px;
+}
+.verification-card h1 { font-size: 24px; letter-spacing: -0.02em; }
+.verification-card .brand-mark { margin-bottom: 4px; }
+/* A card that spans both columns of a two column settings grid. */
+.span-all { grid-column: 1 / -1; }

@@ -47,11 +47,13 @@ Paginated endpoints add `meta`:
 
 | Method | Path | Role | Purpose |
 | --- | --- | --- | --- |
-| POST | `/auth/register` | public | Create an organization and its first admin. Returns a neutral 202 and never creates a session; sign in afterwards |
+| POST | `/auth/register` | public | Create an organization and its first admin. Returns a neutral 202, sends a verification link and never creates a session; sign in, then verify, to unlock the workspace |
 | POST | `/auth/login` | public | Start a session, or return an MFA challenge |
+| POST | `/auth/verify-email` | public, token in body | Consume a verification link. 400 with `verification_expired`, `verification_used` or `verification_invalid` |
+| POST | `/auth/resend-verification` | session | Neutral 202 for any signed-in account. 3 per hour per client and 3 issued tokens per hour per account |
 | POST | `/auth/mfa/verify` | public with challenge cookie | Complete an MFA login |
 | POST | `/auth/logout` | any | Destroy the current session |
-| GET | `/auth/me` | any | User, organization and permission flags |
+| GET | `/auth/me` | any | User, organization and permission flags, including `emailVerified`. Reachable while unverified |
 | PATCH | `/auth/me` | any | Update display name or password (requires current password; revokes all sessions) |
 | GET | `/auth/demo-accounts` | public | Demo accounts, only when demo mode is on |
 | GET | `/auth/sessions` | any | Active sessions for the current user |

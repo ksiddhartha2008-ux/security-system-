@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { all, get, run, newId, nowIso, parseJson, transaction } from '../db.js';
-import { asyncHandler, accepted, badRequest, ok, unauthorized, validate, tooMany } from '../lib/http.js';
+import { ApiError, asyncHandler, accepted, badRequest, ok, unauthorized, validate, tooMany } from '../lib/http.js';
 import { hashPasswordAsync, hashPassword, verifyPasswordAsync, createSession, destroySession, requireAuth, parseCookies, hashToken, SESSION_COOKIE, setMfaCookie, clearMfaCookie } from '../lib/auth.js';
 import { audit } from '../lib/audit.js';
 import { rateLimit } from '../lib/ratelimit.js';
@@ -10,6 +10,8 @@ import { DEMO_ACCOUNTS, isDemoMode } from '../lib/demo.js';
 import { verifyTotp, generateSecret, otpauthUrl, generateRecoveryCodes, hashRecoveryCode } from '../lib/totp.js';
 import { websiteProtectionEnabled } from '../lib/websiteFlag.js';
 import { trishieldFlags } from '../lib/config.js';
+import { emailService } from '../services/email/service.js';
+import { activeTokenCount, consumeVerificationToken, issueVerificationToken } from '../services/emailVerification.js';
 
 const router = Router();
 
@@ -40,6 +42,7 @@ function publicUser(user, orgName) {
     orgId: user.org_id,
     orgName,
     mfaEnabled: user.mfa_enabled === 1,
+    emailVerified: user.email_verified === 1,
     createdAt: user.created_at,
     lastLoginAt: user.last_login_at,
   };
@@ -60,7 +63,7 @@ router.post('/register', rateLimit({ windowMs: 60 * 60 * 1000, max: 6, keyPrefix
    * case, so cookies and redirects cannot reveal the difference either.
    */
   const neutral = () => accepted(res, {
-    message: 'If registration can be completed, you can continue by signing in.',
+    message: 'If registration can be completed, check your email for the next step.',
   });
   const settle = async () => {
     // Bounded timing floor, not an unbounded sleep. Hash cost usually dominates;
@@ -108,8 +111,70 @@ router.post('/register', rateLimit({ windowMs: 60 * 60 * 1000, max: 6, keyPrefix
   }
 
   audit(req, 'auth.register', 'user', userId, { orgId }, { orgId });
+
+  // The account exists even if delivery fails; the person can ask for a new
+  // message from the pending screen. A failure is audited, never reported as a
+  // successful send.
+  const issued = issueVerificationToken(userId);
+  const delivery = await emailService.sendVerification({ to: body.email, ...issued });
+  audit(
+    req,
+    delivery.ok ? 'auth.email_verification_sent' : 'auth.email_verification_failed',
+    'user', userId,
+    { code: delivery.code ?? null, provider: 'resend' },
+    { orgId },
+  );
   await settle();
   return neutral();
+}));
+
+/**
+ * Consume a verification token. The response never identifies the account; the
+ * codes describe the token state only. Consumption is atomic in the service.
+ */
+router.post('/verify-email', rateLimit({ windowMs: 15 * 60 * 1000, max: 20, keyPrefix: 'verify-email', failMode: 'closed' }), asyncHandler(async (req, res) => {
+  const body = validate(z.object({ token: z.string().trim().min(20).max(200) }), req.body);
+  const result = consumeVerificationToken(body.token);
+  if (!result.ok) {
+    audit(req, 'auth.email_verification_rejected', 'user', result.userId ?? null, { reason: result.code }, result.orgId ? { orgId: result.orgId } : {});
+    const copy = {
+      expired: ['verification_expired', 'This verification link has expired. Request a new message and try again.'],
+      used: ['verification_used', 'This verification link is no longer valid. Request a new message and try again.'],
+      invalid: ['verification_invalid', 'This verification link is not valid.'],
+    }[result.code] ?? ['verification_invalid', 'This verification link is not valid.'];
+    throw new ApiError(400, copy[0], copy[1]);
+  }
+  audit(req, 'auth.email_verified', 'user', result.userId, {}, { orgId: result.orgId });
+  return ok(res, { verified: true });
+}));
+
+/**
+ * Resend is neutral: the same 202 is returned for an unknown, verified or
+ * throttled account. Per-IP and per-account limits prevent flooding.
+ */
+router.post('/resend-verification', requireAuth, rateLimit({ windowMs: 60 * 60 * 1000, max: 3, keyPrefix: 'resend-verification', failMode: 'closed' }), asyncHandler(async (req, res) => {
+  const neutral = accepted(res, {
+    message: 'If this account needs verification, a new message will be sent.',
+  });
+  const user = get('SELECT * FROM users WHERE id = ? AND org_id = ?', req.user.id, req.user.orgId);
+  if (!user || user.email_verified === 1) return neutral;
+
+  const hourAgo = new Date(Date.now() - 60 * 60_000).toISOString();
+  if (activeTokenCount(user.id, { since: hourAgo }) >= 3) {
+    audit(req, 'auth.email_verification_throttled', 'user', user.id, {}, { orgId: user.org_id });
+    return neutral;
+  }
+
+  const issued = issueVerificationToken(user.id);
+  const delivery = await emailService.sendVerification({ to: user.email, ...issued });
+  audit(
+    req,
+    delivery.ok ? 'auth.email_verification_sent' : 'auth.email_verification_failed',
+    'user', user.id,
+    { code: delivery.code ?? null, provider: 'resend', resent: true },
+    { orgId: user.org_id },
+  );
+  return neutral;
 }));
 
 router.post('/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 12, keyPrefix: 'login', failMode: 'closed' }), asyncHandler(async (req, res) => {

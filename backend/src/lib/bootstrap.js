@@ -38,6 +38,9 @@ export async function createBootstrapAdmin({ email, password, name = 'Workspace 
      VALUES (?, ?, ?, ?, ?, 'admin', 'active', ?, ?)`,
     userId, orgId, email.toLowerCase(), name, await hashPasswordAsync(password), ts, ts,
   );
+  // The bootstrap owner is trusted by the deployment operator. There is no
+  // inbound mailbox flow at first boot, so the address is marked verified.
+  run('UPDATE users SET email_verified = 1, email_verified_at = ? WHERE id = ?', ts, userId);
   console.log(`[startup] bootstrap admin created for ${email} in organization "${organizationName}"`);
   return { orgId, userId, email: email.toLowerCase() };
 }

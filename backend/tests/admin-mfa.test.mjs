@@ -1,6 +1,6 @@
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { startServer, client, login } from './helpers.mjs';
+import { startServer, client, login, markEmailVerified } from './helpers.mjs';
 import { totp } from '../src/lib/totp.js';
 
 /**
@@ -24,6 +24,7 @@ before(async () => {
     organizationName: `MFA Gate ${Date.now()}`,
   });
   assert.equal(registered.status, 202, registered.text);
+  markEmailVerified(server, email);
   const signedIn = await admin.post('/auth/login', { email, password });
   assert.equal(signedIn.status, 200, signedIn.text);
 }, { timeout: 60_000 });
@@ -105,6 +106,8 @@ test('analysts and viewers keep their existing boundaries', async () => {
   assert.equal((await admin.post('/settings/users', { name: 'Analyst Two', email: analystEmail, role: 'analyst', password: 'Analyst#2026' })).status, 201);
   assert.equal((await admin.post('/settings/users', { name: 'Viewer Two', email: viewerEmail, role: 'viewer', password: 'Viewer#2026' })).status, 201);
 
+  markEmailVerified(server, analystEmail);
+  markEmailVerified(server, viewerEmail);
   const analyst = await login(server.base, analystEmail, 'Analyst#2026');
   const incident = await analyst.post('/incidents', { title: 'Analyst without MFA opens an incident', severity: 'medium' });
   assert.equal(incident.status, 201, incident.text);

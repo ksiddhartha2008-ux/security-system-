@@ -39,6 +39,11 @@ export default defineConfig({
       SF_DEMO_MODE: 'true',
       SF_WEBSITE_PROTECTION: 'true',
       SF_ALLOW_TEST_HOSTNAMES: 'true',
+      // The end to end run must never load the developer .env file: a real
+      // email provider key would send mail for every registration in the suite.
+      SF_SKIP_ENV_FILE: 'true',
+      RESEND_API_KEY: '',
+      EMAIL_FROM: '',
     },
   },
 });

@@ -598,7 +598,7 @@ export function LoginPage() {
             <div>
               <p className="login-note-title">Continue by signing in</p>
               <p>
-                If registration can be completed, sign in with your email and password.
+                If registration can be completed, check your email to verify the address, then sign in.
                 If the address is already registered, use the existing account.
               </p>
             </div>
@@ -911,6 +911,65 @@ export function TermsPage() {
       </main>
       <PublicFooter />
     </div>
+  );
+}
+
+export function VerifyEmailPage() {
+  useTitle('Verify email');
+  const [params] = useSearchParams();
+  const token = params.get('token') ?? '';
+  const [state, setState] = useState<'checking' | 'ok' | 'error'>('checking');
+  const [message, setMessage] = useState('Verifying your link...');
+
+  useEffect(() => {
+    if (!token) {
+      setState('error');
+      setMessage('This verification link is not valid.');
+      return undefined;
+    }
+    let active = true;
+    api.post('/auth/verify-email', { token })
+      .then(() => {
+        if (!active) return;
+        setState('ok');
+        setMessage('Your email is verified. Sign in to open the workspace.');
+      })
+      .catch((err) => {
+        if (!active) return;
+        setState('error');
+        setMessage(err instanceof ApiError ? err.message : 'This verification link is not valid.');
+      });
+    return () => { active = false; };
+  }, [token]);
+
+  return (
+    <main className="login-page">
+      <div className="login-panel">
+        <div className="login-brand">
+          <span className="login-logo" aria-hidden="true"><ShieldCheck size={22} /></span>
+          <div>
+            <h1>SecureFlow AI</h1>
+            <p>Email verification</p>
+          </div>
+        </div>
+        <div className="login-demo-note" role="status">
+          <Info size={18} aria-hidden="true" />
+          <div>
+            <p className="login-note-title">
+              {state === 'checking' ? 'Checking the link' : state === 'ok' ? 'Email verified' : 'Link not accepted'}
+            </p>
+            <p>{message}</p>
+          </div>
+        </div>
+        <div className="row" style={{ gap: 8 }}>
+          <Link to="/login" className="btn btn-primary">Sign in</Link>
+          <Link to="/" className="btn btn-ghost">Back to home</Link>
+        </div>
+        <p className="tiny faint">
+          The verification token is only used for this request. It is never stored in analytics or logs.
+        </p>
+      </div>
+    </main>
   );
 }
 

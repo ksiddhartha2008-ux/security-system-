@@ -68,6 +68,13 @@ export function migrate() {
     current = 7;
     console.log('[db] schema v7 applied (TriShield integration health history)');
   }
+  if (current < 8) {
+    const sql = readFileSync(join(here, 'migrations', '008_email_verification.sql'), 'utf8');
+    db.exec(sql);
+    db.exec('PRAGMA user_version = 8');
+    current = 8;
+    console.log('[db] schema v8 applied (email ownership verification)');
+  }
 }
 
 export const all = (sql, ...params) => db.prepare(sql).all(...params);

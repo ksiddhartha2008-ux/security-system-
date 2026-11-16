@@ -1,6 +1,6 @@
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { startServer, client, login, DEMO } from './helpers.mjs';
+import { startServer, client, login, markEmailVerified, DEMO } from './helpers.mjs';
 
 let server;
 before(async () => { server = await startServer(); }, { timeout: 60_000 });
@@ -12,9 +12,10 @@ test('registration returns the same neutral response and does not sign anyone in
   const payload = { name: 'Avery Stone', email, password: 'Anchor#2026', organizationName: 'Stone Labs' };
   const response = await c.post('/auth/register', payload);
   assert.equal(response.status, 202);
-  assert.deepEqual(response.body.data, { message: 'If registration can be completed, you can continue by signing in.' });
+  assert.deepEqual(response.body.data, { message: 'If registration can be completed, check your email for the next step.' });
   assert.equal(response.headers.get('set-cookie'), null, 'registration must not create a session');
   assert.equal((await c.get('/auth/me')).status, 401);
+  markEmailVerified(server, email);
 
   const signedIn = await login(server.base, email, payload.password);
   const me = await signedIn.get('/auth/me');
@@ -33,6 +34,7 @@ test('duplicate registration returns the same neutral response and creates nothi
   assert.equal(first.status, 202);
   assert.equal(second.status, 202);
   assert.deepEqual(second.body, first.body);
+  markEmailVerified(server, email);
 
   const signedIn = await login(server.base, email, payload.password);
   const users = await signedIn.get('/settings/users');

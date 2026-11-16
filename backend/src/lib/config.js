@@ -68,5 +68,14 @@ export function checkProductionConfig(env = process.env) {
   if (env.SF_PUBLIC_IP_URL && !/^https:\/\//i.test(env.SF_PUBLIC_IP_URL)) {
     errors.push('SF_PUBLIC_IP_URL must be an https endpoint in production.');
   }
+  if (!env.RESEND_API_KEY || !env.EMAIL_FROM) {
+    warnings.push('Email verification is unavailable: RESEND_API_KEY and EMAIL_FROM are not both set. New accounts stay unverified until a provider is configured.');
+  }
+  if (env.APP_BASE_URL && !/^https:\/\//i.test(env.APP_BASE_URL)) {
+    errors.push('APP_BASE_URL must be an https origin in production so verification links are not sent over plain HTTP.');
+  }
+  if (!env.APP_BASE_URL) {
+    warnings.push('APP_BASE_URL is not set. Verification links fall back to http://localhost:4000.');
+  }
   return { errors, warnings };
 }

@@ -413,6 +413,14 @@ function SecurityTab() {
 
   return (
     <div className="grid" style={{ gridTemplateColumns: '1.25fr 1fr' }}>
+      <Card title="Email address" subtitle="Used for sign-in and email ownership verification"
+        className="span-all"
+        actions={<Badge tone={user?.emailVerified ? 'mint' : 'amber'}>{user?.emailVerified ? 'verified' : 'not verified'}</Badge>}>
+        <p className="small muted">
+          {user?.email ?? 'No address on this account'}. Verification links are single use and expire after 24 hours.
+          An unverified account can only resend the message or sign out.
+        </p>
+      </Card>
       <Card title="Multi-factor authentication" subtitle="Time based one time codes (TOTP), compatible with any authenticator app"
         actions={<Badge tone={user?.mfaEnabled ? 'mint' : 'neutral'}>{user?.mfaEnabled ? 'enabled' : 'not enabled'}</Badge>}>
         {error && <div className="error-box" role="alert" style={{ marginBottom: 12 }}>{error}</div>}

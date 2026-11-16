@@ -17,6 +17,7 @@ import { initials, ROLE_LABEL } from '../lib/format';
 import { CyberFluidBackground } from './CyberFluidBackground';
 import { PageTransition } from './motion';
 import { ThemeSwitch } from './ThemeSwitch';
+import { VerificationPending } from './VerificationPending';
 
 const NAV = [
   {
@@ -193,6 +194,10 @@ export function AppShellLayout() {
     await logout();
     navigate('/login', { replace: true });
   };
+
+  if (user && user.emailVerified === false) {
+    return <VerificationPending email={user.email} onLogout={handleLogout} />;
+  }
 
   return (
     <AppShell

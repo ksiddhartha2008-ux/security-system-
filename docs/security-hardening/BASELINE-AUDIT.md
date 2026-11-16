@@ -64,7 +64,7 @@ storage, no cross-tenant read found in reviewed code and tests.
 - Impact: misdelivery of security notifications, no trustworthy recovery channel.
 - Recommended correction: add a verification token with expiry, keep the account usable only for enrollment until verified, and record the event in the audit log. If no mail provider exists, mark verification as BLOCKED and document it.
 - Required regression tests: unverified account cannot receive privileged notifications; token expiry; replay rejected; verification audited.
-- Status: **MISSING**.
+- Status: **IMPLEMENTED, TESTED** (Resend provider, schema v8). Live inbox delivery is **UNVERIFIED**: Resend accepted a test message (`01a1e430-07a0-7db5-acab-f64193daca4b`), but this machine cannot read the destination mailbox. See [PHASE-1.3-EMAIL-VERIFICATION.md](PHASE-1.3-EMAIL-VERIFICATION.md).
 
 #### SF-AUTH-03: No password reset or recovery flow
 

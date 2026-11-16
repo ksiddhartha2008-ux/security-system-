@@ -142,7 +142,7 @@ export function attachUser(req, _res, next) {
   req.user = null;
   if (!token) return next();
   const row = get(
-    `SELECT s.id AS session_id, s.expires_at, s.csrf_hash, s.reauthenticated_at, u.id, u.org_id, u.email, u.name, u.role, u.status, u.mfa_enabled
+    `SELECT s.id AS session_id, s.expires_at, s.csrf_hash, s.reauthenticated_at, u.id, u.org_id, u.email, u.name, u.role, u.status, u.mfa_enabled, u.email_verified
        FROM sessions s JOIN users u ON u.id = s.user_id
       WHERE s.id = ?`,
     hashToken(token),
@@ -160,6 +160,7 @@ export function attachUser(req, _res, next) {
     name: row.name,
     role: row.role,
     mfaEnabled: row.mfa_enabled === 1,
+    emailVerified: row.email_verified === 1,
     sessionId: row.session_id,
   };
   req.csrfHash = row.csrf_hash;
@@ -170,6 +171,31 @@ export function attachUser(req, _res, next) {
 export function requireAuth(req, _res, next) {
   if (!req.user) return next(unauthorized());
   return next();
+}
+
+/**
+ * An unverified account may sign in, read its status, resend verification, use
+ * MFA enrolment and sign out. Every other API call is refused until the email is
+ * verified. The check is server side and cannot be bypassed by the client.
+ */
+const UNVERIFIED_ALLOWED = new Set([
+  '/auth/me',
+  '/auth/logout',
+  '/auth/sessions',
+  '/auth/verify-email',
+  '/auth/resend-verification',
+  '/auth/step-up',
+  '/auth/mfa/setup',
+  '/auth/mfa/enable',
+  '/auth/mfa/disable',
+  '/auth/mfa/recovery-codes',
+  '/auth/mfa/verify',
+]);
+
+export function requireVerifiedEmail(req, _res, next) {
+  if (!req.user || req.user.emailVerified) return next();
+  if (UNVERIFIED_ALLOWED.has(req.path)) return next();
+  return next(new ApiError(403, 'EMAIL_VERIFICATION_REQUIRED', 'Verify your email address before using the workspace.'));
 }
 
 const RANK = { viewer: 1, analyst: 2, admin: 3 };

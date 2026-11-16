@@ -3,10 +3,12 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DatabaseSync } from 'node:sqlite';
 
 import { totp } from '../src/lib/totp.js';
 
 const serverRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
+const serverDirs = new Map();
 
 /**
  * Boot an isolated API instance with its own database file.
@@ -49,7 +51,10 @@ export async function startServer(extraEnv = {}) {
       await new Promise((resolve) => setTimeout(resolve, 200));
     }
 
-    if (ready) return { base, proc, dir, stop: () => proc.kill(), output: () => output };
+    if (ready) {
+      serverDirs.set(base, dir);
+      return { base, proc, dir, stop: () => proc.kill(), output: () => output };
+    }
 
     proc.kill();
     lastOutput = output;
@@ -108,12 +113,25 @@ const mfaKey = (base, email) => `${base}|${email.toLowerCase()}`;
  * Registration returns a neutral 202 and never creates a session. Tests that
  * need the new workspace sign in afterwards, exactly like a person would.
  */
+export function markEmailVerified(target, email) {
+  const dir = typeof target === 'string' ? serverDirs.get(target) : target?.dir;
+  if (!dir) throw new Error('unknown test server for email verification');
+  const db = new DatabaseSync(join(dir, 'test.db'));
+  try {
+    db.prepare('UPDATE users SET email_verified = 1, email_verified_at = COALESCE(email_verified_at, ?) WHERE email = ?')
+      .run(new Date().toISOString(), String(email).toLowerCase());
+  } finally {
+    db.close();
+  }
+}
+
 export async function registerWorkspace(base, { name, email, password, organizationName }) {
   const anonymous = client(base);
   const response = await anonymous.post('/auth/register', { name, email, password, organizationName });
   if (response.status !== 202) {
     throw new Error(`registration failed: ${response.status} ${response.text}`);
   }
+  markEmailVerified(base, email);
   const session = await login(base, email, password);
   const me = await session.get('/auth/me');
   if (me.status !== 200) throw new Error(`new workspace could not sign in: ${me.status} ${me.text}`);
@@ -129,6 +147,7 @@ export async function registerWorkspace(base, { name, email, password, organizat
 export async function registerInto(c, base, payload) {
   const response = await c.post('/auth/register', payload);
   if (response.status !== 202) throw new Error(`registration failed: ${response.status} ${response.text}`);
+  markEmailVerified(base, payload.email);
   const loginResponse = await c.post('/auth/login', { email: payload.email, password: payload.password });
   if (loginResponse.status !== 200) throw new Error(`new workspace could not sign in: ${loginResponse.status} ${loginResponse.text}`);
   if (loginResponse.body?.data?.mfaRequired) throw new Error('registerInto expects an account without MFA');

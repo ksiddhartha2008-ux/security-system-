@@ -14,6 +14,7 @@ const SignupPage = lazy(() => import('./pages/Public').then((module) => ({ defau
 const PrivacyPage = lazy(() => import('./pages/Public').then((module) => ({ default: module.PrivacyPage })));
 const TermsPage = lazy(() => import('./pages/Public').then((module) => ({ default: module.TermsPage })));
 const NotFoundPage = lazy(() => import('./pages/Public').then((module) => ({ default: module.NotFoundPage })));
+const VerifyEmailPage = lazy(() => import('./pages/Public').then((module) => ({ default: module.VerifyEmailPage })));
 const OverviewPage = lazy(() => import('./pages/Overview'));
 const MonitoringPage = lazy(() => import('./pages/Monitoring'));
 const AssetsPage = lazy(() => import('./pages/Assets'));
@@ -72,6 +73,7 @@ export default function App() {
                   <Route path="/register" element={<Navigate to="/signup" replace />} />
                   <Route path="/privacy" element={<PrivacyPage />} />
                   <Route path="/terms" element={<TermsPage />} />
+                  <Route path="/verify-email" element={<VerifyEmailPage />} />
                   <Route path="/app" element={<Navigate to="/overview" replace />} />
                   <Route path="/dashboard" element={<Navigate to="/overview" replace />} />
 

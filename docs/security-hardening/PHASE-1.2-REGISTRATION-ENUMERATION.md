@@ -27,7 +27,10 @@ for product convenience and never treated as an enumeration surface.
 `backend/src/routes/auth.js`
 
 - Both outcomes return `202 Accepted` with exactly:
-  `{ "data": { "message": "If registration can be completed, you can continue by signing in." } }`.
+  `{ "data": { "message": "If registration can be completed, check your email for the next step." } }`.
+  The message was later reworded in Phase 1.3, where the next step became
+  verifying the address instead of signing in. The neutrality is unchanged:
+  both outcomes still return the same status, body and headers.
 - No session, CSRF cookie or redirect is created for either outcome.
 - A duplicate is answered without a second database write.
 - The duplicate path still performs a bounded amount of work and waits for a
@@ -123,10 +126,9 @@ CI runs the Redis case against a real server.
 - Timing is equalised with a 250 ms floor, not proven equal. A slow host can push
   the hashing path past the floor, and network jitter remains. Perfect timing
   equality is not claimed.
-- There is still no email verification or password recovery. Until a mail channel
-  exists, registration can create an account for an address the person does not
-  control; this is documented in SF-AUTH-02 and SF-AUTH-03 and is out of scope
-  for this phase.
+- There was no email verification or password recovery in this phase. Phase 1.3
+  added email ownership verification, so registration no longer grants workspace
+  access to an unverified address. Password recovery (SF-AUTH-03) remains open.
 - A neutral 202 means legitimate users also cannot tell whether the account was
   created until they try to sign in. The login page explains that next step.
 - Rate limiting is per client address. An attacker with many addresses can still

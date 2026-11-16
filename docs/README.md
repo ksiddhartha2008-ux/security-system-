@@ -10,6 +10,8 @@ Start with the [project README](../README.md).
 
 ## Security
 
+- [security-hardening/BASELINE-AUDIT.md](security-hardening/BASELINE-AUDIT.md) - read-only baseline audit with evidence, severity and status
+- [security-hardening/REMEDIATION-ROADMAP.md](security-hardening/REMEDIATION-ROADMAP.md) - ordered fixes and dependencies
 - [SECURITY.md](SECURITY.md) - controls, threat model, reporting
 - [SECURITY_AUDIT.md](SECURITY_AUDIT.md) - findings with severity and evidence
 - [SECURITY_REMEDIATION_PLAN.md](SECURITY_REMEDIATION_PLAN.md) - phased plan and status

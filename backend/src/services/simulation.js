@@ -214,7 +214,14 @@ export function createSimulation(orgId, userId, payload) {
   const config = validateConfig(scenario, payload.config);
   const seed = Number.isFinite(Number(payload.seed)) ? Number(payload.seed) : Math.floor(Math.random() * 1_000_000);
   const id = newId('sim');
-  const ref = `SIM-${new Date().getUTCFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+  // Four random digits can collide, especially when a seed creates several runs
+  // in one transaction. Check before insert instead of failing on the unique key.
+  let ref = '';
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const candidate = `SIM-${new Date().getUTCFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+    if (!get('SELECT id FROM simulations WHERE org_id = ? AND ref = ?', orgId, candidate)) { ref = candidate; break; }
+  }
+  if (!ref) throw new ApiError(409, 'simulation_ref_conflict', 'Could not allocate a unique simulation reference. Try again.');
   const ts = nowIso();
   run(
     `INSERT INTO simulations (id, org_id, ref, name, scenario, status, engine, config, progress, current_round, total_rounds, created_by, created_at, updated_at)

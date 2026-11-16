@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Activity, Building2, KeyRound, PlugZap, ScrollText, ShieldCheck } from 'lucide-react';
 import { PageHeader } from '../components/layout';
 import {
@@ -26,7 +27,13 @@ type Health = {
 export default function SettingsPage() {
   const { user, organization, permissions, refresh } = useAuth();
   const toast = useToast();
-  const [tab, setTab] = useState<'organization' | 'integrations' | 'audit' | 'health' | 'account' | 'security'>('organization');
+  const [params] = useSearchParams();
+  const requested = params.get('tab');
+  const initialTab = (['organization', 'integrations', 'audit', 'health', 'security', 'account'] as const)
+    .includes(requested as never)
+    ? (requested as 'organization' | 'integrations' | 'audit' | 'health' | 'security' | 'account')
+    : 'organization';
+  const [tab, setTab] = useState<'organization' | 'integrations' | 'audit' | 'health' | 'account' | 'security'>(initialTab);
 
   return (
     <>

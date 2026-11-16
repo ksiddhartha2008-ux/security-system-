@@ -17,6 +17,10 @@ item here is implemented yet.
 These five are independent of any external provider except ClamAV and the backup
 key. They can ship without changing the database schema.
 
+> Completed on 16 November 2026: item 1, SF-AUTH-01 administrator MFA
+> enforcement. See [PHASE-1.1-ADMIN-MFA.md](PHASE-1.1-ADMIN-MFA.md). The other
+> four remain open.
+
 ## Phase 1: access and account lifecycle
 
 | Item | Findings | Scope | Required tests | Risk if deferred |

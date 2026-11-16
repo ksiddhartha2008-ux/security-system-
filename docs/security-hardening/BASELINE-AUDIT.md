@@ -38,7 +38,7 @@ storage, no cross-tenant read found in reviewed code and tests.
 - Impact: full workspace compromise from one credential.
 - Recommended correction: require MFA for `admin` (and optionally `analyst`) before privileged routes; block role assignment until enrollment; surface an enforcement banner and an enrollment path.
 - Required regression tests: admin without MFA is refused on approve, execute, key creation, policy change; admin with MFA succeeds; enrollment cannot be skipped by calling the API directly.
-- Status: **PARTIALLY IMPLEMENTED** (MFA exists, enforcement does not).
+- Status: **IMPLEMENTED AND TESTED** as of 16 November 2026. Baseline status before remediation: PARTIALLY IMPLEMENTED (MFA existed, enforcement did not). Evidence: ackend/tests/admin-mfa.test.mjs, docs/security-hardening/PHASE-1.1-ADMIN-MFA.md.
 
 #### SF-BKP-01: Database backups are not encrypted
 

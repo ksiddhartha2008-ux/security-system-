@@ -2,7 +2,7 @@ import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { startServer, client, login, DEMO } from './helpers.mjs';
+import { startServer, client, login, enrollAdminMfa, DEMO } from './helpers.mjs';
 
 /**
  * The Cloudflare connector is configured through the environment so the approval
@@ -30,6 +30,7 @@ async function secondWorkspace() {
     name: 'Tri Owner', email, password: 'Anchor#2026', organizationName: 'Tri Second Workspace',
   });
   assert.equal(response.status, 201, response.text);
+  await enrollAdminMfa(c, "Anchor#2026");
   return { client: c, orgId: response.body.data.user.orgId };
 }
 

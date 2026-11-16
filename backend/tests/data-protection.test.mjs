@@ -51,7 +51,7 @@ before(async () => {
   writeFileSync(dnsFile, JSON.stringify({ records: {}, errors: {} }));
   server = await startServer({ SF_ALLOW_TEST_HOSTNAMES: 'true', SF_DNS_FAKE_FILE: dnsFile, SF_WEBSITE_PROTECTION: 'true' });
   admin = await login(server.base, ...DEMO.admin);
-  await admin.post('/auth/step-up', { password: DEMO.admin[1] });
+  await admin.stepUp();
   const siteResponse = await admin.post('/v1/websites', { url: 'https://shop.example.test', display_name: 'Shop protection', criticality: 4 });
   assert.equal(siteResponse.status, 201, siteResponse.text);
   site = siteResponse.body.data.site;

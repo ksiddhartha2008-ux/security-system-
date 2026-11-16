@@ -4,6 +4,8 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { totp } from '../src/lib/totp.js';
+
 const serverRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 /**
@@ -99,11 +101,47 @@ export function client(base) {
   };
 }
 
+const mfaSecrets = new Map();
+const mfaKey = (base, email) => `${base}|${email.toLowerCase()}`;
+
 export async function login(base, email, password) {
   const c = client(base);
   const response = await c.post('/auth/login', { email, password });
   if (response.status !== 200) throw new Error(`login failed for ${email}: ${response.status} ${response.text}`);
+  if (response.body?.data?.mfaRequired) {
+    const secret = mfaSecrets.get(mfaKey(base, email));
+    if (!secret) throw new Error(`login for ${email} requires an MFA code and no enrolled secret is known`);
+    const verified = await c.post('/auth/mfa/verify', { code: totp(secret) });
+    if (verified.status !== 200) throw new Error(`MFA verification failed for ${email}: ${verified.status} ${verified.text}`);
+    c.mfaSecret = secret;
+    c.stepUp = () => c.post('/auth/step-up', { password, code: totp(secret) });
+    return c;
+  }
+  const secret = await enrollAdminMfa(c, password);
+  if (secret) {
+    mfaSecrets.set(mfaKey(base, email), secret);
+    c.stepUp = () => c.post('/auth/step-up', { password, code: totp(secret) });
+  }
   return c;
+}
+
+/**
+ * Administrator-only mutations require an enrolled second factor. Test suites
+ * that act as an administrator enrol it here with the real TOTP flow, so tests
+ * exercise the same path a person does.
+ */
+export async function enrollAdminMfa(c, password) {
+  const me = await c.get('/auth/me');
+  const user = me.body?.data?.user;
+  if (!user || user.role !== 'admin' || user.mfaEnabled) return null;
+  const setup = await c.post('/auth/mfa/setup', { password });
+  if (setup.status !== 200) return null;
+  const secret = setup.body.data.secret;
+  const enabled = await c.post('/auth/mfa/enable', { code: totp(secret) });
+  if (enabled.status !== 200) throw new Error(`could not enrol administrator MFA: ${enabled.status} ${enabled.text}`);
+  c.mfaSecret = secret;
+  c.stepUp = () => c.post('/auth/step-up', { password, code: totp(secret) });
+  return secret;
 }
 
 export const DEMO = {

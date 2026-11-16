@@ -49,7 +49,7 @@ before(async () => {
   writeFileSync(dnsFile, JSON.stringify({ records: {}, errors: {} }));
   server = await startServer({ SF_ALLOW_TEST_HOSTNAMES: 'true', SF_DNS_FAKE_FILE: dnsFile, SF_WEBSITE_PROTECTION: 'true' });
   admin = await login(server.base, ...DEMO.admin);
-  await admin.post('/auth/step-up', { password: DEMO.admin[1] });
+  await admin.stepUp();
 
   const created = [];
   for (const [hostname, name] of [['benign.example.test', 'Benign corpus'], ['attack.example.test', 'Attack corpus']]) {

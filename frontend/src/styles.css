@@ -497,6 +497,24 @@ h1.page-title { font-size: 22px; line-height: 1.25; }
 }
 .content-shell[data-scrolled='true'] .scroll-progress { opacity: 0.9; }
 
+.mfa-banner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 16px 22px 0;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--color-amber) 45%, var(--color-line));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--color-amber) 10%, var(--color-panel));
+  color: var(--color-ink);
+  font-size: 12.5px;
+}
+.mfa-banner span { flex: 1; min-width: 220px; }
+.mfa-banner .btn { margin-left: auto; }
+
 .section-in { animation: section-in 430ms var(--motion-ease) both; }
 @keyframes section-in {
   from { opacity: 0; transform: translate3d(0, 10px, 0); }

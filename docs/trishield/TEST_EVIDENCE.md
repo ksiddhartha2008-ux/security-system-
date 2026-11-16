@@ -80,7 +80,7 @@ cd C:\Users\ksidd\OneDrive\Pictures\Desktop\hack
 npm test
 ```
 
-Result: 169 tests, 167 pass, 0 fail, 2 skipped. The two skips are the existing
+Result: 176 tests, 174 pass, 0 fail, 2 skipped. The two skips are the existing
 PostgreSQL and Redis cases that need services which are not installed here.
 
 ## Type checking and build

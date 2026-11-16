@@ -1,4 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const PORT = Number(process.env.E2E_PORT ?? 4100);
 
@@ -32,7 +34,8 @@ export default defineConfig({
     env: {
       PORT: String(PORT),
       NODE_ENV: 'development',
-      SF_DB_PATH: '../backend/data/e2e-a11y.db',
+      SF_DB_PATH: join(tmpdir(), `secureflow-e2e-${process.pid}.db`),
+      SF_DATA_DIR: join(tmpdir(), `secureflow-e2e-data-${process.pid}`),
       SF_DEMO_MODE: 'true',
       SF_WEBSITE_PROTECTION: 'true',
       SF_ALLOW_TEST_HOSTNAMES: 'true',

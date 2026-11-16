@@ -2,6 +2,7 @@ import { scryptSync, scrypt, randomBytes, timingSafeEqual, createHash } from 'no
 import { promisify } from 'node:util';
 import { get, run, all, newId, nowIso } from '../db.js';
 import { ApiError, forbidden, unauthorized } from './http.js';
+import { audit } from './audit.js';
 
 export const SESSION_COOKIE = 'sf_session';
 export const CSRF_COOKIE = 'sf_csrf';
@@ -141,7 +142,7 @@ export function attachUser(req, _res, next) {
   req.user = null;
   if (!token) return next();
   const row = get(
-    `SELECT s.id AS session_id, s.expires_at, s.csrf_hash, s.reauthenticated_at, u.id, u.org_id, u.email, u.name, u.role, u.status
+    `SELECT s.id AS session_id, s.expires_at, s.csrf_hash, s.reauthenticated_at, u.id, u.org_id, u.email, u.name, u.role, u.status, u.mfa_enabled
        FROM sessions s JOIN users u ON u.id = s.user_id
       WHERE s.id = ?`,
     hashToken(token),
@@ -158,6 +159,7 @@ export function attachUser(req, _res, next) {
     email: row.email,
     name: row.name,
     role: row.role,
+    mfaEnabled: row.mfa_enabled === 1,
     sessionId: row.session_id,
   };
   req.csrfHash = row.csrf_hash;
@@ -176,10 +178,24 @@ export function requireRole(...roles) {
   return (req, _res, next) => {
     if (!req.user) return next(unauthorized());
     const allowed = new Set(roles);
-    if (allowed.has(req.user.role)) return next();
-    const minRank = Math.min(...[...allowed].map((r) => RANK[r] ?? 99));
-    if (RANK[req.user.role] >= minRank) return next();
-    return next(forbidden());
+    if (!allowed.has(req.user.role)) {
+      const minRank = Math.min(...[...allowed].map((r) => RANK[r] ?? 99));
+      if (!(RANK[req.user.role] >= minRank)) return next(forbidden());
+    }
+    // Administrator-only mutations require an enrolled second factor. Reads stay
+    // available so an unenrolled administrator can still open Settings and
+    // complete enrollment; no state can change until MFA is active.
+    const adminOnly = allowed.has('admin') && !allowed.has('analyst') && !allowed.has('viewer');
+    const mutating = !['GET', 'HEAD', 'OPTIONS'].includes(req.method);
+    if (adminOnly && mutating && req.user.role === 'admin' && req.user.mfaEnabled !== true) {
+      try {
+        audit(req, 'auth.admin_mfa_required', 'route', `${req.method} ${req.baseUrl}${req.path}`, { method: req.method });
+      } catch (error) {
+        console.error('[auth] failed to audit an MFA enrollment denial', error.message);
+      }
+      return next(new ApiError(403, 'ADMIN_MFA_ENROLLMENT_REQUIRED', 'Enrol multi-factor authentication before performing administrator actions. Open Settings, Security, to enrol.'));
+    }
+    return next();
   };
 }
 

@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { totp } from './totp';
 
 /**
  * Public entry and authentication journey.
@@ -53,6 +55,16 @@ test('a protected route sends a signed out visitor to sign in and back after log
   await expect(page).toHaveURL(/\/login\?next=%2Foverview/);
 
   await page.getByRole('button', { name: 'Continue to console' }).click({ timeout: 15_000 });
+  const mfaField = page.locator('#mfa-code');
+  await Promise.race([
+    page.waitForURL(/\/overview/, { timeout: 15_000 }),
+    mfaField.waitFor({ state: 'visible', timeout: 15_000 }),
+  ]);
+  if (await mfaField.isVisible()) {
+    const { secret } = JSON.parse(readFileSync('e2e/.auth/admin-mfa.json', 'utf8')) as { secret: string };
+    await mfaField.fill(totp(secret));
+    await page.getByRole('button', { name: /Verify and sign in/ }).click();
+  }
   await expect(page).toHaveURL(/\/overview/);
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 

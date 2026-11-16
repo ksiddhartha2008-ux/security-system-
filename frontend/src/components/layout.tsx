@@ -329,6 +329,15 @@ export function AppShellLayout() {
       <div className="content-shell" ref={contentRef}>
         <div className="scroll-progress" ref={progressRef} aria-hidden="true" />
         <CyberFluidBackground />
+        {user?.role === 'admin' && user.mfaEnabled !== true && (
+          <div className="mfa-banner" role="status">
+            <ShieldAlert size={16} aria-hidden="true" />
+            <span>
+              <strong>Administrator actions are locked.</strong> Enrol multi-factor authentication to approve or execute responses, create API keys or change workspace settings.
+            </span>
+            <Link to="/settings?tab=security" className="btn btn-sm btn-primary">Enrol MFA</Link>
+          </div>
+        )}
         <div className="page">
           <PageTransition routeKey={location.pathname}>
             <Outlet />

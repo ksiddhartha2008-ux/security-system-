@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { startServer, login, client, DEMO } from './helpers.mjs';
+import { startServer, login, client, enrollAdminMfa, DEMO } from './helpers.mjs';
 
 const dnsFile = join(tmpdir(), `sf-website-dns-${process.pid}-${Date.now()}.json`);
 let server;
@@ -84,7 +84,7 @@ before(async () => {
     SF_WEBSITE_PROTECTION: 'true',
   });
   admin = await login(server.base, ...DEMO.admin);
-  const step = await admin.post('/auth/step-up', { password: DEMO.admin[1] });
+  const step = await admin.stepUp();
   assert.equal(step.status, 200, step.text);
   adminNoStep = await login(server.base, ...DEMO.admin);
   analyst = await login(server.base, ...DEMO.analyst);
@@ -330,7 +330,8 @@ test('another organization cannot read, change or verify the website', async () 
     name: 'Other Owner', email, password: 'CorrectHorse#2026', organizationName: `Other ${Date.now()}`,
   });
   assert.equal(registered.status, 201, registered.text);
-  const step = await other.post('/auth/step-up', { password: 'CorrectHorse#2026' });
+  await enrollAdminMfa(other, 'CorrectHorse#2026');
+  const step = await other.stepUp();
   assert.equal(step.status, 200);
 
   assert.equal((await other.get(`/v1/websites/${siteId}`)).status, 404);
@@ -365,7 +366,8 @@ test('concurrent verification of one hostname has exactly one winner', async () 
       name: `Race ${label}`, email, password, organizationName: `Race ${label} ${stamp}`,
     });
     assert.equal(registered.status, 201, registered.text);
-    await org.post('/auth/step-up', { password });
+    await enrollAdminMfa(org, password);
+    await org.stepUp();
   }
 
   const siteA = await createSite(orgA, siteUrl(hostname));
@@ -396,7 +398,8 @@ test('domain scope blocks a later subdomain claim from another organization', as
       name: label, email: `${label}-${stamp}@example.test`, password, organizationName: `${label} ${stamp}`,
     });
     assert.equal(registered.status, 201, registered.text);
-    await org.post('/auth/step-up', { password });
+    await enrollAdminMfa(org, password);
+    await org.stepUp();
   }
 
   const site = await createSite(owner, siteUrl(domain), { scope: 'domain' });
